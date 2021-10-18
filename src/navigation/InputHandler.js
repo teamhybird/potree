@@ -146,6 +146,7 @@ export class InputHandler extends EventDispatcher {
 					inputListener.dispatchEvent({
 						type: 'drag',
 						drag: this.drag,
+						event: e,
 						viewer: this.viewer
 					});
 				}
@@ -255,15 +256,7 @@ export class InputHandler extends EventDispatcher {
 
 		let consumed = false;
 		let consume = () => { return consumed = true; };
-		if (this.hoveredElements.length === 0) {
-			for (let inputListener of this.getSortedListeners()) {
-				inputListener.dispatchEvent({
-					type: 'mousedown',
-					viewer: this.viewer,
-					mouse: this.mouse
-				});
-			}
-		}else{
+		if (this.hoveredElements.length > 0) {
 			for(let hovered of this.hoveredElements){
 				let object = hovered.object;
 				object.dispatchEvent({
@@ -278,13 +271,24 @@ export class InputHandler extends EventDispatcher {
 			}
 		}
 
-		if (!this.drag) {
-			let target = this.hoveredElements
-				.find(el => (
-					el.object._listeners &&
-					el.object._listeners['drag'] &&
-					el.object._listeners['drag'].length > 0));
+		let target = this.hoveredElements
+      .find(el => (
+        el.object._listeners &&
+        el.object._listeners['drag'] &&
+        el.object._listeners['drag'].length > 0));
+    if(target && target.object && target.object.parent && !target.object.parent.isInserting){
+      // measurement is being moved don't do anything
+    }else{
+      for (let inputListener of this.getSortedListeners()) {
+        inputListener.dispatchEvent({
+          type: 'mousedown',
+          viewer: this.viewer,
+          mouse: this.mouse
+        });
+      }
+    }
 
+		if (!this.drag) {
 			if (target) {
 				this.startDragging(target.object, {location: target.point});
 			} else {
@@ -307,20 +311,7 @@ export class InputHandler extends EventDispatcher {
 		
 		let consumed = false;
 		let consume = () => { return consumed = true; };
-		if (this.hoveredElements.length === 0) {
-			for (let inputListener of this.getSortedListeners()) {
-				inputListener.dispatchEvent({
-					type: 'mouseup',
-					viewer: this.viewer,
-					mouse: this.mouse,
-					consume: consume
-				});
-
-				if(consumed){
-					break;
-				}
-			}
-		}else{
+		if (this.hoveredElements.length > 0) {
 			let hovered = this.hoveredElements
 				.map(e => e.object)
 				.find(e => (e._listeners && e._listeners['mouseup']));
@@ -342,15 +333,14 @@ export class InputHandler extends EventDispatcher {
 					viewer: this.viewer
 
 				});
-			} else {
-				for (let inputListener of this.getSortedListeners()) {
-					inputListener.dispatchEvent({
-						type: 'drop',
-						drag: this.drag,
-						viewer: this.viewer
-					});
-				}
 			}
+			for (let inputListener of this.getSortedListeners()) {
+        inputListener.dispatchEvent({
+          type: 'drop',
+          drag: this.drag,
+          viewer: this.viewer
+        });
+      }
 
 			// check for a click
 			let clicked = this.hoveredElements.map(h => h.object).find(v => v === this.drag.object) !== undefined;
@@ -420,7 +410,8 @@ export class InputHandler extends EventDispatcher {
 				this.drag.object.dispatchEvent({
 					type: 'drag',
 					drag: this.drag,
-					viewer: this.viewer
+					viewer: this.viewer,
+					event: e
 				});
 			} else {
 				if (this.logMessages) console.log(this.constructor.name + ': drag: ');
@@ -431,6 +422,7 @@ export class InputHandler extends EventDispatcher {
 						type: 'drag',
 						drag: this.drag,
 						viewer: this.viewer,
+						event: e,
 						consume: () => {dragConsumed = true;}
 					});
 
@@ -674,6 +666,7 @@ export class InputHandler extends EventDispatcher {
 		let raycaster = new THREE.Raycaster();
 		raycaster.ray.set(ray.origin, ray.direction);
 		raycaster.params.Line.threshold = 0.2;
+		raycaster.camera = camera;
 
 		let intersections = raycaster.intersectObjects(interactables.filter(o => o.visible), false);
 

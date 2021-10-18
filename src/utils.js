@@ -1076,6 +1076,39 @@ export class Utils {
 
 	}
 
+	static hexToRgb(hex) {
+		var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+		return result ? {
+			r: parseInt(result[1], 16),
+			g: parseInt(result[2], 16),
+			b: parseInt(result[3], 16)
+		} : null;
+	}
+
+	static getColorFromString(colorName) {
+
+		switch(colorName){
+			case 'yellow':
+				return 0xfecf33;
+			case 'orange':
+				return 0xffa500;
+			case 'lightOrange':
+				return 0xf69833;
+			case 'green':   
+				return 0x01f6a5;
+			case 'lightBlue':
+				return 0x0dcfda;
+			case 'blue':
+				return 0x419bf9;
+			case 'purple':
+				return 0xdb7cee;
+			case 'red':
+				return 0xcc0033;
+			default:
+				return 0x01f6a5;
+		}
+	}
+
 }
 
 Utils.screenPass = new function () {

@@ -1,5 +1,6 @@
 
 import * as THREE from "../../libs/three.js/build/three.module.js";
+import { ShapeTypes } from "../defines.js";
 import {TextSprite} from "../TextSprite.js";
 
 export class Volume extends THREE.Object3D {
@@ -14,10 +15,12 @@ export class Volume extends THREE.Object3D {
 		//console.log(this.constructor);
 		//console.log(this.constructor.name);
 
+		this._shapeType = args.shapeType || ShapeTypes.cube;
 		this._clip = args.clip || false;
 		this._visible = true;
 		this.showVolumeLabel = true;
 		this._modifiable = args.modifiable || true;
+		this._modelDetails = args.modelDetails || {};
 
 		this.label = new TextSprite('0');
 		this.label.setBorderColor({r: 0, g: 255, b: 0, a: 0.0});
@@ -41,6 +44,8 @@ export class Volume extends THREE.Object3D {
 			}
 		};
 
+		this.enableMove = typeof args.enableMove === "undefined" ? true : args.enableMove;
+
 		{ // event listeners
 			this.addEventListener('select', e => {});
 			this.addEventListener('deselect', e => {});
@@ -63,6 +68,29 @@ export class Volume extends THREE.Object3D {
 	getVolume () {
 		console.warn("override this in subclass");
 	}
+
+	setShapePosition(pos){
+    this.position.copy(pos);
+  }
+
+  setShapeRotation(rotation){
+    this.rotation.x = rotation.x;
+    this.rotation.y = rotation.y;
+    this.rotation.z = rotation.z;
+  }
+
+  setShapeScale(scale){
+    this.scale.x = scale.x;
+    this.scale.y = scale.y;
+    this.scale.z = scale.z;
+  }
+
+	select(e){
+    this.dispatchEvent({
+      'type': 'shape_select',
+      'object': this,
+    });
+  }
 
 	update () {
 		
@@ -91,6 +119,29 @@ export class Volume extends THREE.Object3D {
 		
 	}
 
+	get shapeType(){
+		return this._shapeType;
+	}
+
+	set shapeType(value){
+    this._shapeType = value;
+  }
+  
+  get enableMove (){
+    return this._enableMove;
+  }
+
+  set enableMove (val){
+    if(val){
+      this.addEventListener('select', this.select);
+			this.addEventListener('deselect', e => {});
+    }else{
+      this.removeEventListener('select', this.select);
+			this.removeEventListener('deselect', e => {});
+    }
+    this._enableMove = val;
+  }
+
 	get modifieable () {
 		return this._modifiable;
 	}
@@ -100,6 +151,22 @@ export class Volume extends THREE.Object3D {
 
 		this.update();
 	}
+
+	get modelDetails(){
+    return this._modelDetails;
+  }
+
+  set modelDetails (value = {}) {
+		this._modelDetails = value;
+
+    // ignore scale or rotation
+    if(value.scale){
+      this.setShapeScale(value.scale);
+    }
+    if(value.rotation){
+      this.setShapeRotation(value.rotation)
+    }
+  }
 };
 
 

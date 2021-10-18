@@ -2,7 +2,7 @@
 import * as THREE from "../../libs/three.js/build/three.module.js";
 import {Measure} from "./Measure.js";
 import {Utils} from "../utils.js";
-import {CameraMode} from "../defines.js";
+import {CameraMode, SystemType} from "../defines.js";
 import { EventDispatcher } from "../EventDispatcher.js";
 
 function updateAzimuth(viewer, measure){
@@ -170,11 +170,28 @@ export class MeasuringTool extends EventDispatcher{
 		let domElement = this.viewer.renderer.domElement;
 
 		let measure = new Measure();
+		measure.isInserting = true;
+    measure.enableMove = true;
 
 		this.dispatchEvent({
 			type: 'start_inserting_measurement',
 			measure: measure
 		});
+
+		let configureMeasure = (args = {}) => {
+      measure.showDistances = (args.showDistances === null) ? true : args.showDistances;
+      measure.showArea = args.showArea || false;
+      measure.showAngles = args.showAngles || false;
+      measure.showCoordinates = args.showCoordinates || false;
+      measure.showHeight = args.showHeight || false;
+      measure.showCircle = args.showCircle || false;
+      measure.closed = args.closed || false;
+      measure.maxMarkers = args.maxMarkers || Infinity;
+      measure.name = args.name || 'Measurement';
+      measure.colorName = args.colorName || 'green';
+      measure.systemType = args.systemType || Potree.SystemType.none;
+      measure.enableMove = args.enableMove || true;
+    }
 
 		const pick = (defaul, alternative) => {
 			if(defaul != null){
@@ -184,19 +201,7 @@ export class MeasuringTool extends EventDispatcher{
 			}
 		};
 
-		measure.showDistances = (args.showDistances === null) ? true : args.showDistances;
-
-		measure.showArea = pick(args.showArea, false);
-		measure.showAngles = pick(args.showAngles, false);
-		measure.showCoordinates = pick(args.showCoordinates, false);
-		measure.showHeight = pick(args.showHeight, false);
-		measure.showCircle = pick(args.showCircle, false);
-		measure.showAzimuth = pick(args.showAzimuth, false);
-		measure.showEdges = pick(args.showEdges, true);
-		measure.closed = pick(args.closed, false);
-		measure.maxMarkers = pick(args.maxMarkers, Infinity);
-
-		measure.name = args.name || 'Measurement';
+		configureMeasure(args);
 
 		this.scene.add(measure);
 
@@ -205,33 +210,84 @@ export class MeasuringTool extends EventDispatcher{
 			callback: null
 		};
 
+		let mouseMoved = false;
 		let insertionCallback = (e) => {
-			if (e.button === THREE.MOUSE.LEFT) {
-				measure.addMarker(measure.points[measure.points.length - 1].position.clone());
+			if(!mouseMoved){
+				if (e.button === THREE.MOUSE.LEFT) {
+					measure.addMarker(measure.points[measure.points.length - 1].position.clone());
 
-				if (measure.points.length >= measure.maxMarkers) {
-					cancel.callback();
+					if (measure.points.length > measure.maxMarkers) {
+						cancel.callback(null, true);
+					}
+
+					this.viewer.inputHandler.startDragging(
+						measure.spheres[measure.spheres.length - 1]);
+				} else if (e.button === THREE.MOUSE.RIGHT  || e.key === 'Escape') {
+					if(measure.points.length <= 2){
+            configureMeasure({
+              showDistances: false,
+              showAngles: false,
+              showCoordinates: true,
+              showArea: false,
+              closed: true,
+              maxMarkers: 1,
+              name: 'Point',
+            })
+          }
+					cancel.callback(null, true);
 				}
-
-				this.viewer.inputHandler.startDragging(
-					measure.spheres[measure.spheres.length - 1]);
-			} else if (e.button === THREE.MOUSE.RIGHT) {
-				cancel.callback();
-			}
+			} else{
+        this.viewer.inputHandler.startDragging(
+          measure.spheres[measure.spheres.length - 1]);
+      }
+      domElement.removeEventListener('mousemove', mouseMove)
+      mouseMoved = false;
+      measure.enableMove = true;
 		};
 
-		cancel.callback = e => {
-			if (cancel.removeLastMarker) {
+		let doubleClick= (e) => {
+      measure.removeMarker(measure.points.length - 1);
+			cancel.callback();
+    }
+
+    let mouseMove = e => {
+      mouseMoved = true;
+      measure.enableMove = false;
+      
+      domElement.removeEventListener('mousemove',mouseMove)
+    }
+
+    let mouseDown = e => {
+      domElement.addEventListener('mousemove',mouseMove);
+    }
+
+		cancel.callback = (e, isCanceled = false) => {
+			if (cancel.removeLastMarker || isCanceled) {
 				measure.removeMarker(measure.points.length - 1);
 			}
+			this.dispatchEvent({
+        type: 'finish_inserting_measurement',
+        measure: measure
+      });
+      measure.isInserting = false;
 			domElement.removeEventListener('mouseup', insertionCallback, false);
+			document.removeEventListener('keyup', insertionCallback, true);
+			domElement.removeEventListener('mousedown', mouseDown, true);
+			domElement.removeEventListener('dblclick', doubleClick, true);
 			this.viewer.removeEventListener('cancel_insertions', cancel.callback);
 		};
 
 		if (measure.maxMarkers > 1) {
 			this.viewer.addEventListener('cancel_insertions', cancel.callback);
 			domElement.addEventListener('mouseup', insertionCallback, false);
-		}
+      document.addEventListener('keyup', insertionCallback, true);
+      domElement.addEventListener('mousedown', mouseDown, true);
+			domElement.addEventListener('dblclick', doubleClick, true);
+		}else if(measure.maxMarkers === 1){
+      domElement.addEventListener('mouseup', insertionCallback, false);
+      document.addEventListener('keyup', insertionCallback, true);
+      domElement.addEventListener('mousedown', mouseDown, true);
+    }
 
 		measure.addMarker(new THREE.Vector3(0, 0, 0));
 		this.viewer.inputHandler.startDragging(
@@ -241,6 +297,28 @@ export class MeasuringTool extends EventDispatcher{
 
 		return measure;
 	}
+
+	getMeasurePointSize (systemType) {
+    let size = 15;
+    switch(systemType){
+      case SystemType.measurement:
+        size = 15;
+        break;
+      case SystemType.defect:
+        size = 20;
+        break;
+      case SystemType.component:
+        size = 20;
+        break;
+      case SystemType.inspect:
+        size = 20;
+        break;
+      default:
+        size = 15
+        break;
+    }
+    return size;
+  }
 	
 	update(){
 		let camera = this.viewer.scene.getActiveCamera();
@@ -265,7 +343,7 @@ export class MeasuringTool extends EventDispatcher{
 			for(let sphere of measure.spheres){
 				let distance = camera.position.distanceTo(sphere.getWorldPosition(new THREE.Vector3()));
 				let pr = Utils.projectedRadius(1, camera, distance, clientWidth, clientHeight);
-				let scale = (15 / pr);
+				let scale = (this.getMeasurePointSize(measure.systemType) / pr);
 				sphere.scale.set(scale, scale, scale);
 			}
 
@@ -294,7 +372,7 @@ export class MeasuringTool extends EventDispatcher{
 				screenPos.x = Math.round((screenPos.x + 1) * clientWidth / 2);
 				screenPos.y = Math.round((-screenPos.y + 1) * clientHeight / 2);
 				screenPos.z = 0;
-				screenPos.y -= 30;
+				screenPos.y += 40;
 
 				let labelPos = new THREE.Vector3( 
 					(screenPos.x / clientWidth) * 2 - 1, 
@@ -373,21 +451,21 @@ export class MeasuringTool extends EventDispatcher{
 				label.scale.set(scale, scale, scale);
 			}
 
-			{ // radius label
-				let label = measure.circleRadiusLabel;
-				let distance = label.position.distanceTo(camera.position);
-				let pr = Utils.projectedRadius(1, camera, distance, clientWidth, clientHeight);
+			// { // radius label
+			// 	let label = measure.circleRadiusLabel;
+			// 	let distance = label.position.distanceTo(camera.position);
+			// 	let pr = Utils.projectedRadius(1, camera, distance, clientWidth, clientHeight);
 
-				let scale = (70 / pr);
-				label.scale.set(scale, scale, scale);
-			}
+			// 	let scale = (70 / pr);
+			// 	label.scale.set(scale, scale, scale);
+			// }
 
 			{ // edges
 				const materials = [
-					measure.circleRadiusLine.material,
+					// measure.circleRadiusLine.material,
 					...measure.edges.map( (e) => e.material),
 					measure.heightEdge.material,
-					measure.circleLine.material,
+					// measure.circleLine.material,
 				];
 
 				for(const material of materials){
@@ -404,7 +482,7 @@ export class MeasuringTool extends EventDispatcher{
 					...measure.coordinateLabels,
 					measure.heightLabel,
 					measure.areaLabel,
-					measure.circleRadiusLabel,
+					// measure.circleRadiusLabel,
 				];
 
 				for(const label of labels){

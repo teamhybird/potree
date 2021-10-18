@@ -54,3 +54,19 @@ export const LengthUnits = {
 	FEET: {code: 'ft', unitspermeter: 3.28084},
 	INCH: {code: '\u2033', unitspermeter: 39.3701}
 };
+
+export const ShapeTypes = {
+  cube: 'CUBE',
+  ring: 'RING',
+  cylinder: 'CYLINDER',
+  sphere: 'SPHERE',
+  volume: 'VOLUME'
+}
+
+export const SystemType = {
+  measurement: 'MEASUREMENT',
+  defect: 'DEFECT',
+  component: 'Component',
+  inspect: 'INSPECT',
+  none: 'None'
+};

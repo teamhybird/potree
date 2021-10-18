@@ -508,6 +508,12 @@ export class TransformationTool {
 	dropRotationHandle(e){
 		this.dragging = false;
 		this.setActiveHandle(null);
+		for (let selection of this.selection) {
+      selection.dispatchEvent({
+        type: "rotation_changed_drop",
+        object: selection
+      });
+    }
 	}
 
 	dragTranslationHandle(e){
@@ -563,11 +569,23 @@ export class TransformationTool {
 	dropTranslationHandle(e){
 		this.dragging = false;
 		this.setActiveHandle(null);
+		for (let selection of this.selection) {
+      selection.dispatchEvent({
+        type: "position_changed_drop",
+        object: selection
+      });
+    }
 	}
 
 	dropScaleHandle(e){
 		this.dragging = false;
 		this.setActiveHandle(null);
+		for (let selection of this.selection) {
+      selection.dispatchEvent({
+        type: "scale_changed_drop",
+        object: selection
+      });
+    }
 	}
 
 	dragScaleHandle(e){

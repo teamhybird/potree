@@ -84,7 +84,7 @@ export class HQSplatRenderer{
 	clear(){
 		this.init();
 
-		const {renderer, background} = this.viewer;
+		const {renderer, background, getBackground} = this.viewer;
 
 		if(background === "skybox"){
 			renderer.setClearColor(0x000000, 0);
@@ -95,7 +95,7 @@ export class HQSplatRenderer{
 		} else if (background === 'white') {
 			renderer.setClearColor(0xFFFFFF, 1);
 		} else {
-			renderer.setClearColor(0x000000, 0);
+			renderer.setClearColor(getBackground(), 1);
 		}
 
 		renderer.clear();
@@ -279,7 +279,7 @@ export class HQSplatRenderer{
 			viewer.renderer.setClearColor(0xFFFFFF, 1);
 			viewer.renderer.clear();
 		} else {
-			viewer.renderer.setClearColor(0x000000, 0);
+			viewer.renderer.setClearColor(viewer.getBackground(), 1);
 			viewer.renderer.clear();
 		}
 
