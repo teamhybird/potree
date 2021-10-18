@@ -9,7 +9,7 @@ import {PointCloudTree} from "../PointCloudTree.js"
 import {Profile} from "../utils/Profile.js"
 import {Measure} from "../utils/Measure.js"
 import {Annotation} from "../Annotation.js"
-import {CameraMode, ClipTask, ClipMethod} from "../defines.js"
+import {CameraMode, ClipTask, ClipMethod, SystemType, ShapeTypes} from "../defines.js"
 import {ScreenBoxSelectTool} from "../utils/ScreenBoxSelectTool.js"
 import {Utils} from "../utils.js"
 import {CameraAnimation} from "../modules/CameraAnimation/CameraAnimation.js"
@@ -27,6 +27,7 @@ export class Sidebar{
 		this.measuringTool = viewer.measuringTool;
 		this.profileTool = viewer.profileTool;
 		this.volumeTool = viewer.volumeTool;
+		this.shapeTool = viewer.shapeTool;
 
 		this.dom = $("#sidebar_root");
 	}
@@ -75,6 +76,8 @@ export class Sidebar{
 					showArea: false,
 					closed: true,
 					maxMarkers: 3,
+					coordinatesText: 'New Defect',
+					systemType: SystemType.measurement,
 					name: 'Angle'});
 
 				let measurementsRoot = $("#jstree_scene").jstree().get_json("measurements");
@@ -97,6 +100,8 @@ export class Sidebar{
 					showArea: false,
 					closed: true,
 					maxMarkers: 1,
+					coordinatesText: 'New Defect',
+					systemType: SystemType.measurement,
 					name: 'Point'});
 
 				let measurementsRoot = $("#jstree_scene").jstree().get_json("measurements");
@@ -116,6 +121,8 @@ export class Sidebar{
 					showDistances: true,
 					showArea: false,
 					closed: false,
+					coordinatesText: 'New Defect',
+					systemType: SystemType.measurement,
 					name: 'Distance'});
 
 				let measurementsRoot = $("#jstree_scene").jstree().get_json("measurements");
@@ -137,6 +144,8 @@ export class Sidebar{
 					showArea: false,
 					closed: false,
 					maxMarkers: 2,
+					coordinatesText: 'New Defect',
+					systemType: SystemType.measurement,
 					name: 'Height'});
 
 				let measurementsRoot = $("#jstree_scene").jstree().get_json("measurements");
@@ -154,12 +163,13 @@ export class Sidebar{
 				$('#menu_measurements').next().slideDown();
 				let measurement = this.measuringTool.startInsertion({
 					showDistances: false,
-					showHeight: false,
+					showHeight: true,
 					showArea: false,
 					showCircle: true,
-					showEdges: false,
 					closed: false,
-					maxMarkers: 3,
+					coordinatesText: 'New Circle',
+					maxMarkers: 2,
+					systemType: SystemType.measurement,
 					name: 'Circle'});
 
 				let measurementsRoot = $("#jstree_scene").jstree().get_json("measurements");
@@ -235,6 +245,112 @@ export class Sidebar{
 
 				let measurementsRoot = $("#jstree_scene").jstree().get_json("measurements");
 				let jsonNode = measurementsRoot.children.find(child => child.data.uuid === volume.uuid);
+				$.jstree.reference(jsonNode.id).deselect_all();
+				$.jstree.reference(jsonNode.id).select_node(jsonNode.id);
+			}
+		));
+
+		// SHAPE CUBE
+		elToolbar.append(this.createToolIcon(
+			Potree.resourcePath + '/icons/box.svg',
+			'[title]tt.shape_cube',
+			() => { 
+				let shape = this.shapeTool.startInsertion({shapeType: ShapeTypes.cube, name: "Shape"}); 
+
+				let measurementsRoot = $("#jstree_scene").jstree().get_json("measurements");
+				let jsonNode = measurementsRoot.children.find(child => child.data.uuid === shape.uuid);
+				$.jstree.reference(jsonNode.id).deselect_all();
+				$.jstree.reference(jsonNode.id).select_node(jsonNode.id);
+			}
+		));
+
+		// SHAPE RING
+		elToolbar.append(this.createToolIcon(
+			Potree.resourcePath + '/icons/sphere.svg',
+			'[title]tt.shape_ring',
+			() => { 
+				let shape = this.shapeTool.startInsertion({shapeType: ShapeTypes.ring, name: "Shape"}); 
+
+				let measurementsRoot = $("#jstree_scene").jstree().get_json("measurements");
+				let jsonNode = measurementsRoot.children.find(child => child.data.uuid === shape.uuid);
+				$.jstree.reference(jsonNode.id).deselect_all();
+				$.jstree.reference(jsonNode.id).select_node(jsonNode.id);
+			}
+		));
+
+		// SHAPE CYLINDER
+		elToolbar.append(this.createToolIcon(
+			Potree.resourcePath + '/icons/cylinder.svg',
+			'[title]tt.shape_cylinder',
+			() => { 
+				let shape = this.shapeTool.startInsertion({shapeType: ShapeTypes.cylinder, name: "Shape"}); 
+
+				let measurementsRoot = $("#jstree_scene").jstree().get_json("measurements");
+				let jsonNode = measurementsRoot.children.find(child => child.data.uuid === shape.uuid);
+				$.jstree.reference(jsonNode.id).deselect_all();
+				$.jstree.reference(jsonNode.id).select_node(jsonNode.id);
+			}
+		));
+
+		// SHAPE SPHERE
+		elToolbar.append(this.createToolIcon(
+			Potree.resourcePath + '/icons/sphere.svg',
+			'[title]tt.shape_sphere',
+			() => { 
+				let shape = this.shapeTool.startInsertion({shapeType: ShapeTypes.sphere, name: "Shape"}); 
+
+				let measurementsRoot = $("#jstree_scene").jstree().get_json("measurements");
+				let jsonNode = measurementsRoot.children.find(child => child.data.uuid === shape.uuid);
+				$.jstree.reference(jsonNode.id).deselect_all();
+				$.jstree.reference(jsonNode.id).select_node(jsonNode.id);
+			}
+		));
+
+		// COMPONENT
+		elToolbar.append(this.createToolIcon(
+			Potree.resourcePath + '/icons/point.svg',
+			'[title]tt.point_component',
+			() => {
+				$('#menu_measurements').next().slideDown();
+				let measurement = this.measuringTool.startInsertion({
+					showDistances: false,
+					showAngles: false,
+					showCoordinates: true,
+					showArea: false,
+					closed: true,
+					maxMarkers: 1,
+					coordinatesText: 'New Component',
+					systemType: SystemType.component,
+					name: 'Point'
+				});
+
+				let measurementsRoot = $("#jstree_scene").jstree().get_json("measurements");
+				let jsonNode = measurementsRoot.children.find(child => child.data.uuid === measurement.uuid);
+				$.jstree.reference(jsonNode.id).deselect_all();
+				$.jstree.reference(jsonNode.id).select_node(jsonNode.id);
+			}
+		));
+
+		// COMPONENT
+		elToolbar.append(this.createToolIcon(
+			Potree.resourcePath + '/icons/point.svg',
+			'[title]tt.point_defect',
+			() => {
+				$('#menu_measurements').next().slideDown();
+				let measurement = this.measuringTool.startInsertion({
+					showDistances: false,
+					showAngles: false,
+					showCoordinates: true,
+					showArea: false,
+					closed: true,
+					maxMarkers: 1,
+					coordinatesText: 'New Component',
+					systemType: SystemType.defect,
+					name: 'Point'
+				});
+
+				let measurementsRoot = $("#jstree_scene").jstree().get_json("measurements");
+				let jsonNode = measurementsRoot.children.find(child => child.data.uuid === measurement.uuid);
 				$.jstree.reference(jsonNode.id).deselect_all();
 				$.jstree.reference(jsonNode.id).select_node(jsonNode.id);
 			}

@@ -327,7 +327,7 @@ export class ProfileRequest {
 					let numElements = attribute.array.length / numPoints;
 
 					if(numElements !== parseInt(numElements)){
-						debugger;
+						// debugger;
 					}
 
 					let Type = attribute.array.constructor;

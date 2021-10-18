@@ -26,12 +26,12 @@ export class TextSprite extends THREE.Object3D{
 		this.sprite = new THREE.Sprite(this.material);
 		this.add(this.sprite);
 
-		this.borderThickness = 4;
-		this.fontface = 'Arial';
-		this.fontsize = 28;
-		this.borderColor = { r: 0, g: 0, b: 0, a: 1.0 };
-		this.backgroundColor = { r: 255, g: 255, b: 255, a: 1.0 };
-		this.textColor = {r: 255, g: 255, b: 255, a: 1.0};
+		this.borderThickness = 0;
+		this.fontface = 'Montserrat';
+		this.fontsize = 16;
+		this.borderColor = { r: 1, g: 246, b: 165, a: 1.0 };
+		this.backgroundColor = { r: 1, g: 246, b: 165, a: 1.0 };
+		this.textColor = {r: 0, g: 0, b: 0, a: 1.0};
 		this.text = '';
 
 		this.setText(text);
@@ -71,9 +71,9 @@ export class TextSprite extends THREE.Object3D{
 		// get size data (height depends only on font size)
 		let metrics = context.measureText(this.text);
 		let textWidth = metrics.width;
-		let margin = 5;
+		let margin = 20;
 		let spriteWidth = 2 * margin + textWidth + 2 * this.borderThickness;
-		let spriteHeight = this.fontsize * 1.4 + 2 * this.borderThickness;
+		let spriteHeight = this.fontsize * 1.4 + 2 * this.borderThickness + 2 * margin;
 
 		context.canvas.width = spriteWidth;
 		context.canvas.height = spriteHeight;
@@ -91,12 +91,12 @@ export class TextSprite extends THREE.Object3D{
 			textWidth + this.borderThickness + 2 * margin, this.fontsize * 1.4 + this.borderThickness, 6);
 
 		// text color
-		context.strokeStyle = 'rgba(0, 0, 0, 1.0)';
-		context.strokeText(this.text, this.borderThickness + margin, this.fontsize + this.borderThickness);
+		// context.strokeStyle = 'rgba(0, 0, 0, 1.0)';
+		context.strokeText(this.text, this.borderThickness + margin / 2, this.fontsize + this.borderThickness);
 
 		context.fillStyle = 'rgba(' + this.textColor.r + ',' + this.textColor.g + ',' +
 			this.textColor.b + ',' + this.textColor.a + ')';
-		context.fillText(this.text, this.borderThickness + margin, this.fontsize + this.borderThickness);
+		context.fillText(this.text, this.borderThickness + margin / 2, this.fontsize + this.borderThickness);
 
 		let texture = new THREE.Texture(canvas);
 		texture.minFilter = THREE.LinearFilter;

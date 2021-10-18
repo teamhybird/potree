@@ -312,7 +312,7 @@ export function updateVisibility(pointclouds, camera, renderer){
 			node.sceneNode.material = pointcloud.material;
 
 			visibleNodes.push(node);
-			pointcloud.visibleNodes.push(node);
+			visibleGeometry.push(node);
 
 			if(node._transformVersion === undefined){
 				node._transformVersion = -1;
@@ -388,6 +388,9 @@ export function updateVisibility(pointclouds, camera, renderer){
 
 				weight = diagonal;
 			}
+
+			pointcloud.visibleNodes = visibleNodes;
+      pointcloud.visibleGeometry = visibleGeometry;
 
 			priorityQueue.push({pointcloud: element.pointcloud, node: child, parent: node, weight: weight});
 		}

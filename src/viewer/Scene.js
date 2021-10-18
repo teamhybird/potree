@@ -28,8 +28,10 @@ export class Scene extends EventDispatcher{
 		this.pointclouds = [];
 
 		this.measurements = [];
+		this.cameraHelpers = [];
 		this.profiles = [];
 		this.volumes = [];
+		this.shapes = [];
 		this.polygonClipVolumes = [];
 		this.cameraAnimations = [];
 		this.orientedImages = [];
@@ -246,6 +248,28 @@ export class Scene extends EventDispatcher{
 		}
 	};
 
+	addShape (shape) {
+		this.shapes.push(shape);
+		this.dispatchEvent({
+			'type': 'shape_added',
+			'scene': this,
+			'shape': shape
+		});
+	};
+
+	removeShape (shape) {
+		let index = this.shapes.indexOf(shape);
+		if (index > -1) {
+			this.shapes.splice(index, 1);
+
+			this.dispatchEvent({
+				'type': 'shape_removed',
+				'scene': this,
+				'shape': shape
+			});
+		}
+	};
+
 	addPolygonClipVolume(volume){
 		this.polygonClipVolumes.push(volume);
 		this.dispatchEvent({
@@ -290,6 +314,28 @@ export class Scene extends EventDispatcher{
 		}
 	}
 
+	addCameraHelper(camera){
+    if(!camera) return;
+		this.cameraHelpers.push(camera);
+		this.dispatchEvent({
+			'type': 'camera_helper_added',
+			'scene': this,
+			'camera': camera
+		});
+	};
+
+	removeCameraHelper (camera) {
+		let index = this.cameraHelpers.indexOf(camera);
+		if (index > -1) {
+			this.cameraHelpers.splice(index, 1);
+			this.dispatchEvent({
+				'type': 'camera_helper_removed',
+				'scene': this,
+				'camera': camera
+			});
+		}
+	}
+
 	addProfile (profile) {
 		this.profiles.push(profile);
 		this.dispatchEvent({
@@ -316,12 +362,20 @@ export class Scene extends EventDispatcher{
 			this.removeMeasurement(this.measurements[0]);
 		}
 
+		while (this.cameraHelpers.length > 0) {
+			this.removeCameraHelper(this.cameraHelpers[0]);
+		}
+
 		while (this.profiles.length > 0) {
 			this.removeProfile(this.profiles[0]);
 		}
 
 		while (this.volumes.length > 0) {
 			this.removeVolume(this.volumes[0]);
+		}
+
+		while (this.shapes.length > 0) {
+			this.removeShape(this.shapes[0]);
 		}
 	}
 

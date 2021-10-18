@@ -48,7 +48,7 @@ export class BinaryLoader{
 		try {
 			xhr.send(null);
 		} catch (e) {
-			console.log('fehler beim laden der punktwolke: ' + e);
+			console.log(e);
 		}
 	};
 

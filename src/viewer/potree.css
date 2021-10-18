@@ -793,3 +793,32 @@ body{
 	padding-top: 0.6em;
 	padding-bottom: 0.1em;
 }
+
+.progress-wrapper {
+	background-color: rgba(1, 0, 1, 0.4);
+	border: 1px solid #00c282;
+	border-radius: 12px;
+	bottom: 15px;
+	box-shadow: #a1a1a1 0 2px 2px inset;
+	height: 20px;
+	pointer-events: none;
+	position: absolute;
+	right: 50%;
+	text-align: center;
+	transform: translateX(50%);
+	width: 200px;
+	
+}
+
+.progress-wrapper .progress-bar {
+	background-image: linear-gradient(to bottom, #01f6a5, #00c282);
+	border-radius: 12px;
+	position: absolute;
+}
+.progress-wrapper .progress-text {
+	position: absolute;
+	color: white;
+	text-transform: capitalize;
+	width: 100%;
+	margin: 0;
+}

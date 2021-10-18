@@ -1,6 +1,6 @@
 
 import * as THREE from "../../libs/three.js/build/three.module.js";
-import {ClipTask, ClipMethod, CameraMode, LengthUnits, ElevationGradientRepeat} from "../defines.js";
+import {ClipTask, ClipMethod, CameraMode, LengthUnits, ElevationGradientRepeat, SystemType, ShapeTypes} from "../defines.js";
 import {Renderer} from "../PotreeRenderer.js";
 import {PotreeRenderer} from "./PotreeRenderer.js";
 import {EDLRenderer} from "./EDLRenderer.js";
@@ -20,6 +20,7 @@ import {AnnotationTool} from "../utils/AnnotationTool.js";
 import {MeasuringTool} from "../utils/MeasuringTool.js";
 import {ProfileTool} from "../utils/ProfileTool.js";
 import {VolumeTool} from "../utils/VolumeTool.js";
+import {ShapeTool} from "../utils/ShapeTool.js";
 
 import {InputHandler} from "../navigation/InputHandler.js";
 import {NavigationCube} from "./NavigationCube.js";
@@ -32,6 +33,8 @@ import {VRControls} from "../navigation/VRControls.js";
 import { EventDispatcher } from "../EventDispatcher.js";
 import { ClassificationScheme } from "../materials/ClassificationScheme.js";
 import { VRButton } from '../../libs/three.js/extra/VRButton.js';
+import { PointCloudArena4D } from "../arena4d/PointCloudArena4D.js";
+import { ProgressBar } from "./ProgressBar.js";
 
 import JSON5 from "../../libs/json5-2.1.3/json5.mjs";
 
@@ -141,6 +144,7 @@ export class Viewer extends EventDispatcher{
 		this.classifications = ClassificationScheme.DEFAULT;
 
 		this.moveSpeed = 10;
+    this.zoomSpeed = 2;
 
 		this.lengthUnit = LengthUnits.METER;
 		this.lengthUnitDisplay = LengthUnits.METER;
@@ -178,6 +182,7 @@ export class Viewer extends EventDispatcher{
 		
 		this.skybox = null;
 		this.clock = new THREE.Clock();
+		this.progressBar = new ProgressBar();
 		this.background = null;
 
 		this.initThree();
@@ -275,6 +280,10 @@ export class Viewer extends EventDispatcher{
 				this.inputHandler.deselect(e.volume);
 			};
 
+			let onShapeRemoved = (e) => {
+				this.inputHandler.deselect(e.shape);
+			};
+
 			this.addEventListener('scene_changed', (e) => {
 				this.inputHandler.setScene(e.scene);
 				this.clippingTool.setScene(this.scene);
@@ -286,10 +295,15 @@ export class Viewer extends EventDispatcher{
 				if(!e.scene.hasEventListener("volume_removed", onPointcloudAdded)){
 					e.scene.addEventListener("volume_removed", onVolumeRemoved);
 				}
+
+				if(!e.scene.hasEventListener("shape_removed", onPointcloudAdded)){
+					e.scene.addEventListener("shape_removed", onShapeRemoved);
+				}
 				
 			});
 
 			this.scene.addEventListener("volume_removed", onVolumeRemoved);
+			this.scene.addEventListener("shape_removed", onShapeRemoved);
 			this.scene.addEventListener('pointcloud_added', onPointcloudAdded);
 		}
 
@@ -325,6 +339,7 @@ export class Viewer extends EventDispatcher{
 		this.measuringTool = new MeasuringTool(this);
 		this.profileTool = new ProfileTool(this);
 		this.volumeTool = new VolumeTool(this);
+		this.shapeTool = new ShapeTool(this);
 
 		}catch(e){
 			this.onCrash(e);
@@ -503,6 +518,10 @@ export class Viewer extends EventDispatcher{
 			this.dispatchEvent({'type': 'move_speed_changed', 'viewer': this, 'speed': value});
 		}
 	};
+
+	setZoomSpeed (zoomSpeed) {
+    this.zoomSpeed = zoomSpeed;
+  }
 
 	getMoveSpeed () {
 		return this.moveSpeed;
@@ -847,6 +866,110 @@ export class Viewer extends EventDispatcher{
 		}
 	};
 
+	getCenterPoint() {
+    var middle = new THREE.Vector3();
+    let box = this.getBoundingBox(this.scene.pointclouds);
+
+    middle.x = (box.max.x + box.min.x) / 2;
+    middle.y = (box.max.y + box.min.y) / 2;
+    middle.z = (box.max.z + box.min.z) / 2;
+
+    return middle;
+  }
+
+  setCameraPosition(camPos, cameraRot, animationDuration = 0){
+		let view = this.scene.view;
+    let camera = this.scene.cameraP.clone();
+      
+		camera.updateMatrix();
+		camera.updateMatrixWorld();
+    camera.position.set(camPos.x,camPos.y,camPos.z);
+    camera.rotation.copy(cameraRot);
+
+    camera.rotation.order = "ZXY";
+    let endYaw = camera.rotation.z;
+    let endPitch = camera.rotation.x - Math.PI / 2;
+    let endRoll = camera.rotation.y - Math.PI / 2;
+
+		let startPosition = view.position.clone();
+		let endPosition = camera.position.clone();
+		let easing = TWEEN.Easing.Quartic.Out;
+
+		{ // animate camera position
+			let pos = startPosition.clone();
+			let tween = new TWEEN.Tween(pos).to(endPosition, animationDuration);
+			tween.easing(easing);
+
+			tween.onUpdate(() => {
+				view.position.copy(pos);
+			});
+
+			tween.start();
+    }
+
+    view.pitch = endPitch;
+    view.yaw = endYaw;
+    view.roll = endRoll;
+	};
+  
+  zoomToPosition(camPos, points, animationDuration = 0){
+		let view = this.scene.view;
+		let camera = this.scene.cameraP.clone();
+		camera.rotation.copy(this.scene.cameraP.rotation);
+		camera.rotation.order = "ZXY";
+		camera.rotation.x = Math.PI / 2 + view.pitch;
+		camera.rotation.z = view.yaw;
+		camera.updateMatrix();
+		camera.updateMatrixWorld();
+    camera.position.set(camPos.x,camPos.y,camPos.z);
+    let startTarget = view.getPivot();
+    let centroid = null
+
+    if(points){
+      centroid = new THREE.Vector3();
+      for (let i = 0; i < points.length; i++) {
+        let point = points[i];
+        centroid.add(new THREE.Vector3(point[0], point[1], point[2]));
+      }
+      centroid.divideScalar(points.length);
+    }
+    
+		let endTarget = centroid || this.getCenterPoint();
+
+		let startPosition = view.position.clone();
+		let endPosition = camera.position.clone();
+
+		let easing = TWEEN.Easing.Quartic.Out;
+
+		{ // animate camera position
+			let pos = startPosition.clone();
+			let tween = new TWEEN.Tween(pos).to(endPosition, animationDuration);
+			tween.easing(easing);
+
+			tween.onUpdate(() => {
+				view.position.copy(pos);
+			});
+
+			tween.start();
+    }
+    
+    { // animate camera target
+			let target = startTarget.clone();
+			let tween = new TWEEN.Tween(target).to(endTarget, animationDuration);
+			tween.easing(easing);
+			tween.onUpdate(() => {
+				view.lookAt(target);
+			});
+			tween.onComplete(() => {
+				view.lookAt(target);
+				this.dispatchEvent({type: 'focusing_finished', target: this});
+			});
+
+			this.dispatchEvent({type: 'focusing_started', target: this});
+			tween.start();
+		}
+	};
+
 	moveToGpsTimeVicinity(time){
 		const result = Potree.Utils.findClosestGpsTime(time, viewer);
 
@@ -894,7 +1017,7 @@ export class Viewer extends EventDispatcher{
 		node.boundingBox = box;
 
 		this.zoomTo(node, factor, animationDuration);
-		this.controls.stop();
+		if(this.controls) this.controls.stop();
 	};
 
 	toggleNavigationCube() {
@@ -1648,6 +1771,27 @@ export class Viewer extends EventDispatcher{
 			material.classification = this.classifications;
 			material.recomputeClassification();
 
+			// UPDATE PROGRESS BAR
+      var progress = pointcloud.progress;
+      if(!isNaN(progress)){
+        if(this.progressBar) this.progressBar.progress = progress;
+        
+        var message;
+        if(progress === 0 || pointcloud instanceof PointCloudArena4D){
+          message = "loading";
+        }else{
+          message = "loading: " + parseInt(progress*100) + "%";
+        }
+        if(this.progressBar) {
+          this.progressBar.message = message;
+          if(progress === 1){
+            this.progressBar.hide();
+          }else if(progress < 1){
+            this.progressBar.show();
+          }
+        }
+      }
+
 			this.updateMaterialDefaults(pointcloud);
 		}
 
@@ -1945,7 +2089,7 @@ export class Viewer extends EventDispatcher{
 			}else if(viewer.background === "white"){
 				renderer.setClearColor(0xFFFFFF, 1);
 			}else{
-				renderer.setClearColor(0x000000, 0);
+				renderer.setClearColor(this.getBackground(), 1);
 			}
 
 			renderer.clear();

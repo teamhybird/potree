@@ -18,6 +18,7 @@ export class EarthControls extends EventDispatcher {
 
 		this.fadeFactor = 20;
 		this.wheelDelta = 0;
+		this.panDelta = new THREE.Vector2(0, 0);
 		this.zoomDelta = new THREE.Vector3();
 		this.camStart = null;
 
@@ -28,13 +29,13 @@ export class EarthControls extends EventDispatcher {
 			let sm = new THREE.MeshNormalMaterial();
 			this.pivotIndicator = new THREE.Mesh(sg, sm);
 			this.pivotIndicator.visible = false;
-			this.sceneControls.add(this.pivotIndicator);
+			// this.sceneControls.add(this.pivotIndicator);
 		}
 
 		let drag = (e) => {
-			if (e.drag.object !== null) {
-				return;
-			}
+			// if (e.drag.object !== null) {
+			// 	return;
+			// }
 
 			if (!this.pivot) {
 				return;
@@ -54,35 +55,7 @@ export class EarthControls extends EventDispatcher {
 			let mouse = e.drag.end;
 			let domElement = this.viewer.renderer.domElement;
 
-			if (e.drag.mouse === MOUSE.LEFT) {
-
-				let ray = Utils.mouseToRay(mouse, camera, domElement.clientWidth, domElement.clientHeight);
-				let plane = new THREE.Plane().setFromNormalAndCoplanarPoint(
-					new THREE.Vector3(0, 0, 1),
-					this.pivot);
-
-				let distanceToPlane = ray.distanceToPlane(plane);
-
-				if (distanceToPlane > 0) {
-					let I = new THREE.Vector3().addVectors(
-						camStart.position,
-						ray.direction.clone().multiplyScalar(distanceToPlane));
-
-					let movedBy = new THREE.Vector3().subVectors(
-						I, this.pivot);
-
-					let newCamPos = camStart.position.clone().sub(movedBy);
-
-					view.position.copy(newCamPos);
-
-					{
-						let distance = newCamPos.distanceTo(this.pivot);
-						view.radius = distance;
-						let speed = view.radius / 2.5;
-						this.viewer.setMoveSpeed(speed);
-					}
-				}
-			} else if (e.drag.mouse === MOUSE.RIGHT) {
+			if (e.drag.mouse === MOUSE.RIGHT || (e.drag.mouse === MOUSE.LEFT && e.event.ctrlKey)) {
 				let ndrag = {
 					x: e.drag.lastDrag.x / this.renderer.domElement.clientWidth,
 					y: e.drag.lastDrag.y / this.renderer.domElement.clientHeight
@@ -112,6 +85,44 @@ export class EarthControls extends EventDispatcher {
 				view.position.copy(newCam);
 				view.yaw += yawDelta;
 				view.pitch += pitchDelta;
+			} else if (e.drag.mouse === MOUSE.LEFT) {
+        if(!camStart){
+          let ndrag = {
+            x: e.drag.lastDrag.x / this.renderer.domElement.clientWidth,
+            y: e.drag.lastDrag.y / this.renderer.domElement.clientHeight
+          };
+
+          this.panDelta.x += ndrag.x;
+          this.panDelta.y += ndrag.y;
+          this.stopTweens();
+          return;
+        }
+				let ray = Utils.mouseToRay(mouse, camera, domElement.clientWidth, domElement.clientHeight);
+				let plane = new THREE.Plane().setFromNormalAndCoplanarPoint(
+					new THREE.Vector3(0, 0, 1),
+					this.pivot);
+
+				let distanceToPlane = ray.distanceToPlane(plane);
+
+				if (distanceToPlane > 0) {
+					let I = new THREE.Vector3().addVectors(
+						camStart.position,
+						ray.direction.clone().multiplyScalar(distanceToPlane));
+
+					let movedBy = new THREE.Vector3().subVectors(
+						I, this.pivot);
+
+					let newCamPos = camStart.position.clone().sub(movedBy);
+
+					view.position.copy(newCamPos);
+
+					{
+						let distance = newCamPos.distanceTo(this.pivot);
+						view.radius = distance;
+						let speed = view.radius / 2.5;
+						this.viewer.setMoveSpeed(speed);
+					}
+				}
 			}
 		};
 
@@ -128,7 +139,10 @@ export class EarthControls extends EventDispatcher {
 				this.camStart = this.scene.getActiveCamera().clone();
 				this.pivotIndicator.visible = true;
 				this.pivotIndicator.position.copy(I.location);
-			}
+				this.dispatchEvent({type: 'pointcloud-clicked', position: I.location});
+			}else {
+        this.pivot = this.scene.view.getPivot();
+      }
 		};
 
 		let drop = e => {
@@ -164,7 +178,14 @@ export class EarthControls extends EventDispatcher {
 	stop(){
 		this.wheelDelta = 0;
 		this.zoomDelta.set(0, 0, 0);
-	}
+		this.panDelta.set(0,0);
+  }
+  
+	stopTweens () {
+        
+		this.tweens.forEach(e => e.stop());
+		this.tweens = [];
+  }
 	
 	zoomToLocation(mouse){
 		let camera = this.scene.getActiveCamera();
@@ -229,6 +250,10 @@ export class EarthControls extends EventDispatcher {
 		}
 	}
 
+	zoomInOut(direction = 1, jumpDistance = 20){
+    this.wheelDelta = direction * jumpDistance;
+  }
+
 	update (delta) {
 		let view = this.scene.view;
 		let fade = Math.pow(0.5, this.fadeFactor * delta);
@@ -245,8 +270,7 @@ export class EarthControls extends EventDispatcher {
 
 			if (I) {
 				let resolvedPos = new THREE.Vector3().addVectors(view.position, this.zoomDelta);
-				let distance = I.location.distanceTo(resolvedPos);
-				let jumpDistance = distance * 0.2 * this.wheelDelta;
+				let jumpDistance = this.viewer.zoomSpeed * this.wheelDelta;
 				let targetDir = new THREE.Vector3().subVectors(I.location, view.position);
 				targetDir.normalize();
 
@@ -254,12 +278,24 @@ export class EarthControls extends EventDispatcher {
 				this.zoomDelta.subVectors(resolvedPos, view.position);
 
 				{
-					let distance = resolvedPos.distanceTo(I.location);
-					view.radius = distance;
-					let speed = view.radius / 2.5;
+					let speed = 4;
 					this.viewer.setMoveSpeed(speed);
 				}
-			}
+			} else {
+        let resolvedPos = new THREE.Vector3().addVectors(view.position, this.zoomDelta);
+        let pivot = view.getPivot();
+        let jumpDistance = this.viewer.zoomSpeed * this.wheelDelta;
+				let targetDir = new THREE.Vector3().subVectors(pivot, view.position);
+				targetDir.normalize();
+
+				resolvedPos.add(targetDir.multiplyScalar(jumpDistance));
+				this.zoomDelta.subVectors(resolvedPos, view.position);
+
+				{
+					let speed = 4;
+					this.viewer.setMoveSpeed(speed);
+				}
+      }
 		}
 
 		// apply zoom
@@ -279,8 +315,21 @@ export class EarthControls extends EventDispatcher {
 			this.pivotIndicator.scale.set(scale, scale, scale);
 		}
 
+		{ // apply pan
+			let progression = Math.min(1, this.fadeFactor * delta);
+			let panDistance = progression * view.radius * 3;
+
+			let px = -this.panDelta.x * panDistance;
+			let py = this.panDelta.y * panDistance;
+
+			view.pan(px, py);
+    }
+
 		// decelerate over time
 		{
+			let attenuation = Math.max(0, 1 - this.fadeFactor * delta);
+
+      this.panDelta.multiplyScalar(attenuation);
 			this.zoomDelta.multiplyScalar(fade);
 			this.wheelDelta = 0;
 		}

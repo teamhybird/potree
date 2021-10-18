@@ -46,7 +46,11 @@
 		"navigation_cube_control": "Navigation cube",
 		"remove_all_clipping_volumes": "Remove all clipping volumes",
 		"compass": "Compass",
-		"camera_animation": "Camera Animation"
+		"camera_animation": "Camera Animation",
+		"shape_cube": "Shape [Cube]",
+		"shape_ring": "Shape [Ring]",
+		"shape_cylinder": "Shape [Cylinder]",
+		"shape_sphere": "Shape [Sphere]"
 	},
 	"appearance": {
 		"nb_max_pts": "Point budget", 

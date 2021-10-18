@@ -97,11 +97,15 @@ function loadMeasurement(viewer, data){
 	measure.showCoordinates = data.showCoordinates;
 	measure.showArea = data.showArea;
 	measure.closed = data.closed;
+	measure.maxMarkers = data.maxMarkers || Infinity;
 	measure.showAngles = data.showAngles;
 	measure.showHeight = data.showHeight;
 	measure.showCircle = data.showCircle;
 	measure.showAzimuth = data.showAzimuth;
 	measure.showEdges = data.showEdges;
+	measure.colorName = data.colorName || 'green';
+	measure.systemType = data.systemType || Potree.SystemType.none;
+	measure.enableMove = data.enableMove || true;
 	// color
 
 	for(const point of data.points){

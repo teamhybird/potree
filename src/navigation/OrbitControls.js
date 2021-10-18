@@ -78,16 +78,16 @@ export class OrbitControls extends EventDispatcher{
 		let scroll = (e) => {
 			let resolvedRadius = this.scene.view.radius + this.radiusDelta;
 
-			this.radiusDelta += -e.delta * resolvedRadius * 0.1;
+			this.radiusDelta += -e.delta * (resolvedRadius > 1 ? resolvedRadius : 1) * 0.1;
 
 			this.stopTweens();
 		};
 
-		let dblclick = (e) => {
-			if(this.doubleClockZoomEnabled){
-				this.zoomToLocation(e.mouse);
-			}
-		};
+		// let dblclick = (e) => {
+		// 	if(this.doubleClockZoomEnabled){
+		// 		this.zoomToLocation(e.mouse);
+		// 	}
+		// };
 
 		let previousTouch = null;
 		let touchStart = e => {
@@ -147,7 +147,7 @@ export class OrbitControls extends EventDispatcher{
 		this.addEventListener('drag', drag);
 		this.addEventListener('drop', drop);
 		this.addEventListener('mousewheel', scroll);
-		this.addEventListener('dblclick', dblclick);
+		// this.addEventListener('dblclick', dblclick);
 	}
 
 	setScene (scene) {
