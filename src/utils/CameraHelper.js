@@ -13,7 +13,7 @@ function setPoint( point, pointMap, geometry, camera, x, y, z ) {
 
     var position = geometry.attributes.position;
 
-		for ( var i = 0, l = points.length; i < l; i ++ ) {
+		for ( var i = 0, l = points.length; i < l; i++ ) {
 
 			position.setXYZ( points[ i ], _vector.x, _vector.y, _vector.z );
 
@@ -133,8 +133,8 @@ export class CameraHelper extends THREE.LineSegments {
       // Plane geometry
       var planeGeometry = new THREE.BufferGeometry();
       var positions = new Float32Array(planeVertices.length * 3);
-      var uvs     = new Float32Array( quad_uvs);
-      var indices = new Uint32Array( quad_indices )
+      var uvs = new Float32Array( quad_uvs);
+      var indices = new Uint32Array( quad_indices );
 
       for (var i = 0; i < planeVertices.length; i++) {
         positions[i * 3] = planeVertices[i].x;
@@ -143,7 +143,7 @@ export class CameraHelper extends THREE.LineSegments {
       }
           
       planeGeometry.addAttribute( 'position', new THREE.Float32BufferAttribute( planeVertices, 3 ) );
-      planeGeometry.addAttribute( 'uv', new THREE.BufferAttribute( uvs, 2 ))
+      planeGeometry.addAttribute( 'uv', new THREE.BufferAttribute( uvs, 2 ));
       planeGeometry.setIndex(new THREE.BufferAttribute( indices, 1 ));
 
       var plane = new THREE.Mesh(planeGeometry, planeMaterial);
@@ -225,12 +225,12 @@ export class CameraHelper extends THREE.LineSegments {
 
   remove(scene){
     scene.remove(this.cameraSphere);
-    this.planes.forEach(plane=>scene.remove(plane));
+    this.planes.forEach(plane => scene.remove(plane));
     scene.remove(this);
   }
 
   removeThumbnail(scene){
-    this.planes.forEach(plane=>scene.remove(plane));
+    this.planes.forEach(plane => scene.remove(plane));
     scene.remove(this);
   }
 
@@ -250,7 +250,7 @@ export class CameraHelper extends THREE.LineSegments {
     this.cameraSphere.position.copy(this.camera.position);
     var dirVector = this.camera.getWorldDirection();
     this.cameraSphere.position.add(dirVector.multiplyScalar(-0.5));
-    this.cameraSphere.scale.set(0.5,0.5,0.5);
+    this.cameraSphere.scale.set(0.5, 0.5, 0.5);
     scene.add(this.cameraSphere);
 
     let mouseover = (e) => {
@@ -261,7 +261,7 @@ export class CameraHelper extends THREE.LineSegments {
         type: 'camera_helper_mouseover',
         cameraHelper: this,
       });
-    }
+    };
 
     let mouseleave = (e) => {
       if(!this.selected){
@@ -271,14 +271,14 @@ export class CameraHelper extends THREE.LineSegments {
         type: 'camera_helper_mouseleave',
         cameraHelper: this,
       });
-    }
+    };
 
     let mouseclick = (e) => {
       this.dispatchEvent({
         type: 'camera_helper_clicked',
         cameraHelper: this,
       });
-    }
+    };
 
     this.cameraSphere.addEventListener("mouseover", mouseover);
     this.cameraSphere.addEventListener("mouseleave", mouseleave);
@@ -287,7 +287,7 @@ export class CameraHelper extends THREE.LineSegments {
 
     if(!this.thumbnailVisible) return;
     scene.add(this);
-    this.planes.forEach(plane=>scene.add(plane));
+    this.planes.forEach(plane => scene.add(plane));
   }
 
   shootRayThroughPoint(pointFrom, pointTo){
@@ -328,10 +328,10 @@ export class CameraHelper extends THREE.LineSegments {
     var intersection = ( intersections.length ) > 0 ? intersections[ 0 ] : null;
 
     
-    setTimeout(()=>{
+    setTimeout(() => {
       this.viewer.scene.scene.remove(arrowhelper);
       this.viewer.scene.scene.remove(cameraSphere);
-    },3000);
+    }, 3000);
     
     if(intersection && intersection.point){
       return intersection.point;
@@ -345,7 +345,7 @@ export class CameraHelper extends THREE.LineSegments {
 
     var pointMap = this.pointMap;
 
-    var w = 1, h = 1;
+    var w = 1; var h = 1;
 
     // we need just camera projection matrix inverse
     // world matrix must be identity
@@ -354,14 +354,14 @@ export class CameraHelper extends THREE.LineSegments {
     this.camera.updateMatrixWorld();
     // center / target
 
-    setPoint( 'c', pointMap, geometry, _camera, 0, 0, - 1 );
+    setPoint( 'c', pointMap, geometry, _camera, 0, 0, -1 );
     setPoint( 't', pointMap, geometry, _camera, 0, 0, 1 );
 
     // near
-    setPoint( 'n1', pointMap, geometry, _camera, - w, - h, - 1 );
-    setPoint( 'n2', pointMap, geometry, _camera, w, - h, - 1 );
-    setPoint( 'n3', pointMap, geometry, _camera, - w, h, - 1 );
-    setPoint( 'n4', pointMap, geometry, _camera, w, h, - 1 );
+    setPoint( 'n1', pointMap, geometry, _camera, -w, -h, -1 );
+    setPoint( 'n2', pointMap, geometry, _camera, w, -h, -1 );
+    setPoint( 'n3', pointMap, geometry, _camera, -w, h, -1 );
+    setPoint( 'n4', pointMap, geometry, _camera, w, h, -1 );
 
     // far
 
@@ -372,9 +372,9 @@ export class CameraHelper extends THREE.LineSegments {
 
     // up
 
-    setPoint( 'u1', pointMap, geometry, _camera, w * 0.7, h * 1.1, - 1 );
-    setPoint( 'u2', pointMap, geometry, _camera, - w * 0.7, h * 1.1, - 1 );
-    setPoint( 'u3', pointMap, geometry, _camera, 0, h * 2, - 1 );
+    setPoint( 'u1', pointMap, geometry, _camera, w * 0.7, h * 1.1, -1 );
+    setPoint( 'u2', pointMap, geometry, _camera, -w * 0.7, h * 1.1, -1 );
+    setPoint( 'u3', pointMap, geometry, _camera, 0, h * 2, -1 );
 
     // cross
 
@@ -383,14 +383,14 @@ export class CameraHelper extends THREE.LineSegments {
     // setPoint( 'cf3', pointMap, geometry, _camera, 0, - h, 1 );
     // setPoint( 'cf4', pointMap, geometry, _camera, 0, h, 1 );
 
-    setPoint( 'cn1', pointMap, geometry, _camera, - w, 0, - 1 );
-    setPoint( 'cn2', pointMap, geometry, _camera, w, 0, - 1 );
-    setPoint( 'cn3', pointMap, geometry, _camera, 0, - h, - 1 );
-    setPoint( 'cn4', pointMap, geometry, _camera, 0, h, - 1 );
+    setPoint( 'cn1', pointMap, geometry, _camera, -w, 0, -1 );
+    setPoint( 'cn2', pointMap, geometry, _camera, w, 0, -1 );
+    setPoint( 'cn3', pointMap, geometry, _camera, 0, -h, -1 );
+    setPoint( 'cn4', pointMap, geometry, _camera, 0, h, -1 );
 
     geometry.attributes.position.needsUpdate = true;
 
-    this.planes.forEach((plane, index)=>{
+    this.planes.forEach((plane, index) => {
       const planeGeometry = plane.geometry;
       const planePointMap = this.planePointsMap[index];
 
@@ -398,32 +398,32 @@ export class CameraHelper extends THREE.LineSegments {
       plane.rotation.copy(this.camera.rotation);
       plane.scale.y = -1;
 
-      var ids = Object.keys(planePointMap).map(id=>id);
+      var ids = Object.keys(planePointMap).map(id => id);
 
       // TODO: this needs to be dynamic currently it is not possible to add another plane need to remember x, y, z of each pointMap id
-      setPoint( ids[0], planePointMap, planeGeometry, _camera, - w, h, - 1 );
-      setPoint( ids[1], planePointMap, planeGeometry, _camera, w, h, - 1 );
-      setPoint( ids[2], planePointMap, planeGeometry, _camera, w, - h, - 1 );
-      setPoint( ids[3], planePointMap, planeGeometry, _camera, - w, - h, - 1 );
+      setPoint( ids[0], planePointMap, planeGeometry, _camera, -w, h, -1 );
+      setPoint( ids[1], planePointMap, planeGeometry, _camera, w, h, -1 );
+      setPoint( ids[2], planePointMap, planeGeometry, _camera, w, -h, -1 );
+      setPoint( ids[3], planePointMap, planeGeometry, _camera, -w, -h, -1 );
 
       plane.geometry.attributes.position.needsUpdate = true;
-    })
+    });
   }
 
   selectCamera () {
     if(this.cameraSphere){
       var dirVector = this.camera.getWorldDirection();
       this.cameraSphere.position.add(dirVector.multiplyScalar(-0.8));
-      this.cameraSphere.scale.set(0.8,0.8,0.8);
+      this.cameraSphere.scale.set(0.8, 0.8, 0.8);
       this.cameraSphere.material.opacity = 1;
     }
-    setTimeout(()=>{
+    setTimeout(() => {
       this.viewer.setCameraPosition(
         this.camera.position,
         this.camera.rotation,
         500
-      )
-    },500)
+      );
+    }, 500);
   }
 
   raycast (raycaster, intersects) {
@@ -468,7 +468,7 @@ export class CameraHelper extends THREE.LineSegments {
     if(value){
       this.selectCamera();
     }
-    return 
+     
   }
 
   get visible (){
@@ -485,7 +485,7 @@ export class CameraHelper extends THREE.LineSegments {
         this.hideCamera(this.viewer);
       }
     }
-    return 
+     
   }
 
   get thumbnailVisible () {
@@ -502,7 +502,7 @@ export class CameraHelper extends THREE.LineSegments {
         this.hideThumbnail(this.viewer);
       }
     }
-    return 
+     
   }
 
 }

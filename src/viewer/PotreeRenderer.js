@@ -49,7 +49,7 @@ export class PotreeRenderer {
 
 		const camera = params.camera ? params.camera : viewer.scene.getActiveCamera();
 
-		viewer.dispatchEvent({type: "render.pass.begin",viewer: viewer});
+		viewer.dispatchEvent({type: "render.pass.begin", viewer: viewer});
 
 		const renderAreaSize = renderer.getSize(new THREE.Vector2());
 		const width = params.viewport ? params.viewport[2] : renderAreaSize.x;
@@ -82,7 +82,7 @@ export class PotreeRenderer {
 		// render scene
 		renderer.render(viewer.scene.scene, camera);
 
-		viewer.dispatchEvent({type: "render.pass.scene",viewer: viewer});
+		viewer.dispatchEvent({type: "render.pass.scene", viewer: viewer});
 		
 		viewer.clippingTool.update();
 		renderer.render(viewer.clippingTool.sceneMarker, viewer.scene.cameraScreenSpace); //viewer.scene.cameraScreenSpace);
@@ -94,7 +94,7 @@ export class PotreeRenderer {
 		
 		viewer.transformationTool.update();
 		
-		viewer.dispatchEvent({type: "render.pass.perspective_overlay",viewer: viewer});
+		viewer.dispatchEvent({type: "render.pass.perspective_overlay", viewer: viewer});
 
 		// renderer.render(viewer.controls.sceneControls, camera);
 		// renderer.render(viewer.clippingTool.sceneVolume, camera);
@@ -106,7 +106,7 @@ export class PotreeRenderer {
 		// renderer.render(viewer.navigationCube, viewer.navigationCube.camera);		
 		// renderer.setViewport(0, 0, width, height);
 		
-		viewer.dispatchEvent({type: "render.pass.end",viewer: viewer});
+		viewer.dispatchEvent({type: "render.pass.end", viewer: viewer});
 	}
 
 }

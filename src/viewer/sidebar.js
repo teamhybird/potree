@@ -1,19 +1,19 @@
 
 import * as THREE from "../../libs/three.js/build/three.module.js";
-import {GeoJSONExporter} from "../exporter/GeoJSONExporter.js"
-import {DXFExporter} from "../exporter/DXFExporter.js"
-import {Volume, SphereVolume} from "../utils/Volume.js"
-import {PolygonClipVolume} from "../utils/PolygonClipVolume.js"
-import {PropertiesPanel} from "./PropertyPanels/PropertiesPanel.js"
-import {PointCloudTree} from "../PointCloudTree.js"
-import {Profile} from "../utils/Profile.js"
-import {Measure} from "../utils/Measure.js"
-import {Annotation} from "../Annotation.js"
-import {CameraMode, ClipTask, ClipMethod, SystemType, ShapeTypes} from "../defines.js"
-import {ScreenBoxSelectTool} from "../utils/ScreenBoxSelectTool.js"
-import {Utils} from "../utils.js"
-import {CameraAnimation} from "../modules/CameraAnimation/CameraAnimation.js"
-import {HierarchicalSlider} from "./HierarchicalSlider.js"
+import {GeoJSONExporter} from "../exporter/GeoJSONExporter.js";
+import {DXFExporter} from "../exporter/DXFExporter.js";
+import {Volume, SphereVolume} from "../utils/Volume.js";
+import {PolygonClipVolume} from "../utils/PolygonClipVolume.js";
+import {PropertiesPanel} from "./PropertyPanels/PropertiesPanel.js";
+import {PointCloudTree} from "../PointCloudTree.js";
+import {Profile} from "../utils/Profile.js";
+import {Measure} from "../utils/Measure.js";
+import {Annotation} from "../Annotation.js";
+import {CameraMode, ClipTask, ClipMethod, SystemType, ShapeTypes} from "../defines.js";
+import {ScreenBoxSelectTool} from "../utils/ScreenBoxSelectTool.js";
+import {Utils} from "../utils.js";
+import {CameraAnimation} from "../modules/CameraAnimation/CameraAnimation.js";
+import {HierarchicalSlider} from "./HierarchicalSlider.js";
 import {OrientedImage} from "../modules/OrientedImages/OrientedImages.js";
 import {Images360} from "../modules/Images360/Images360.js";
 
@@ -470,7 +470,7 @@ export class Sidebar{
 			elDownloadPotree.click( (event) => {
 
 				let data = Potree.saveProject(this.viewer);
-				let dataString = JSON5.stringify(data, null, "\t")
+				let dataString = JSON5.stringify(data, null, "\t");
 
 				let url = window.URL.createObjectURL(new Blob([dataString], {type: 'data:application/octet-stream'}));
 				elDownloadPotree.attr('href', url);
@@ -518,7 +518,7 @@ export class Sidebar{
 			}
 
 			return nodeID;
-		}
+		};
 
 		let pcID = tree.jstree('create_node', "#", { "text": "<b>Point Clouds</b>", "id": "pointclouds"}, "last", false, false);
 		let measurementID = tree.jstree('create_node', "#", { "text": "<b>Measurements</b>", "id": "measurements" }, "last", false, false);
@@ -559,7 +559,7 @@ export class Sidebar{
 			propertiesPanel.set(null);
 		});
 
-		tree.on('dblclick','.jstree-anchor', (e) => {
+		tree.on('dblclick', '.jstree-anchor', (e) => {
 
 			let instance = $.jstree.reference(e.target);
 			let node = instance.get_node(e.target);
@@ -607,7 +607,7 @@ export class Sidebar{
 				let target;
 
 				if(object.camera instanceof THREE.OrthographicCamera){
-					dir.multiplyScalar(object.camera.right)
+					dir.multiplyScalar(object.camera.right);
 					target = new THREE.Vector3().addVectors(object.camera.position, dir);
 					this.viewer.setCameraMode(CameraMode.ORTHOGRAPHIC);
 				}else if(object.camera instanceof THREE.PerspectiveCamera){
@@ -978,7 +978,7 @@ export class Sidebar{
 			}
 		));
 
-		{// SCREEN BOX SELECT
+		{ // SCREEN BOX SELECT
 			let boxSelectTool = new ScreenBoxSelectTool(this.viewer);
 
 			clippingToolBar.append(this.createToolIcon(
@@ -1034,7 +1034,7 @@ export class Sidebar{
 				min: 0, max: 7, step: 1,
 				values: [0, 7],
 				slide: (event, ui) => {
-					this.viewer.setFilterReturnNumberRange(ui.values[0], ui.values[1])
+					this.viewer.setFilterReturnNumberRange(ui.values[0], ui.values[1]);
 				}
 			});
 
@@ -1059,7 +1059,7 @@ export class Sidebar{
 				min: 0, max: 7, step: 1,
 				values: [0, 7],
 				slide: (event, ui) => {
-					this.viewer.setFilterNumberOfReturnsRange(ui.values[0], ui.values[1])
+					this.viewer.setFilterNumberOfReturnsRange(ui.values[0], ui.values[1]);
 				}
 			});
 
@@ -1131,11 +1131,11 @@ export class Sidebar{
 					const value = parseFloat(str);
 					targetTime = value;
 
-					txtGpsTime.css("background-color", "")
+					txtGpsTime.css("background-color", "");
 				}else{
 					targetTime = null;
 
-					txtGpsTime.css("background-color", "#ff9999")
+					txtGpsTime.css("background-color", "#ff9999");
 				}
 
 			});
@@ -1244,7 +1244,7 @@ export class Sidebar{
 				this.viewer.setClassificationVisibility(code, event.target.checked);
 			});
 
-			let defaultColor = classification.color.map(c => c *  255).join(", ");
+			let defaultColor = classification.color.map(c => c * 255).join(", ");
 			defaultColor = `rgb(${defaultColor})`;
 
 
@@ -1287,7 +1287,7 @@ export class Sidebar{
 			});
 
 			elClassificationList.append(element);
-		}
+		};
 
 		const addInvertButton = () => { 
 			const element = $(`
@@ -1542,7 +1542,7 @@ export class Sidebar{
 		elNavigation.append(this.createToolIcon(
 			Potree.resourcePath + "/icons/navigation_cube.svg",
 			"[title]tt.navigation_cube_control",
-			() => {this.viewer.toggleNavigationCube()}
+			() => { this.viewer.toggleNavigationCube(); }
 		));
 
 		elNavigation.append(this.createToolIcon(
@@ -1571,37 +1571,37 @@ export class Sidebar{
 		elNavigation.append(this.createToolIcon(
 			Potree.resourcePath + "/icons/left.svg",
 			"[title]tt.left_view_control",
-			() => {this.viewer.setLeftView()}
+			() => { this.viewer.setLeftView(); }
 		));
 
 		elNavigation.append(this.createToolIcon(
 			Potree.resourcePath + "/icons/right.svg",
 			"[title]tt.right_view_control",
-			() => {this.viewer.setRightView()}
+			() => { this.viewer.setRightView(); }
 		));
 
 		elNavigation.append(this.createToolIcon(
 			Potree.resourcePath + "/icons/front.svg",
 			"[title]tt.front_view_control",
-			() => {this.viewer.setFrontView()}
+			() => { this.viewer.setFrontView(); }
 		));
 
 		elNavigation.append(this.createToolIcon(
 			Potree.resourcePath + "/icons/back.svg",
 			"[title]tt.back_view_control",
-			() => {this.viewer.setBackView()}
+			() => { this.viewer.setBackView(); }
 		));
 
 		elNavigation.append(this.createToolIcon(
 			Potree.resourcePath + "/icons/top.svg",
 			"[title]tt.top_view_control",
-			() => {this.viewer.setTopView()}
+			() => { this.viewer.setTopView(); }
 		));
 
 		elNavigation.append(this.createToolIcon(
 			Potree.resourcePath + "/icons/bottom.svg",
 			"[title]tt.bottom_view_control",
-			() => {this.viewer.setBottomView()}
+			() => { this.viewer.setBottomView(); }
 		));
 
 
