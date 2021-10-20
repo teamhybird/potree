@@ -96,7 +96,7 @@ export class VolumeTool extends EventDispatcher{
 				let wp = volume.getWorldPosition(new THREE.Vector3()).applyMatrix4(camera.matrixWorldInverse);
 				// let pp = new THREE.Vector4(wp.x, wp.y, wp.z).applyMatrix4(camera.projectionMatrix);
 				let w = Math.abs((wp.z / 5));
-				volume.modelDetails = { scale: { x: w, y: w, z: w } }
+				volume.modelDetails = { scale: { x: w, y: w, z: w } };
 			}
 		};
 
@@ -150,7 +150,7 @@ export class VolumeTool extends EventDispatcher{
 			}
 
 			let calculatedVolume = volume.getVolume();
-			calculatedVolume = calculatedVolume / Math.pow(this.viewer.lengthUnit.unitspermeter, 3) * Math.pow(this.viewer.lengthUnitDisplay.unitspermeter, 3);  //convert to cubic meters then to the cubic display unit
+			calculatedVolume = calculatedVolume / Math.pow(this.viewer.lengthUnit.unitspermeter, 3) * Math.pow(this.viewer.lengthUnitDisplay.unitspermeter, 3); //convert to cubic meters then to the cubic display unit
 			let text = Utils.addCommas(calculatedVolume.toFixed(3)) + ' ' + this.viewer.lengthUnitDisplay.code + '\u00B3';
 			label.setText(text);
 		}

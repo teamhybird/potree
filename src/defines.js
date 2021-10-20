@@ -61,7 +61,7 @@ export const ShapeTypes = {
   cylinder: 'CYLINDER',
   sphere: 'SPHERE',
   volume: 'VOLUME'
-}
+};
 
 export const SystemType = {
   measurement: 'MEASUREMENT',

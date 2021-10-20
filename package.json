@@ -19,7 +19,10 @@
   "scripts": {
     "start": "gulp watch",
     "build": "gulp build pack",
-    "postinstall": "npm run build"
+    "postinstall": "npm run build",
+		"lint": "eslint ./src",
+    "lint:fix": "eslint --fix ./src",
+    "prepublish": "npm run build"
   },
   "dependencies": {
     "gulp": "^4.0.2",

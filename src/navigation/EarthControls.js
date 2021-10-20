@@ -178,7 +178,7 @@ export class EarthControls extends EventDispatcher {
 	stop(){
 		this.wheelDelta = 0;
 		this.zoomDelta.set(0, 0, 0);
-		this.panDelta.set(0,0);
+		this.panDelta.set(0, 0);
   }
   
 	stopTweens () {

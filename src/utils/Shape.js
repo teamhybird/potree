@@ -72,7 +72,7 @@ export class Shape extends THREE.Object3D {
   }
   
   select(e){
-    console.log()
+    console.log();
     this.dispatchEvent({
       'type': 'shape_select',
       'object': this,
@@ -84,7 +84,7 @@ export class Shape extends THREE.Object3D {
   }
   
   cubeConfig(){
-    const width =  this.modelDetails.width || 1;  
+    const width = this.modelDetails.width || 1;  
     const height = this.modelDetails.height || 1;  
     const depth = this.modelDetails.depth || 1;  
 
@@ -274,7 +274,7 @@ export class Shape extends THREE.Object3D {
       this.setShapeScale(value.scale);
     }
     if(value.rotation){
-      this.setShapeRotation(value.rotation)
+      this.setShapeRotation(value.rotation);
     }
     // Update object geometry
     let { geometry } = this.createMeshProps();

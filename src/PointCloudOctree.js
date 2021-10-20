@@ -82,9 +82,9 @@ export class PointCloudOctreeNode extends PointCloudTreeNode {
 			pos.set(x, y, z, 1);
 			pos.applyMatrix4(objectToBox);
 
-			if(-0.5 < pos.x && pos.x < 0.5){
-				if(-0.5 < pos.y && pos.y < 0.5){
-					if(-0.5 < pos.z && pos.z < 0.5){
+			if(pos.x > -0.5 && pos.x < 0.5){
+				if(pos.y > -0.5 && pos.y < 0.5){
+					if(pos.z > -0.5 && pos.z < 0.5){
 						pos.set(x, y, z, 1).applyMatrix4(this.sceneNode.matrixWorld);
 						inBox.push(new THREE.Vector3(pos.x, pos.y, pos.z));
 					}
@@ -130,9 +130,9 @@ export class PointCloudOctree extends PointCloudTree {
 				let min = attribute.range[0].constructor.name === "Array" ? attribute.range[0] : [attribute.range[0]];
 				let max = attribute.range[1].constructor.name === "Array" ? attribute.range[1] : [attribute.range[1]];
 
-				let range_min = new THREE.Vector3(...min);
-				let range_max = new THREE.Vector3(...max);
-				let range = range_min.distanceTo(range_max);
+				let rangeMin = new THREE.Vector3(...min);
+				let rangeMax = new THREE.Vector3(...max);
+				let range = rangeMin.distanceTo(rangeMax);
 
 				if(range === 0){
 					continue;
@@ -339,7 +339,7 @@ export class PointCloudOctree extends PointCloudTree {
 		};
 		nodes.sort(sort);
 
-		let worldDir = new THREE.Vector3();
+		// let worldDir = new THREE.Vector3();
 
 		let nodeMap = new Map();
 		let offsetsToChild = new Array(nodes.length).fill(Infinity);
@@ -658,7 +658,7 @@ export class PointCloudOctree extends PointCloudTree {
 		if(typeof this.signedDistanceField === "undefined"){
 
 			const resolution = 32;
-			const field = new Float32Array(resolution ** 3).fill(Infinity);
+			const field = new Float32Array(Math.pow(resolution, 3)).fill(Infinity);
 
 			const positions = this.pcoGeometry.root.geometry.attributes.position;
 			const boundingBox = this.boundingBox;
@@ -743,7 +743,7 @@ export class PointCloudOctree extends PointCloudTree {
 		let getVal = (a, b) => a !== undefined ? a : b;
 
 		let pickWindowSize = getVal(params.pickWindowSize, 65);
-		let pickOutsideClipRegion = getVal(params.pickOutsideClipRegion, false);
+		// let pickOutsideClipRegion = getVal(params.pickOutsideClipRegion, false);
 
 		let size = renderer.getSize(new THREE.Vector2());
 
@@ -866,7 +866,7 @@ export class PointCloudOctree extends PointCloudTree {
 		let ibuffer = new Uint32Array(buffer.buffer);
 
 		// find closest hit inside pixelWindow boundaries
-		let min = Number.MAX_VALUE;
+		// let min = Number.MAX_VALUE;
 		let hits = [];
 		for (let u = 0; u < pickWindowSize; u++) {
 			for (let v = 0; v < pickWindowSize; v++) {
@@ -952,7 +952,7 @@ export class PointCloudOctree extends PointCloudTree {
 
 				} else {
 
-					let values = attribute.array.slice(attribute.itemSize * hit.pIndex, attribute.itemSize * (hit.pIndex + 1)) ;
+					let values = attribute.array.slice(attribute.itemSize * hit.pIndex, attribute.itemSize * (hit.pIndex + 1));
 
 					if(attribute.potree){
 						const {scale, offset} = attribute.potree;
@@ -1024,9 +1024,9 @@ export class PointCloudOctree extends PointCloudTree {
 				pos.set(x, y, z, 1);
 				pos.applyMatrix4(objectToBox);
 
-				if(-0.5 < pos.x && pos.x < 0.5){
-					if(-0.5 < pos.y && pos.y < 0.5){
-						if(-0.5 < pos.z && pos.z < 0.5){
+				if(pos.x > -0.5 && pos.x < 0.5){
+					if(pos.y > -0.5 && pos.y < 0.5){
+						if(pos.z > -0.5 && pos.z < 0.5){
 							shrinkedLocalBounds.expandByPoint(pos);
 						}
 					}
@@ -1083,9 +1083,9 @@ export class PointCloudOctree extends PointCloudTree {
 				pos.set(x, y, z, 1);
 				pos.applyMatrix4(objectToBox);
 
-				if(-0.5 < pos.x && pos.x < 0.5){
-					if(-0.5 < pos.y && pos.y < 0.5){
-						if(-0.5 < pos.z && pos.z < 0.5){
+				if(pos.x > -0.5 && pos.x < 0.5){
+					if(pos.y > -0.5 && pos.y < 0.5){
+						if(pos.z > -0.5 && pos.z < 0.5){
 							shrinkedLocalBounds.expandByPoint(pos);
 						}
 					}

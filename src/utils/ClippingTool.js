@@ -157,7 +157,7 @@ export class ClippingTool extends EventDispatcher{
 		};
 		
 		this.viewer.addEventListener("cancel_insertions", cancel.callback);
-		this.viewer.renderer.domElement.addEventListener("mouseup", insertionCallback , true);
+		this.viewer.renderer.domElement.addEventListener("mouseup", insertionCallback, true);
 		this.viewer.inputHandler.enabled = false;
 		
 		polyClipVol.addMarker();

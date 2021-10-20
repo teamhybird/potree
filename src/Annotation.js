@@ -217,7 +217,7 @@ export class Annotation extends EventDispatcher {
 		});
 
 		let updateCallback = () => {
-			let position = this.position;
+			// let position = this.position;
 			let scene = viewer.scene;
 
 			const renderAreaSize = viewer.renderer.getSize(new THREE.Vector2());

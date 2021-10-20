@@ -255,7 +255,10 @@ export class InputHandler extends EventDispatcher {
 		e.preventDefault();
 
 		let consumed = false;
-		let consume = () => { return consumed = true; };
+		let consume = () => {
+			consumed = true;
+			return consumed;
+		};
 		if (this.hoveredElements.length > 0) {
 			for(let hovered of this.hoveredElements){
 				let object = hovered.object;
@@ -310,7 +313,10 @@ export class InputHandler extends EventDispatcher {
 
 		
 		let consumed = false;
-		let consume = () => { return consumed = true; };
+		let consume = () => {
+			consumed = true;
+			return consumed;
+		};
 		for (let inputListener of this.getSortedListeners()) {
 			inputListener.dispatchEvent({
 				type: 'mouseup',
@@ -435,7 +441,7 @@ export class InputHandler extends EventDispatcher {
 					drag: this.drag,
 					viewer: this.viewer,
 					event: e,
-					consume: () => {dragConsumed = true;}
+					consume: () => { dragConsumed = true; }
 				});
 
 				if(dragConsumed){
