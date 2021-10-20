@@ -1110,15 +1110,6 @@ export class Measure extends THREE.Object3D {
 		return this._showArea;
 	}
 
-	get showCircle () {
-		return this._showCircle;
-	}
-
-	set showCircle (value) {
-		this._showCircle = value;
-		this.update();
-	}
-
 	set showArea (value) {
 		this._showArea = value;
 		this.update();

@@ -311,6 +311,18 @@ export class InputHandler extends EventDispatcher {
 		
 		let consumed = false;
 		let consume = () => { return consumed = true; };
+		for (let inputListener of this.getSortedListeners()) {
+			inputListener.dispatchEvent({
+				type: 'mouseup',
+				viewer: this.viewer,
+				mouse: this.mouse,
+				consume: consume
+			});
+
+			if(consumed){
+				break;
+			}
+		}
 		if (this.hoveredElements.length > 0) {
 			let hovered = this.hoveredElements
 				.map(e => e.object)
@@ -413,22 +425,21 @@ export class InputHandler extends EventDispatcher {
 					viewer: this.viewer,
 					event: e
 				});
-			} else {
-				if (this.logMessages) console.log(this.constructor.name + ': drag: ');
+			}
+			if (this.logMessages) console.log(this.constructor.name + ': drag: ');
 
-				let dragConsumed = false;
-				for (let inputListener of this.getSortedListeners()) {
-					inputListener.dispatchEvent({
-						type: 'drag',
-						drag: this.drag,
-						viewer: this.viewer,
-						event: e,
-						consume: () => {dragConsumed = true;}
-					});
+			let dragConsumed = false;
+			for (let inputListener of this.getSortedListeners()) {
+				inputListener.dispatchEvent({
+					type: 'drag',
+					drag: this.drag,
+					viewer: this.viewer,
+					event: e,
+					consume: () => {dragConsumed = true;}
+				});
 
-					if(dragConsumed){
-						break;
-					}
+				if(dragConsumed){
+					break;
 				}
 			}
 		}else{

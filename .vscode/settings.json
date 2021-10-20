@@ -5,16 +5,17 @@
 		"*.fs": "cpp"
 	},
 	"files.trimTrailingWhitespace": false,
-	"editor.fontSize": 28,
-	"editor.autoIndent": false,
+	"editor.autoIndent": "none",
 	"editor.detectIndentation": false,
 	"editor.insertSpaces": false,
-	"editor.minimap.enabled": false,
-	"editor.autoClosingBrackets": false,
 	"editor.formatOnType": false,
 	"editor.acceptSuggestionOnEnter": "off",
 	"editor.acceptSuggestionOnCommitCharacter": false,
-	"editor.mouseWheelZoom": true,
 	"editor.renderWhitespace": "all",
 	"workbench.tree.indent": 30,
+	"emmet.triggerExpansionOnTab": true,
+  "editor.tabSize": 2,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true,
+  },
 }
