@@ -98,6 +98,7 @@ export class Sidebar{
 					showAngles: false,
 					showCoordinates: true,
 					showArea: false,
+					showEdges: false,
 					closed: true,
 					maxMarkers: 1,
 					coordinatesText: 'New Defect',
@@ -317,6 +318,7 @@ export class Sidebar{
 					showAngles: false,
 					showCoordinates: true,
 					showArea: false,
+					showEdges: false,
 					closed: true,
 					maxMarkers: 1,
 					coordinatesText: 'New Component',
@@ -343,6 +345,7 @@ export class Sidebar{
 					showCoordinates: true,
 					showArea: false,
 					closed: true,
+					showEdges: false,
 					maxMarkers: 1,
 					coordinatesText: 'New Component',
 					systemType: SystemType.defect,
@@ -700,6 +703,20 @@ export class Sidebar{
 			});
 		};
 
+		let onShapeAdded = (e) => {
+			let shape = e.shape;
+			let icon = Utils.getMeasurementIcon(shape);
+			let node = createNode(measurementID, shape.name, icon, shape);
+
+			shape.addEventListener("visibility_changed", () => {
+				if(shape.visible){
+					tree.jstree('check_node', node);
+				}else{
+					tree.jstree('uncheck_node', node);
+				}
+			});
+		};
+
 		let onProfileAdded = (e) => {
 			let profile = e.profile;
 			let icon = Utils.getMeasurementIcon(profile);
@@ -785,6 +802,7 @@ export class Sidebar{
 		this.viewer.scene.addEventListener("measurement_added", onMeasurementAdded);
 		this.viewer.scene.addEventListener("profile_added", onProfileAdded);
 		this.viewer.scene.addEventListener("volume_added", onVolumeAdded);
+		this.viewer.scene.addEventListener("shape_added", onShapeAdded);
 		this.viewer.scene.addEventListener("camera_animation_added", onCameraAnimationAdded);
 		this.viewer.scene.addEventListener("oriented_images_added", onOrientedImagesAdded);
 		this.viewer.scene.addEventListener("360_images_added", onImages360Added);

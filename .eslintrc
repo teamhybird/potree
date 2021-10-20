@@ -1,5 +1,6 @@
 {
 	"extends": "happiness",
+	"ignorePatterns": "/public/libs",
 	"globals": {
 		"THREE": false,
 		"TWEEN": false,

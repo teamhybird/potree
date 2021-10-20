@@ -141,8 +141,8 @@ export class MeasuringTool extends EventDispatcher{
 
 		this.viewer.inputHandler.registerInteractiveScene(this.scene);
 
-		this.onRemove = (e) => { this.scene.remove(e.measurement);};
-		this.onAdd = e => {this.scene.add(e.measurement);};
+		this.onRemove = (e) => { this.scene.remove(e.measurement); };
+		this.onAdd = e => { this.scene.add(e.measurement); };
 
 		for(let measurement of viewer.scene.measurements){
 			this.onAdd({measurement: measurement});
@@ -178,21 +178,6 @@ export class MeasuringTool extends EventDispatcher{
 			measure: measure
 		});
 
-		let configureMeasure = (args = {}) => {
-      measure.showDistances = (args.showDistances === null) ? true : args.showDistances;
-      measure.showArea = args.showArea || false;
-      measure.showAngles = args.showAngles || false;
-      measure.showCoordinates = args.showCoordinates || false;
-      measure.showHeight = args.showHeight || false;
-      measure.showCircle = args.showCircle || false;
-      measure.closed = args.closed || false;
-      measure.maxMarkers = args.maxMarkers || Infinity;
-      measure.name = args.name || 'Measurement';
-      measure.colorName = args.colorName || 'green';
-      measure.systemType = args.systemType || Potree.SystemType.none;
-      measure.enableMove = args.enableMove || true;
-    }
-
 		const pick = (defaul, alternative) => {
 			if(defaul != null){
 				return defaul;
@@ -200,6 +185,22 @@ export class MeasuringTool extends EventDispatcher{
 				return alternative;
 			}
 		};
+
+		let configureMeasure = (args = {}) => {
+      measure.showDistances = (args.showDistances === null) ? true : args.showDistances;
+      measure.showArea = pick(args.showArea, false);
+      measure.showAngles = pick(args.showAngles, false);
+      measure.showCoordinates = pick(args.showCoordinates, false);
+      measure.showHeight = pick(args.showHeight, false);
+      measure.showCircle = pick(args.showCircle, false);
+      measure.closed = pick(args.closed, false);
+			measure.showEdges = pick(args.showEdges, true);
+      measure.maxMarkers = pick(args.maxMarkers, Infinity);
+      measure.name = args.name || 'Measurement';
+      measure.colorName = pick(args.colorName, 'green');
+      measure.systemType = pick(args.systemType, SystemType.none);
+      measure.enableMove = pick(args.enableMove, true);
+    };
 
 		configureMeasure(args);
 
@@ -220,19 +221,22 @@ export class MeasuringTool extends EventDispatcher{
 						cancel.callback(null, true);
 					}
 
-					this.viewer.inputHandler.startDragging(
-						measure.spheres[measure.spheres.length - 1]);
-				} else if (e.button === THREE.MOUSE.RIGHT  || e.key === 'Escape') {
+					if(measure.maxMarkers !== 1){
+						this.viewer.inputHandler.startDragging(
+							measure.spheres[measure.spheres.length - 1]);
+					}
+				} else if (e.button === THREE.MOUSE.RIGHT || e.key === 'Escape') {
 					if(measure.points.length <= 2){
             configureMeasure({
               showDistances: false,
               showAngles: false,
               showCoordinates: true,
+							showEdges: false,
               showArea: false,
               closed: true,
               maxMarkers: 1,
               name: 'Point',
-            })
+            });
           }
 					cancel.callback(null, true);
 				}
@@ -240,26 +244,26 @@ export class MeasuringTool extends EventDispatcher{
         this.viewer.inputHandler.startDragging(
           measure.spheres[measure.spheres.length - 1]);
       }
-      domElement.removeEventListener('mousemove', mouseMove)
+      domElement.removeEventListener('mousemove', mouseMove);
       mouseMoved = false;
       measure.enableMove = true;
 		};
 
-		let doubleClick= (e) => {
+		let doubleClick = (e) => {
       measure.removeMarker(measure.points.length - 1);
 			cancel.callback();
-    }
+    };
 
     let mouseMove = e => {
       mouseMoved = true;
       measure.enableMove = false;
       
-      domElement.removeEventListener('mousemove',mouseMove)
-    }
+      domElement.removeEventListener('mousemove', mouseMove);
+    };
 
     let mouseDown = e => {
-      domElement.addEventListener('mousemove',mouseMove);
-    }
+      domElement.addEventListener('mousemove', mouseMove);
+    };
 
 		cancel.callback = (e, isCanceled = false) => {
 			if (cancel.removeLastMarker || isCanceled) {
@@ -314,7 +318,7 @@ export class MeasuringTool extends EventDispatcher{
         size = 20;
         break;
       default:
-        size = 15
+        size = 15;
         break;
     }
     return size;
@@ -322,7 +326,6 @@ export class MeasuringTool extends EventDispatcher{
 	
 	update(){
 		let camera = this.viewer.scene.getActiveCamera();
-		let domElement = this.renderer.domElement;
 		let measurements = this.viewer.scene.measurements;
 
 		const renderAreaSize = this.renderer.getSize(new THREE.Vector2());
@@ -379,7 +382,7 @@ export class MeasuringTool extends EventDispatcher{
 					-(screenPos.y / clientHeight) * 2 + 1, 
 					0.5 );
 				labelPos.unproject(camera);
-				if(this.viewer.scene.cameraMode == CameraMode.PERSPECTIVE) {
+				if(this.viewer.scene.cameraMode === CameraMode.PERSPECTIVE) {
 					let direction = labelPos.sub(camera.position).normalize();
 					labelPos = new THREE.Vector3().addVectors(
 						camera.position, direction.multiplyScalar(distance));
