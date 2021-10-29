@@ -130,7 +130,7 @@ export class EDLRenderer{
 		this.initEDL();
 		const viewer = this.viewer;
 
-		const {renderer, background, getBackground} = viewer;
+		const {renderer, background} = viewer;
 
 		if(background === "skybox"){
 			renderer.setClearColor(0x000000, 0);
@@ -141,7 +141,7 @@ export class EDLRenderer{
 		} else if (background === 'white') {
 			renderer.setClearColor(0xFFFFFF, 1);
 		} else {
-			renderer.setClearColor(getBackground(), 1);
+			renderer.setClearColor(background, 1);
 		}
 		
 		renderer.clear();

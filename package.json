@@ -1,6 +1,5 @@
 {
-  "name": "potree",
-  "private": true,
+  "name": "@teamhybird/potree",
   "version": "1.8.0",
   "description": "WebGL point cloud viewer",
   "keywords": [
@@ -19,7 +18,7 @@
   "scripts": {
     "start": "gulp watch",
     "build": "gulp build pack",
-    "postinstall": "npm run build",
+		"prebuild": "rimraf build",
 		"lint": "eslint ./src",
     "lint:fix": "eslint --fix ./src",
     "prepublish": "npm run build"

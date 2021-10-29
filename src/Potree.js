@@ -57,6 +57,10 @@ export * from "./utils/SpotLightHelper.js";
 export * from "./utils/TransformationTool.js";
 export * from "./utils/Volume.js";
 export * from "./utils/VolumeTool.js";
+export * from "./utils/Shape.js";
+export * from "./utils/ShapeTool.js";
+export * from "./utils/CameraHelper.js";
+export * from "./utils/CameraHelperTool.js";
 export * from "./utils/Compass.js";
 
 export * from "./viewer/viewer.js";

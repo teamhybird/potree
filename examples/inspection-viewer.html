@@ -37,6 +37,10 @@
 	<div class="potree_container" style="position: absolute; width: 100%; height: 100%; left: 0px; top: 0px; ">
 		<div id="potree_render_area" style="background-image: url('../build/potree/resources/images/background.jpg');"></div>
 		<div id="potree_sidebar_container"> </div>
+		<div style="z-index: 2" id="pc-progress" class="progress-wrapper">
+			<div id="progress-bar" class="progress-bar"></div>
+			<p id="progress-text" class="progress-text"></p>
+		</div>
 	</div>
 	
 	<script type="module">
@@ -96,7 +100,7 @@
 		}
 		
 		// 643, 511
-		request("get", "https://insite-api.hybirdtech.com/inspection/details?inspection_id=643",{},{ 'App-Token': "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJTZXNzaW9uSUQiOiItTWxqVFljbGF6TGp2cXZ0dTlmQyIsIlVzZXJJRCI6MjAwLCJleHAiOjE2MzQxMzA2NTN9.bdaowHW-Dz_68BHGGcnPT5h2VigCbSrOWPS8Qpld8Ho" })
+		request("get", "https://insite-api.hybirdtech.com/inspection/details?inspection_id=643",{},{ 'App-Token': "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJTZXNzaW9uSUQiOiItTW1YV3RFTy0wcHVFSE1qVVhQWCIsIlVzZXJJRCI6MjAwLCJleHAiOjE2MzQ5ODcxNjZ9.LZRPCztdWWpC7IS2dFyFbOxiXVb5blghrqSzrKEodqQ" })
 
 	</script>
 	
