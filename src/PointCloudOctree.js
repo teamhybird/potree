@@ -762,7 +762,7 @@ export class PointCloudOctree extends PointCloudTree {
 		if (!this.pickState) {
 			let scene = new THREE.Scene();
 
-			let material = new Potree.PointCloudMaterial();
+			let material = new PointCloudMaterial();
 			material.activeAttributeName = "indices";
 
 			let renderTarget = new THREE.WebGLRenderTarget(

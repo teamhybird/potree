@@ -21,6 +21,7 @@ import {MeasuringTool} from "../utils/MeasuringTool.js";
 import {ProfileTool} from "../utils/ProfileTool.js";
 import {VolumeTool} from "../utils/VolumeTool.js";
 import {ShapeTool} from "../utils/ShapeTool.js";
+import { CameraHelperTool } from "../utils/CameraHelperTool";
 
 import {InputHandler} from "../navigation/InputHandler.js";
 import {NavigationCube} from "./NavigationCube.js";
@@ -340,6 +341,7 @@ export class Viewer extends EventDispatcher{
 		this.profileTool = new ProfileTool(this);
 		this.volumeTool = new VolumeTool(this);
 		this.shapeTool = new ShapeTool(this);
+		this.cameraHelperTool = new CameraHelperTool(this);
 
 		}catch(e){
 			this.onCrash(e);
@@ -1755,6 +1757,7 @@ export class Viewer extends EventDispatcher{
 		this.scene.directionalLight.lookAt(lTarget);
 
 
+		let lowestProgress = 100;
 		for (let pointcloud of visiblePointClouds) {
 
 			pointcloud.showBoundingBox = this.showBoundingBox;
@@ -1770,29 +1773,33 @@ export class Viewer extends EventDispatcher{
 
 			material.classification = this.classifications;
 			material.recomputeClassification();
-
-			// UPDATE PROGRESS BAR
-      var progress = pointcloud.progress;
-      if(!isNaN(progress)){
-        if(this.progressBar) this.progressBar.progress = progress;
-        
-        var message;
-        if(progress === 0 || pointcloud instanceof PointCloudArena4D){
-          message = "loading";
-        }else{
-          message = "loading: " + parseInt(progress*100) + "%";
-        }
-        if(this.progressBar) {
-          this.progressBar.message = message;
-          if(progress === 1){
-            this.progressBar.hide();
-          }else if(progress < 1){
-            this.progressBar.show();
-          }
-        }
-      }
+      
+			if(pointcloud.progress < lowestProgress){
+				lowestProgress = pointcloud.progress;
+			}
 
 			this.updateMaterialDefaults(pointcloud);
+		}
+
+		// UPDATE PROGRESS BAR
+		var progress = lowestProgress;
+		if(!isNaN(progress) && progress <= 1){
+			if(this.progressBar) this.progressBar.progress = progress;
+			
+			var message;
+			// if(progress === 0 || pointcloud instanceof PointCloudArena4D){
+			// 	message = "loading";
+			// }else{
+				message = "loading: " + parseInt(progress*100) + "%";
+			// }
+			if(this.progressBar) {
+				this.progressBar.message = message;
+				if(progress === 1){
+					this.progressBar.hide();
+				}else if(progress < 1){
+					this.progressBar.show();
+				}
+			}
 		}
 
 		{

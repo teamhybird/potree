@@ -28,6 +28,7 @@ export class Sidebar{
 		this.profileTool = viewer.profileTool;
 		this.volumeTool = viewer.volumeTool;
 		this.shapeTool = viewer.shapeTool;
+		this.cameraHelperTool = viewer.cameraHelperTool;
 
 		this.dom = $("#sidebar_root");
 	}

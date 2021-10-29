@@ -101,6 +101,7 @@ export class CameraHelper extends THREE.LineSegments {
 
     }
 
+		// eslint-disable-next-line
     function addPlane( a, b, c, d ) {
       var planeMaterial = new THREE.MeshBasicMaterial( {
         depthTest: true, 
@@ -112,7 +113,7 @@ export class CameraHelper extends THREE.LineSegments {
      
       var planeVertices = [];
       var planePointMap = {};
-      var quad_uvs =
+      var quadUvs =
       [
         0.0, 0.0,
         1.0, 0.0,
@@ -120,7 +121,7 @@ export class CameraHelper extends THREE.LineSegments {
         0.0, 1.0
       ];
 
-      var quad_indices =
+      var quadIndices =
       [
         0, 2, 1, 0, 3, 2
       ];
@@ -133,8 +134,8 @@ export class CameraHelper extends THREE.LineSegments {
       // Plane geometry
       var planeGeometry = new THREE.BufferGeometry();
       var positions = new Float32Array(planeVertices.length * 3);
-      var uvs = new Float32Array( quad_uvs);
-      var indices = new Uint32Array( quad_indices );
+      var uvs = new Float32Array( quadUvs);
+      var indices = new Uint32Array( quadIndices );
 
       for (var i = 0; i < planeVertices.length; i++) {
         positions[i * 3] = planeVertices[i].x;

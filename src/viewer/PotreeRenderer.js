@@ -38,7 +38,7 @@ export class PotreeRenderer {
 		}else if(viewer.background === "white"){
 			renderer.setClearColor(0xFFFFFF, 1);
 		}else{
-			renderer.setClearColor(viewer.getBackground(), 1);
+			renderer.setClearColor(viewer.background, 1);
 		}
 
 		renderer.clear();

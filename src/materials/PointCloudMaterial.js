@@ -43,7 +43,7 @@ export class PointCloudMaterial extends THREE.RawShaderMaterial {
 		this._gradient = Gradients.SPECTRAL;
 		this.gradientTexture = PointCloudMaterial.generateGradientTexture(this._gradient);
 		this._matcap = "matcap.jpg";
-		this.matcapTexture = Potree.PointCloudMaterial.generateMatcapTexture(this._matcap);
+		this.matcapTexture = PointCloudMaterial.generateMatcapTexture(this._matcap);
 		this.lights = false;
 		this.fog = false;
 		this._treeType = treeType;
@@ -337,7 +337,7 @@ export class PointCloudMaterial extends THREE.RawShaderMaterial {
 	set matcap (value) {
 		if (this._matcap !== value) {
 			this._matcap = value;
-			this.matcapTexture = Potree.PointCloudMaterial.generateMatcapTexture(this._matcap);
+			this.matcapTexture = PointCloudMaterial.generateMatcapTexture(this._matcap);
 			this.uniforms.matcapTextureUniform.value = this.matcapTexture;
 		}
 	}
