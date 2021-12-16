@@ -191,6 +191,8 @@ export class MeasuringTool extends EventDispatcher{
       measure.showArea = pick(args.showArea, false);
       measure.showAngles = pick(args.showAngles, false);
       measure.showCoordinates = pick(args.showCoordinates, false);
+      measure.measureText = pick(args.measureText, '');
+      measure.showMeasureText = pick(args.showMeasureText, false);
       measure.showHeight = pick(args.showHeight, false);
       measure.showCircle = pick(args.showCircle, false);
       measure.closed = pick(args.closed, false);
@@ -308,6 +310,9 @@ export class MeasuringTool extends EventDispatcher{
       case SystemType.measurement:
         size = 15;
         break;
+			case SystemType.cluster:
+        size = 25;
+        break;
       case SystemType.defect:
         size = 20;
         break;
@@ -391,6 +396,37 @@ export class MeasuringTool extends EventDispatcher{
 				label.position.copy(labelPos);
 				let pr = Utils.projectedRadius(1, camera, distance, clientWidth, clientHeight);
 				let scale = (70 / pr);
+				label.scale.set(scale, scale, scale);
+			}
+
+			// measure labels
+			for (let j = 0; j < measure.measureLabels.length; j++) {
+				let label = measure.measureLabels[j];
+				let sphere = measure.spheres[j];
+
+				let distance = camera.position.distanceTo(sphere.getWorldPosition(new THREE.Vector3()));
+
+				let screenPos = sphere.getWorldPosition(new THREE.Vector3()).clone().project(camera);
+				screenPos.x = Math.round((screenPos.x + 1) * clientWidth / 2);
+				screenPos.y = Math.round((-screenPos.y + 1) * clientHeight / 2);
+				screenPos.z = 0;
+				screenPos.x += 7.5;
+				screenPos.y += 15;
+
+				let labelPos = new THREE.Vector3( 
+					(screenPos.x / clientWidth) * 2 - 1, 
+					-(screenPos.y / clientHeight) * 2 + 1, 
+					0.5 );
+				labelPos.unproject(camera);
+				if(this.viewer.scene.cameraMode === CameraMode.PERSPECTIVE) {
+					let direction = labelPos.sub(camera.position).normalize();
+					labelPos = new THREE.Vector3().addVectors(
+						camera.position, direction.multiplyScalar(distance));
+
+				}
+				label.position.copy(labelPos);
+				let pr = Utils.projectedRadius(1, camera, distance, clientWidth, clientHeight);
+				let scale = (60 / pr);
 				label.scale.set(scale, scale, scale);
 			}
 
@@ -483,6 +519,7 @@ export class MeasuringTool extends EventDispatcher{
 					...measure.edgeLabels, 
 					...measure.angleLabels, 
 					...measure.coordinateLabels,
+					...measure.measureLabels,
 					measure.heightLabel,
 					measure.areaLabel,
 					// measure.circleRadiusLabel,

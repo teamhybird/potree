@@ -93,7 +93,8 @@ export class InputHandler extends EventDispatcher {
 			inputListener.dispatchEvent({
 				type: e.type,
 				touches: e.touches,
-				changedTouches: e.changedTouches
+				changedTouches: e.changedTouches,
+				mouse: this.mouse
 			});
 		}
 	}
@@ -117,7 +118,8 @@ export class InputHandler extends EventDispatcher {
 			inputListener.dispatchEvent({
 				type: e.type,
 				touches: e.touches,
-				changedTouches: e.changedTouches
+				changedTouches: e.changedTouches,
+				mouse: this.mouse
 			});
 		}
 	}
@@ -134,7 +136,7 @@ export class InputHandler extends EventDispatcher {
 			this.mouse.set(x, y);
 
 			if (this.drag) {
-				this.drag.mouse = 1;
+				this.drag.mouse = 2;
 
 				this.drag.lastDrag.x = x - this.drag.end.x;
 				this.drag.lastDrag.y = y - this.drag.end.y;
@@ -157,7 +159,8 @@ export class InputHandler extends EventDispatcher {
 			inputListener.dispatchEvent({
 				type: e.type,
 				touches: e.touches,
-				changedTouches: e.changedTouches
+				changedTouches: e.changedTouches,
+				mouse: this.mouse
 			});
 		}
 

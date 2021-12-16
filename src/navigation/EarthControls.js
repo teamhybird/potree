@@ -21,6 +21,8 @@ export class EarthControls extends EventDispatcher {
 		this.panDelta = new THREE.Vector2(0, 0);
 		this.zoomDelta = new THREE.Vector3();
 		this.camStart = null;
+		this.scrollTimer = null;
+		this.touchZoomStart = null;
 
 		this.tweens = [];
 
@@ -145,6 +147,44 @@ export class EarthControls extends EventDispatcher {
       }
 		};
 
+		let previousTouch = null;
+
+		let onTouchStart = e => {
+			previousTouch = e;
+			if(e.touches.length > 0){
+				let I = Utils.getMousePointCloudIntersection(
+					e.mouse,
+					this.scene.getActiveCamera(),
+					this.viewer,
+					this.scene.pointclouds,
+					{pickClipped: false});
+				if(e.touches.length === 2){
+					let rect = this.domElement.getBoundingClientRect();
+					let x1 = e.touches[0].pageX - rect.left;
+					let y1 = e.touches[0].pageY - rect.top;
+					let x2 = e.touches[1].pageX - rect.left;
+					let y2 = e.touches[1].pageY - rect.top;
+					let x = (x1 + x2) / 2;
+					let y = (y1 + y2) / 2;
+					this.touchZoomStart = {x, y};
+				}
+
+				if (I) {
+					if(e.touches.length === 1){
+						this.pivot = I.location;
+						this.camStart = this.scene.getActiveCamera().clone();
+						this.pivotIndicator.visible = true;
+						this.pivotIndicator.position.copy(I.location);
+						this.dispatchEvent({type: 'pointcloud-clicked', position: I.location});
+					}else {
+						this.pivot = this.scene.view.getPivot();
+					}
+				}else {
+					this.pivot = this.scene.view.getPivot();
+				}
+			}
+		};
+
 		let drop = e => {
 			this.dispatchEvent({type: 'end'});
 		};
@@ -155,8 +195,66 @@ export class EarthControls extends EventDispatcher {
 			this.pivotIndicator.visible = false;
 		};
 
+		let onTouchEnd = e => {
+			this.camStart = null;
+			this.pivot = null;
+			this.pivotIndicator.visible = false;
+			previousTouch = e;
+			if(this.touchZoomStart){
+				this.touchZoomStart = null;
+				this.dispatchEvent({type: 'scroll_end'});
+			}
+		};
+
+		let onTouchMove = e => {
+			if (e.touches.length === 2 && previousTouch.touches.length === 2){
+				let prev = previousTouch;
+				let curr = e;
+
+				let prevDX = prev.touches[0].pageX - prev.touches[1].pageX;
+				let prevDY = prev.touches[0].pageY - prev.touches[1].pageY;
+				let prevDist = Math.sqrt(prevDX * prevDX + prevDY * prevDY);
+
+				let currDX = curr.touches[0].pageX - curr.touches[1].pageX;
+				let currDY = curr.touches[0].pageY - curr.touches[1].pageY;
+				let currDist = Math.sqrt(currDX * currDX + currDY * currDY);
+
+				let delta = currDist / prevDist;
+				this.wheelDelta += currDist > prevDist ? delta : -delta;
+
+				this.stopTweens();
+			}else if(e.touches.length === 3 && previousTouch.touches.length === 3){
+				let prev = previousTouch;
+				let curr = e;
+
+				let prevMeanX = (prev.touches[0].pageX + prev.touches[1].pageX + prev.touches[2].pageX) / 3;
+				let prevMeanY = (prev.touches[0].pageY + prev.touches[1].pageY + prev.touches[2].pageY) / 3;
+
+				let currMeanX = (curr.touches[0].pageX + curr.touches[1].pageX + curr.touches[2].pageX) / 3;
+				let currMeanY = (curr.touches[0].pageY + curr.touches[1].pageY + curr.touches[2].pageY) / 3;
+
+				let delta = {
+					x: (currMeanX - prevMeanX) / this.renderer.domElement.clientWidth,
+					y: (currMeanY - prevMeanY) / this.renderer.domElement.clientHeight
+				};
+
+				this.panDelta.x += delta.x;
+				this.panDelta.y += delta.y;
+
+				this.stopTweens();
+			}
+
+			previousTouch = e;
+		};
+
 		let scroll = (e) => {
 			this.wheelDelta += e.delta;
+			if(this.scrollTimer !== null) {
+				clearTimeout(this.scrollTimer);
+			}
+			this.scrollTimer = setTimeout(() => {
+				this.dispatchEvent({type: 'scroll_end'});
+			}, 150);
 		};
 
 		let dblclick = (e) => {
@@ -168,6 +266,9 @@ export class EarthControls extends EventDispatcher {
 		this.addEventListener('mousewheel', scroll);
 		this.addEventListener('mousedown', onMouseDown);
 		this.addEventListener('mouseup', onMouseUp);
+		this.addEventListener('touchstart', onTouchStart);
+		this.addEventListener('touchend', onTouchEnd);
+		this.addEventListener('touchmove', onTouchMove);
 		this.addEventListener('dblclick', dblclick);
 	}
 
@@ -263,9 +364,9 @@ export class EarthControls extends EventDispatcher {
 		// compute zoom
 		if (this.wheelDelta !== 0) {
 			let I = Utils.getMousePointCloudIntersection(
-				this.viewer.inputHandler.mouse, 
-				this.scene.getActiveCamera(), 
-				this.viewer, 
+				this.touchZoomStart || this.viewer.inputHandler.mouse,
+				this.scene.getActiveCamera(),
+				this.viewer,
 				this.scene.pointclouds);
 
 			if (I) {

@@ -47,7 +47,8 @@ export class FirstPersonControls extends EventDispatcher {
 		this.pitchDelta = 0;
 		this.translationDelta = new THREE.Vector3(0, 0, 0);
 		this.translationWorldDelta = new THREE.Vector3(0, 0, 0);
-
+		this.scrollTimer = null;
+		
 		this.tweens = [];
 
 		let drag = (e) => {
@@ -93,6 +94,13 @@ export class FirstPersonControls extends EventDispatcher {
 			speed = Math.max(speed, 0.1);
 
 			this.viewer.setMoveSpeed(speed);
+
+			if(this.scrollTimer !== null) {
+				clearTimeout(this.scrollTimer);
+			}
+			this.scrollTimer = setTimeout(() => {
+				this.dispatchEvent({type: 'scroll_end'});
+			}, 150);
 		};
 
 		let dblclick = (e) => {

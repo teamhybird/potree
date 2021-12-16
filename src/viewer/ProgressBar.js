@@ -1,12 +1,12 @@
-export function ProgressBar() {
+export function ProgressBar(baseId) {
   this._progress = 0;
   this._message = '';
 
   this.maxOpacity = 0.9;
   try {
-    this.element = document.getElementById('pc-progress');
-    this.elProgress = document.getElementById('progress-bar');
-    this.elProgressMessage = document.getElementById('progress-text');
+    this.element = document.getElementById(baseId);
+    this.elProgress = document.getElementById(`${baseId}-bar`);
+    this.elProgressMessage = document.getElementById(`${baseId}-text`);
   } catch (e) {
     console.warn('Cannot render progress bar, ', e);
   }

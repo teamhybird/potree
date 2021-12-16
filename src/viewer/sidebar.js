@@ -113,6 +113,33 @@ export class Sidebar{
 			}
 		));
 
+		// CLUSTER
+		elToolbar.append(this.createToolIcon(
+			Potree.resourcePath + '/icons/point.svg',
+			'[title]tt.point_measurement',
+			() => {
+				$('#menu_measurements').next().slideDown();
+				let measurement = this.measuringTool.startInsertion({
+					showDistances: false,
+					showAngles: false,
+					showCoordinates: false,
+					showMeasureText: true,
+					measureText: '4',
+					showArea: false,
+					showEdges: false,
+					closed: true,
+					maxMarkers: 1,
+					coordinatesText: 'New Defect',
+					systemType: SystemType.cluster,
+					name: 'Point'});
+
+				let measurementsRoot = $("#jstree_scene").jstree().get_json("measurements");
+				let jsonNode = measurementsRoot.children.find(child => child.data.uuid === measurement.uuid);
+				$.jstree.reference(jsonNode.id).deselect_all();
+				$.jstree.reference(jsonNode.id).select_node(jsonNode.id);
+			}
+		));
+
 		// DISTANCE
 		elToolbar.append(this.createToolIcon(
 			Potree.resourcePath + '/icons/distance.svg',

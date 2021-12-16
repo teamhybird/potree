@@ -37,6 +37,7 @@ export class OrbitControls extends EventDispatcher{
 		this.pitchDelta = 0;
 		this.panDelta = new THREE.Vector2(0, 0);
 		this.radiusDelta = 0;
+		this.scrollTimer = null;
 
 		this.doubleClockZoomEnabled = true;
 
@@ -58,12 +59,12 @@ export class OrbitControls extends EventDispatcher{
 				y: e.drag.lastDrag.y / this.renderer.domElement.clientHeight
 			};
 
-			if (e.drag.mouse === MOUSE.LEFT) {
+			if (e.drag.mouse === MOUSE.RIGHT || (e.drag.mouse === MOUSE.LEFT && e.event.ctrlKey)) {
 				this.yawDelta += ndrag.x * this.rotationSpeed;
 				this.pitchDelta += ndrag.y * this.rotationSpeed;
 
 				this.stopTweens();
-			} else if (e.drag.mouse === MOUSE.RIGHT) {
+			} else if (e.drag.mouse === MOUSE.LEFT) {
 				this.panDelta.x += ndrag.x;
 				this.panDelta.y += ndrag.y;
 
@@ -76,11 +77,18 @@ export class OrbitControls extends EventDispatcher{
 		};
 
 		let scroll = (e) => {
-			let resolvedRadius = this.scene.view.radius + this.radiusDelta;
+			// let resolvedRadius = this.scene.view.radius + this.radiusDelta;
 
-			this.radiusDelta += -e.delta * (resolvedRadius > 1 ? resolvedRadius : 1) * 0.1;
+			this.radiusDelta += -e.delta;
 
 			this.stopTweens();
+
+			if(this.scrollTimer !== null) {
+				clearTimeout(this.scrollTimer);
+			}
+			this.scrollTimer = setTimeout(() => {
+				this.dispatchEvent({type: 'scroll_end'});
+			}, 150);
 		};
 
 		// let dblclick = (e) => {
@@ -112,9 +120,7 @@ export class OrbitControls extends EventDispatcher{
 				let currDist = Math.sqrt(currDX * currDX + currDY * currDY);
 
 				let delta = currDist / prevDist;
-				let resolvedRadius = this.scene.view.radius + this.radiusDelta;
-				let newRadius = resolvedRadius / delta;
-				this.radiusDelta = newRadius - resolvedRadius;
+				this.radiusDelta += currDist > prevDist ? -delta : delta;
 
 				this.stopTweens();
 			}else if(e.touches.length === 3 && previousTouch.touches.length === 3){
@@ -266,7 +272,7 @@ export class OrbitControls extends EventDispatcher{
 			let progression = Math.min(1, this.fadeFactor * delta);
 
 			// let radius = view.radius + progression * this.radiusDelta * view.radius * 0.1;
-			let radius = view.radius + progression * this.radiusDelta;
+			let radius = view.radius + progression * this.radiusDelta * this.viewer.zoomSpeed;
 
 			let V = view.direction.multiplyScalar(-radius);
 			let position = new THREE.Vector3().addVectors(view.getPivot(), V);
@@ -276,7 +282,7 @@ export class OrbitControls extends EventDispatcher{
 		}
 
 		{
-			let speed = view.radius;
+			let speed = 4;
 			this.viewer.setMoveSpeed(speed);
 		}
 

@@ -183,7 +183,7 @@ export class Viewer extends EventDispatcher{
 		
 		this.skybox = null;
 		this.clock = new THREE.Clock();
-		this.progressBar = new ProgressBar();
+		this.progressBar = new ProgressBar(args.progressBaseId || 'pc-progress');
 		this.background = null;
 
 		this.initThree();
@@ -1321,6 +1321,16 @@ export class Viewer extends EventDispatcher{
 			}
 		
 		});
+	}
+
+	toggleStatsVisibility(visible){
+		if(this.stats){
+			if(visible){
+				this.stats.showStats()
+			}else{
+				this.stats.hideStats();
+			}
+		}
 	}
 
 	loadGUI(callback){

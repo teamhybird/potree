@@ -143,8 +143,8 @@ export class CameraHelper extends THREE.LineSegments {
         positions[i * 3 + 2] = planeVertices[i].z;
       }
           
-      planeGeometry.addAttribute( 'position', new THREE.Float32BufferAttribute( planeVertices, 3 ) );
-      planeGeometry.addAttribute( 'uv', new THREE.BufferAttribute( uvs, 2 ));
+      planeGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( planeVertices, 3 ) );
+      planeGeometry.setAttribute( 'uv', new THREE.BufferAttribute( uvs, 2 ));
       planeGeometry.setIndex(new THREE.BufferAttribute( indices, 1 ));
 
       var plane = new THREE.Mesh(planeGeometry, planeMaterial);
@@ -195,8 +195,8 @@ export class CameraHelper extends THREE.LineSegments {
     }
  
     // Line geometry
-    geometry.addAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
-    geometry.addAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
+    geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
+    geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
 
     super( geometry, material );
 
@@ -249,7 +249,7 @@ export class CameraHelper extends THREE.LineSegments {
     
     this.cameraSphere = new THREE.Mesh(sphereGeometry, material);
     this.cameraSphere.position.copy(this.camera.position);
-    var dirVector = this.camera.getWorldDirection();
+    var dirVector = this.camera.getWorldDirection(new THREE.Vector3());
     this.cameraSphere.position.add(dirVector.multiplyScalar(-0.5));
     this.cameraSphere.scale.set(0.5, 0.5, 0.5);
     scene.add(this.cameraSphere);
@@ -291,54 +291,64 @@ export class CameraHelper extends THREE.LineSegments {
     this.planes.forEach(plane => scene.add(plane));
   }
 
-  shootRayThroughPoint(pointFrom, pointTo){
-    let sphereGeometry = new THREE.SphereGeometry(1, 8, 8);
-    sphereGeometry.computeBoundingBox();
-    let material = new THREE.MeshBasicMaterial({
-      depthWrite: true,
-      depthTest: true,
-      transparent: true,
-      opacity: 1,
-      color: 0x000000
-    });
-    
-    let cameraSphere = new THREE.Mesh(sphereGeometry, material);
-    cameraSphere.position.copy(pointFrom);
+  shootRayThroughPoint (pointFrom, pointTo, retry = 0) {
+		retry += 1;
+		return new Promise((resolve, reject) => {
+			if (this.viewer.progressBar.progress < 1) {
+				if (retry < 20) {
+				setTimeout(() => resolve(this.shootRayThroughPoint(pointFrom, pointTo, retry)), 300 * retry);
+				} else {
+					resolve(null);
+				}
+			} else {
+				let sphereGeometry = new THREE.SphereGeometry(1, 8, 8);
+				sphereGeometry.computeBoundingBox();
+				let material = new THREE.MeshBasicMaterial({
+					depthWrite: true,
+					depthTest: true,
+					transparent: true,
+					opacity: 1,
+					color: 0x000000
+				});
 
-    var startPoint = pointFrom;
-    var endPoint = pointTo;
+				let cameraSphere = new THREE.Mesh(sphereGeometry, material);
+				cameraSphere.position.copy(pointFrom);
 
-    var direction = new THREE.Vector3();
-    direction.subVectors(endPoint, startPoint).normalize();
-    var raycaster = new THREE.Raycaster(startPoint, direction);
-    raycaster.params = {
-      Mesh: {},
-      Line: { threshold: 1 },
-      LOD: {},
-      Points: { threshold: 0.1 },
-      Sprite: {}
-    };
+				var startPoint = pointFrom;
+				var endPoint = pointTo;
 
-    var arrowhelper = new THREE.ArrowHelper(raycaster.ray.direction, raycaster.ray.origin, 300, 0xff0000);
-    this.viewer.scene.scene.add(arrowhelper);
-    this.viewer.scene.scene.add(cameraSphere);
+				var direction = new THREE.Vector3();
+				direction.subVectors(endPoint, startPoint).normalize();
+				var raycaster = new THREE.Raycaster(startPoint, direction);
+				raycaster.params = {
+					Mesh: {},
+					Line: { threshold: 1 },
+					LOD: {},
+					Points: { threshold: 0.1 },
+					Sprite: {}
+				};
 
-    var visiblePointClouds = this.viewer.scene.pointclouds.filter(pc => pc.visible);
-    var intersections = raycaster.intersectObjects( visiblePointClouds, true );
+				var arrowhelper = new THREE.ArrowHelper(raycaster.ray.direction, raycaster.ray.origin, 300, 0xff0000);
+				this.viewer.scene.scene.add(arrowhelper);
+				this.viewer.scene.scene.add(cameraSphere);
 
-    var intersection = ( intersections.length ) > 0 ? intersections[ 0 ] : null;
+				var visiblePointClouds = this.viewer.scene.pointclouds.filter(pc => pc.visible);
+				var intersections = raycaster.intersectObjects(visiblePointClouds, true);
+				var intersection = (intersections.length) > 0 ? intersections[0] : null;
 
-    
-    setTimeout(() => {
-      this.viewer.scene.scene.remove(arrowhelper);
-      this.viewer.scene.scene.remove(cameraSphere);
-    }, 3000);
-    
-    if(intersection && intersection.point){
-      return intersection.point;
-      // this.viewer.earthControls.dispatchEvent({type: 'pointcloud-clicked', position: intersection.point});
-    }else return null;
-  }
+
+				setTimeout(() => {
+					this.viewer.scene.scene.remove(arrowhelper);
+					this.viewer.scene.scene.remove(cameraSphere);
+				}, 3000);
+
+				if (intersection && intersection.point) {
+					resolve(intersection.point);
+					// this.viewer.earthControls.dispatchEvent({type: 'pointcloud-clicked', position: intersection.point});
+				} else resolve(null);
+			}
+		});
+	}
 
   update(){
     
@@ -413,7 +423,7 @@ export class CameraHelper extends THREE.LineSegments {
 
   selectCamera () {
     if(this.cameraSphere){
-      var dirVector = this.camera.getWorldDirection();
+      var dirVector = this.camera.getWorldDirection(new THREE.Vector3());
       this.cameraSphere.position.add(dirVector.multiplyScalar(-0.8));
       this.cameraSphere.scale.set(0.8, 0.8, 0.8);
       this.cameraSphere.material.opacity = 1;
