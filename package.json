@@ -18,8 +18,8 @@
   "scripts": {
     "start": "gulp watch",
     "build": "gulp build pack",
-		"prebuild": "rimraf build",
-		"lint": "eslint ./src",
+    "prebuild": "rimraf build",
+    "lint": "eslint ./src",
     "lint:fix": "eslint --fix ./src",
     "prepublish": "npm run build"
   },

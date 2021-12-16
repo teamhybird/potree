@@ -201,6 +201,7 @@ export class MeasuringTool extends EventDispatcher{
       measure.name = args.name || 'Measurement';
       measure.colorName = pick(args.colorName, 'green');
       measure.systemType = pick(args.systemType, SystemType.none);
+      measure.subSystemType = pick(args.subSystemType, null);
       measure.enableMove = pick(args.enableMove, true);
     };
 
