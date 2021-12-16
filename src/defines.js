@@ -64,6 +64,7 @@ export const ShapeTypes = {
 };
 
 export const SystemType = {
+	cluster: 'Cluster',
   measurement: 'MEASUREMENT',
   defect: 'DEFECT',
   component: 'Component',

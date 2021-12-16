@@ -302,6 +302,8 @@ export class Measure extends THREE.Object3D {
 		this.points = [];
 		this._showDistances = true;
 		this._showCoordinates = false;
+		this._showMeasureText = false;
+		this._measureText = null;
 		this._coordinatesText = null;
 		this._showArea = false;
 		
@@ -330,6 +332,7 @@ export class Measure extends THREE.Object3D {
 		this.edgeLabels = [];
 		this.angleLabels = [];
 		this.coordinateLabels = [];
+		this.measureLabels = [];
 
 		this.heightEdge = createHeightLine();
 		this.heightLabel = createHeightLabel();
@@ -374,6 +377,9 @@ export class Measure extends THREE.Object3D {
         break;
       case SystemType.inspect:
         path += 'inspect-icons/'
+        break;
+			case SystemType.cluster:
+        path += 'cluster-icons/'
         break;
       default:
         path += ''
@@ -514,6 +520,21 @@ export class Measure extends THREE.Object3D {
 			this.add(coordinateLabel);
 		}
 
+		{ // measure labels
+			let measureLabel = new TextSprite();
+			if(rgbColor){
+				measureLabel.setBorderColor({r: rgbColor.r, g: rgbColor.g, b: rgbColor.b, a: 0});
+        measureLabel.setBackgroundColor({r: rgbColor.r, g: rgbColor.g, b: rgbColor.b, a: 0});
+        measureLabel.setTextColor({r: 255, g: 255, b: 255, a: 1.0});
+      }
+			measureLabel.fontsize = 16;
+			measureLabel.material.depthTest = false;
+			measureLabel.material.opacity = 1;
+			measureLabel.visible = false;
+			this.measureLabels.push(measureLabel);
+			this.add(measureLabel);
+		}
+
 		{ // area label
       this.areaLabel.setBorderColor({r: rgbColor.r, g: rgbColor.g, b: rgbColor.b, a: 0.8});
       this.areaLabel.setBackgroundColor({r: rgbColor.r, g: rgbColor.g, b: rgbColor.b, a: 0.8});
@@ -620,6 +641,7 @@ export class Measure extends THREE.Object3D {
 		this.remove(this.edgeLabels[edgeIndex]);
 		this.edgeLabels.splice(edgeIndex, 1);
 		this.coordinateLabels.splice(index, 1);
+		this.measureLabels.splice(index, 1);
 
 		this.remove(this.angleLabels[index]);
 		this.angleLabels.splice(index, 1);
@@ -753,6 +775,13 @@ export class Measure extends THREE.Object3D {
 				coordinateLabel.setText(this.coordinatesText || msg);
 
 				coordinateLabel.visible = this.showCoordinates;
+			}
+
+			{ // measure labels
+				let measureLabel = this.measureLabels[0];
+				measureLabel.setText(this.measureText);
+
+				measureLabel.visible = this.showMeasureText;
 			}
 
 			return;
@@ -1058,6 +1087,15 @@ export class Measure extends THREE.Object3D {
 
 	set showCoordinates (value) {
 		this._showCoordinates = value;
+		this.update();
+	}
+
+	get showMeasureText () {
+		return this._showMeasureText;
+	}
+
+	set showMeasureText (value) {
+		this._showMeasureText = value;
 		this.update();
 	}
 

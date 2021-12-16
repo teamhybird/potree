@@ -220,7 +220,7 @@ class Shader {
 			this.uniformBlocks = cached.uniformBlocks;
 			this.uniforms = cached.uniforms;
 
-			return;
+			
 		} else {
 
 			this.vs = gl.createShader(gl.VERTEX_SHADER);
@@ -325,10 +325,10 @@ class Shader {
 			this.cache.set(`${this.vsSource}, ${this.fsSource}`, cached);
 		}
 
-		const tEnd = performance.now();
-		const duration = tEnd - tStart;
+		// const tEnd = performance.now();
+		// const duration = tEnd - tStart;
 
-		console.log(`shader compile duration: ${duration.toFixed(3)}`);
+		// console.log(`shader compile duration: ${duration.toFixed(3)}`);
 
 
 	}
