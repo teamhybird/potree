@@ -105,6 +105,7 @@ function loadMeasurement(viewer, data){
 	measure.showEdges = data.showEdges;
 	measure.colorName = data.colorName || 'green';
 	measure.systemType = data.systemType || Potree.SystemType.none;
+	measure.subSystemType = data.subSystemType || null;
 	measure.enableMove = data.enableMove || true;
 	// color
 

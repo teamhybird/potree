@@ -319,6 +319,7 @@ export class Measure extends THREE.Object3D {
 
 		this.colorName = 'green';
     this.systemType = SystemType.none;
+		this.subSystemType = null;
 
 		this.color = new THREE.Color(0x01f6a5);
 
@@ -365,21 +366,23 @@ export class Measure extends THREE.Object3D {
 	getTexturePath(){
     let path = Potree.resourcePath + '/textures/';
     // Determine which path to use
+		let subFolder = this.subSystemType ? `${this.subSystemType}/` : '';
+
     switch(this.systemType){
       case SystemType.measurement:
-        path += 'measurement-icons/'
+        path += `measurement-icons/${subFolder}`
         break;
       case SystemType.defect:
-        path += 'defect-icons/'
+        path += `defect-icons/${subFolder}`
         break;
       case SystemType.component:
-        path += 'component-icons/'
+        path += `component-icons/${subFolder}`
         break;
       case SystemType.inspect:
-        path += 'inspect-icons/'
+        path += `inspect-icons/${subFolder}`
         break;
 			case SystemType.cluster:
-        path += 'cluster-icons/'
+        path += `cluster-icons/${subFolder}`
         break;
       default:
         path += ''
