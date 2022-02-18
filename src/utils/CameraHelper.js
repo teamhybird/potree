@@ -24,10 +24,10 @@ function setPoint( point, pointMap, geometry, camera, x, y, z ) {
   // 'c', pointMap, geometry, _camera, 0, 0, - 1 
 }
 
-export class CameraHelper extends THREE.LineSegments {
+export class CameraHelper extends THREE.Object3D {
   constructor ( viewer, camera, image, { _colorFrustum, _colorCone, _colorUp, _colorCross, _sphereColor }, visible, thumbnailVisible ) {
-    var geometry = new THREE.BufferGeometry();
-    var material = new THREE.LineBasicMaterial( { color: 0xffffff, vertexColors: THREE.FaceColors } );
+    var linesGeometry = new THREE.BufferGeometry();
+    var linesMaterial = new THREE.LineBasicMaterial( { color: 0xffffff, vertexColors: THREE.FaceColors } );
 
     var planes = [];
 
@@ -92,7 +92,7 @@ export class CameraHelper extends THREE.LineSegments {
     addLine( 'cf1', 'cf2', colorCross );
     addLine( 'cf3', 'cf4', colorCross );
 
-    // addPlane('n1','n2','n3','n4');
+    // addPlane('n1', 'n2', 'n3', 'n4');
 
     function addLine( a, b, color ) {
 
@@ -195,10 +195,10 @@ export class CameraHelper extends THREE.LineSegments {
     }
  
     // Line geometry
-    geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
-    geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
+    linesGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
+    linesGeometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
 
-    super( geometry, material );
+    super();
 
     this.viewer = viewer;
     this.camera = camera;
@@ -213,6 +213,7 @@ export class CameraHelper extends THREE.LineSegments {
     this._thumbnailVisible = typeof thumbnailVisible !== "undefined" ? thumbnailVisible : true;
     this._visible = typeof visible !== "undefined" ? visible : true;
     this.planes = planes;
+		this.lines = new THREE.LineSegments(linesGeometry, linesMaterial);
     this.pointMap = pointMap;
     this.planePointsMap = planePointsMap;
 
@@ -224,19 +225,11 @@ export class CameraHelper extends THREE.LineSegments {
     this.update();
   }
 
-  remove(scene){
-    scene.remove(this.cameraSphere);
-    this.planes.forEach(plane => scene.remove(plane));
-    scene.remove(this);
-  }
-
-  removeThumbnail(scene){
-    this.planes.forEach(plane => scene.remove(plane));
-    scene.remove(this);
+  removeThumbnail(){
+    this.remove(this.lines);
   }
 
   render(scene){
-    if(!this.visible) return;
     // let material = new THREE.SpriteMaterial();
     let sphereGeometry = new THREE.SphereGeometry(1, 16, 16);
     sphereGeometry.computeBoundingBox();
@@ -248,11 +241,9 @@ export class CameraHelper extends THREE.LineSegments {
     });
     
     this.cameraSphere = new THREE.Mesh(sphereGeometry, material);
-    this.cameraSphere.position.copy(this.camera.position);
     var dirVector = this.camera.getWorldDirection(new THREE.Vector3());
-    this.cameraSphere.position.add(dirVector.multiplyScalar(-0.5));
-    this.cameraSphere.scale.set(0.5, 0.5, 0.5);
-    scene.add(this.cameraSphere);
+    this.cameraSphere.position.add(dirVector.multiplyScalar(-0.15));
+    this.cameraSphere.scale.set(0.15, 0.15, 0.15);
 
     let mouseover = (e) => {
       if(!this.selected){
@@ -286,9 +277,12 @@ export class CameraHelper extends THREE.LineSegments {
     this.cameraSphere.addEventListener("mousedown", mouseclick);
 
 
-    if(!this.thumbnailVisible) return;
     scene.add(this);
-    this.planes.forEach(plane => scene.add(plane));
+    this.add(this.cameraSphere);
+		this.add(this.lines);
+    if(!this.thumbnailVisible){
+			this.hideThumbnail();
+		}
   }
 
   shootRayThroughPoint (pointFrom, pointTo, retry = 0) {
@@ -352,7 +346,7 @@ export class CameraHelper extends THREE.LineSegments {
 
   update(){
     
-    var geometry = this.geometry;
+    var geometry = this.lines.geometry;
 
     var pointMap = this.pointMap;
 
@@ -424,8 +418,8 @@ export class CameraHelper extends THREE.LineSegments {
   selectCamera () {
     if(this.cameraSphere){
       var dirVector = this.camera.getWorldDirection(new THREE.Vector3());
-      this.cameraSphere.position.add(dirVector.multiplyScalar(-0.8));
-      this.cameraSphere.scale.set(0.8, 0.8, 0.8);
+      this.cameraSphere.position.add(dirVector.multiplyScalar(-0.3));
+      this.cameraSphere.scale.set(0.3, 0.3, 0.3);
       this.cameraSphere.material.opacity = 1;
     }
     setTimeout(() => {
@@ -463,12 +457,12 @@ export class CameraHelper extends THREE.LineSegments {
     this.remove(viewer.scene.scene);
   }
 
-  showThumbnail (viewer) {
-    this.render(viewer.scene.scene);
+  showThumbnail () {
+		this.lines.visible = true;
   }
 
-  hideThumbnail (viewer) {
-    this.removeThumbnail(viewer.scene.scene);
+  hideThumbnail () {
+		this.lines.visible = false;
   }
 
   get selected (){
@@ -489,14 +483,6 @@ export class CameraHelper extends THREE.LineSegments {
   set visible (value) {
     if(this._visible === value) return;
     this._visible = value;
-    if(this.viewer){
-      if(value){
-        this.showCamera(this.viewer);
-      }else{
-        this.hideCamera(this.viewer);
-      }
-    }
-     
   }
 
   get thumbnailVisible () {
@@ -504,15 +490,12 @@ export class CameraHelper extends THREE.LineSegments {
   }
 
   set thumbnailVisible (value) {
-    if(this.thumbnailVisible === value) return;
     this._thumbnailVisible = value;
-    if(this.viewer){
-      if(value){
-        this.showCamera(this.viewer);
-      }else{
-        this.hideThumbnail(this.viewer);
-      }
-    }
+		if(value){
+			this.showThumbnail();
+		}else{
+			this.hideThumbnail();
+		}
      
   }
 
