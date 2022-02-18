@@ -224,15 +224,8 @@ export class CameraHelper extends THREE.LineSegments {
     this.update();
   }
 
-  remove(scene){
-    scene.remove(this.cameraSphere);
-    this.planes.forEach(plane => scene.remove(plane));
-    scene.remove(this);
-  }
-
   removeThumbnail(scene){
-    this.planes.forEach(plane => scene.remove(plane));
-    scene.remove(this);
+    this.planes.forEach(plane => this.remove(plane));
   }
 
   render(scene){
@@ -248,11 +241,9 @@ export class CameraHelper extends THREE.LineSegments {
     });
     
     this.cameraSphere = new THREE.Mesh(sphereGeometry, material);
-    this.cameraSphere.position.copy(this.camera.position);
     var dirVector = this.camera.getWorldDirection(new THREE.Vector3());
     this.cameraSphere.position.add(dirVector.multiplyScalar(-0.5));
     this.cameraSphere.scale.set(0.5, 0.5, 0.5);
-    scene.add(this.cameraSphere);
 
     let mouseover = (e) => {
       if(!this.selected){
@@ -286,9 +277,10 @@ export class CameraHelper extends THREE.LineSegments {
     this.cameraSphere.addEventListener("mousedown", mouseclick);
 
 
+    this.add(this.cameraSphere);
     if(!this.thumbnailVisible) return;
+    this.planes.forEach(plane => this.add(plane));
     scene.add(this);
-    this.planes.forEach(plane => scene.add(plane));
   }
 
   shootRayThroughPoint (pointFrom, pointTo, retry = 0) {
@@ -489,14 +481,6 @@ export class CameraHelper extends THREE.LineSegments {
   set visible (value) {
     if(this._visible === value) return;
     this._visible = value;
-    if(this.viewer){
-      if(value){
-        this.showCamera(this.viewer);
-      }else{
-        this.hideCamera(this.viewer);
-      }
-    }
-     
   }
 
   get thumbnailVisible () {

@@ -1,5 +1,4 @@
 import * as THREE from "../../libs/three.js/build/three.module.js";
-import { EventDispatcher } from "../EventDispatcher";
 
 export class CameraHelperTool extends THREE.EventDispatcher {
 	constructor (viewer) {
@@ -15,7 +14,7 @@ export class CameraHelperTool extends THREE.EventDispatcher {
 
 		this.viewer.inputHandler.registerInteractiveScene(this.scene);
 
-		this.onRemove = e => { e.camera.remove(this.scene); };
+		this.onRemove = e => { this.scene.remove(e.camera); };
 		this.onAdd = e => {
       e.camera.render(this.scene);
     };
