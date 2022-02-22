@@ -25,7 +25,7 @@ function setPoint( point, pointMap, geometry, camera, x, y, z ) {
 }
 
 export class CameraHelper extends THREE.Object3D {
-  constructor ( viewer, camera, image, { _colorFrustum, _colorCone, _colorUp, _colorCross, _sphereColor }, visible, thumbnailVisible ) {
+  constructor ( viewer, camera, image, { _colorFrustum, _colorCone, _colorUp, _colorCross, _sphereColor }, selectedColor, visible, thumbnailVisible ) {
     var linesGeometry = new THREE.BufferGeometry();
     var linesMaterial = new THREE.LineBasicMaterial( { color: 0xffffff, vertexColors: THREE.FaceColors } );
 
@@ -208,6 +208,7 @@ export class CameraHelper extends THREE.Object3D {
     this.matrixAutoUpdate = false;
 
     this.sphereColor = _sphereColor || 0x01f6a5;
+		this.selectedColor = selectedColor || 0xffffff;
 
     this._selected = false;
     this._thumbnailVisible = typeof thumbnailVisible !== "undefined" ? thumbnailVisible : true;
@@ -237,7 +238,7 @@ export class CameraHelper extends THREE.Object3D {
       depthTest: false,
       transparent: true,
       opacity: 1,
-      color: this.sphereColor
+      color: this.selected ? this.selectedColor : this.sphereColor
     });
     
     this.cameraSphere = new THREE.Mesh(sphereGeometry, material);
@@ -421,6 +422,7 @@ export class CameraHelper extends THREE.Object3D {
       this.cameraSphere.position.add(dirVector.multiplyScalar(-0.3));
       this.cameraSphere.scale.set(0.3, 0.3, 0.3);
       this.cameraSphere.material.opacity = 1;
+			this.cameraSphere.material.color.setHex(this.selectedColor);
     }
     setTimeout(() => {
       this.viewer.setCameraPosition(
@@ -472,7 +474,9 @@ export class CameraHelper extends THREE.Object3D {
     this._selected = value;
     if(value){
       this.selectCamera();
-    }
+    }else{
+			this.cameraSphere.material.color.setHex(this.sphereColor);
+		}
      
   }
 
