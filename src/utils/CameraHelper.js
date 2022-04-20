@@ -475,9 +475,10 @@ export class CameraHelper extends THREE.Object3D {
     if(value){
       this.selectCamera();
     }else{
-			this.cameraSphere.material.color.setHex(this.sphereColor);
+      if(this.cameraSphere){
+				this.cameraSphere.material.color.setHex(this.sphereColor);
+			}
 		}
-     
   }
 
   get visible (){

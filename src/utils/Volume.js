@@ -45,12 +45,6 @@ export class Volume extends THREE.Object3D {
 		};
 
 		this.enableMove = typeof args.enableMove === "undefined" ? true : args.enableMove;
-
-		{ // event listeners
-			this.addEventListener('select', e => {});
-			this.addEventListener('deselect', e => {});
-		}
-
 	}
 
 	get visible(){
