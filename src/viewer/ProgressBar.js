@@ -52,14 +52,14 @@ export function ProgressBar(baseId) {
   this.hide();
 }
 
-ProgressBar.prototype.hide = function() {
+ProgressBar.prototype.hide = function () {
   if (!this.element) return;
 
   this.element.style.opacity = 0;
   this.element.style.transition = 'all 0.2s ease';
 };
 
-ProgressBar.prototype.show = function() {
+ProgressBar.prototype.show = function () {
   if (!this.element) return;
 
   this.element.style.opacity = this.maxOpacity;
@@ -67,10 +67,10 @@ ProgressBar.prototype.show = function() {
 };
 
 Object.defineProperty(ProgressBar.prototype, 'progress', {
-  get: function() {
+  get: function () {
     return this._progress;
   },
-  set: function(value) {
+  set: function (value) {
     if (!this.elProgress) return;
 
     if (!isNaN(value)) {
@@ -81,10 +81,10 @@ Object.defineProperty(ProgressBar.prototype, 'progress', {
 });
 
 Object.defineProperty(ProgressBar.prototype, 'message', {
-  get: function() {
+  get: function () {
     return this._message;
   },
-  set: function(message) {
+  set: function (message) {
     if (!this.elProgressMessage) return;
 
     this._message = message;
