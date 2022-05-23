@@ -1,401 +1,381 @@
+import * as THREE from '../../libs/three.js/build/three.module.js';
+import { EventDispatcher } from '../EventDispatcher.js';
 
-import * as THREE from "../../libs/three.js/build/three.module.js";
-import {EventDispatcher} from "../EventDispatcher.js";
+Potree.PointCloudArena4DGeometryNode = class PointCloudArena4DGeometryNode {
+  constructor() {
+    this.left = null;
+    this.right = null;
+    this.boundingBox = null;
+    this.number = null;
+    this.pcoGeometry = null;
+    this.loaded = false;
+    this.numPoints = 0;
+    this.level = 0;
+    this.children = [];
+    this.oneTimeDisposeHandlers = [];
+  }
 
-Potree.PointCloudArena4DGeometryNode = class PointCloudArena4DGeometryNode{
+  isGeometryNode() {
+    return true;
+  }
 
-	constructor(){
-		this.left = null;
-		this.right = null;
-		this.boundingBox = null;
-		this.number = null;
-		this.pcoGeometry = null;
-		this.loaded = false;
-		this.numPoints = 0;
-		this.level = 0;
-		this.children = [];
-		this.oneTimeDisposeHandlers = [];
-	}
+  isTreeNode() {
+    return false;
+  }
 
-	isGeometryNode(){
-		return true;
-	}
+  isLoaded() {
+    return this.loaded;
+  }
 
-	isTreeNode(){
-		return false;
-	}
+  getBoundingSphere() {
+    return this.boundingSphere;
+  }
 
-	isLoaded(){
-		return this.loaded;
-	}
+  getBoundingBox() {
+    return this.boundingBox;
+  }
 
-	getBoundingSphere(){
-		return this.boundingSphere;
-	}
+  getChildren() {
+    let children = [];
 
-	getBoundingBox(){
-		return this.boundingBox;
-	}
+    if (this.left) {
+      children.push(this.left);
+    }
 
-	getChildren(){
-		let children = [];
+    if (this.right) {
+      children.push(this.right);
+    }
 
-		if (this.left) {
-			children.push(this.left);
-		}
+    return children;
+  }
 
-		if (this.right) {
-			children.push(this.right);
-		}
+  getBoundingBox() {
+    return this.boundingBox;
+  }
 
-		return children;
-	}
+  getLevel() {
+    return this.level;
+  }
 
-	getBoundingBox(){
-		return this.boundingBox;
-	}
+  load() {
+    if (this.loaded || this.loading) {
+      return;
+    }
 
-	getLevel(){
-		return this.level;
-	}
+    if (Potree.numNodesLoading >= Potree.maxNodesLoading) {
+      return;
+    }
 
-	load(){
-		if (this.loaded || this.loading) {
-			return;
-		}
+    this.loading = true;
 
-		if (Potree.numNodesLoading >= Potree.maxNodesLoading) {
-			return;
-		}
+    Potree.numNodesLoading++;
 
-		this.loading = true;
+    let url = this.pcoGeometry.url + '?node=' + this.number;
+    let xhr = Potree.XHRFactory.createXMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.responseType = 'arraybuffer';
 
-		Potree.numNodesLoading++;
+    let node = this;
 
-		let url = this.pcoGeometry.url + '?node=' + this.number;
-		let xhr = Potree.XHRFactory.createXMLHttpRequest();
-		xhr.open('GET', url, true);
-		xhr.responseType = 'arraybuffer';
+    xhr.onreadystatechange = function () {
+      if (!(xhr.readyState === 4 && xhr.status === 200)) {
+        return;
+      }
 
-		let node = this;
+      let buffer = xhr.response;
+      let sourceView = new DataView(buffer);
+      let numPoints = buffer.byteLength / 17;
+      let bytesPerPoint = 28;
 
-		xhr.onreadystatechange = function () {
-			if (!(xhr.readyState === 4 && xhr.status === 200)) {
-				return;
-			}
+      let data = new ArrayBuffer(numPoints * bytesPerPoint);
+      let targetView = new DataView(data);
 
-			let buffer = xhr.response;
-			let sourceView = new DataView(buffer);
-			let numPoints = buffer.byteLength / 17;
-			let bytesPerPoint = 28;
+      let attributes = [Potree.PointAttribute.POSITION_CARTESIAN, Potree.PointAttribute.RGBA_PACKED, Potree.PointAttribute.INTENSITY, Potree.PointAttribute.CLASSIFICATION];
 
-			let data = new ArrayBuffer(numPoints * bytesPerPoint);
-			let targetView = new DataView(data);
+      let position = new Float32Array(numPoints * 3);
+      let color = new Uint8Array(numPoints * 4);
+      let intensities = new Float32Array(numPoints);
+      let classifications = new Uint8Array(numPoints);
+      let indices = new ArrayBuffer(numPoints * 4);
+      let u32Indices = new Uint32Array(indices);
 
-			let attributes = [
-				Potree.PointAttribute.POSITION_CARTESIAN,
-				Potree.PointAttribute.RGBA_PACKED,
-				Potree.PointAttribute.INTENSITY,
-				Potree.PointAttribute.CLASSIFICATION,
-			];
+      let tightBoundingBox = new THREE.Box3();
 
+      for (let i = 0; i < numPoints; i++) {
+        let x = sourceView.getFloat32(i * 17 + 0, true) + node.boundingBox.min.x;
+        let y = sourceView.getFloat32(i * 17 + 4, true) + node.boundingBox.min.y;
+        let z = sourceView.getFloat32(i * 17 + 8, true) + node.boundingBox.min.z;
 
-			let position = new Float32Array(numPoints * 3);
-			let color = new Uint8Array(numPoints * 4);
-			let intensities = new Float32Array(numPoints);
-			let classifications = new Uint8Array(numPoints);
-			let indices = new ArrayBuffer(numPoints * 4);
-			let u32Indices = new Uint32Array(indices);
+        let r = sourceView.getUint8(i * 17 + 12, true);
+        let g = sourceView.getUint8(i * 17 + 13, true);
+        let b = sourceView.getUint8(i * 17 + 14, true);
 
-			let tightBoundingBox = new THREE.Box3();
+        let intensity = sourceView.getUint8(i * 17 + 15, true);
 
-			for (let i = 0; i < numPoints; i++) {
-				let x = sourceView.getFloat32(i * 17 + 0, true) + node.boundingBox.min.x;
-				let y = sourceView.getFloat32(i * 17 + 4, true) + node.boundingBox.min.y;
-				let z = sourceView.getFloat32(i * 17 + 8, true) + node.boundingBox.min.z;
+        let classification = sourceView.getUint8(i * 17 + 16, true);
 
-				let r = sourceView.getUint8(i * 17 + 12, true);
-				let g = sourceView.getUint8(i * 17 + 13, true);
-				let b = sourceView.getUint8(i * 17 + 14, true);
+        tightBoundingBox.expandByPoint(new THREE.Vector3(x, y, z));
 
-				let intensity = sourceView.getUint8(i * 17 + 15, true);
+        position[i * 3 + 0] = x;
+        position[i * 3 + 1] = y;
+        position[i * 3 + 2] = z;
 
-				let classification = sourceView.getUint8(i * 17 + 16, true);
+        color[i * 4 + 0] = r;
+        color[i * 4 + 1] = g;
+        color[i * 4 + 2] = b;
+        color[i * 4 + 3] = 255;
 
-				tightBoundingBox.expandByPoint(new THREE.Vector3(x, y, z));
+        intensities[i] = intensity;
+        classifications[i] = classification;
 
-				position[i * 3 + 0] = x;
-				position[i * 3 + 1] = y;
-				position[i * 3 + 2] = z;
+        u32Indices[i] = i;
+      }
 
-				color[i * 4 + 0] = r;
-				color[i * 4 + 1] = g;
-				color[i * 4 + 2] = b;
-				color[i * 4 + 3] = 255;
+      let geometry = new THREE.BufferGeometry();
 
-				intensities[i] = intensity;
-				classifications[i] = classification;
+      geometry.setAttribute('position', new THREE.BufferAttribute(position, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(color, 4, true));
+      geometry.setAttribute('intensity', new THREE.BufferAttribute(intensities, 1));
+      geometry.setAttribute('classification', new THREE.BufferAttribute(classifications, 1));
+      {
+        let bufferAttribute = new THREE.BufferAttribute(new Uint8Array(indices), 4, true);
+        //bufferAttribute.normalized = true;
+        geometry.setAttribute('indices', bufferAttribute);
+      }
 
-				u32Indices[i] = i;
-			}
+      node.geometry = geometry;
+      node.numPoints = numPoints;
+      node.loaded = true;
+      node.loading = false;
+      Potree.numNodesLoading--;
+    };
 
-			let geometry = new THREE.BufferGeometry();
+    xhr.send(null);
+  }
 
-			geometry.setAttribute('position', new THREE.BufferAttribute(position, 3));
-			geometry.setAttribute('color', new THREE.BufferAttribute(color, 4, true));
-			geometry.setAttribute('intensity', new THREE.BufferAttribute(intensities, 1));
-			geometry.setAttribute('classification', new THREE.BufferAttribute(classifications, 1));
-			{
-				let bufferAttribute = new THREE.BufferAttribute(new Uint8Array(indices), 4, true);
-				//bufferAttribute.normalized = true;
-				geometry.setAttribute('indices', bufferAttribute);
-			}
-		
-			node.geometry = geometry;
-			node.numPoints = numPoints;
-			node.loaded = true;
-			node.loading = false;
-			Potree.numNodesLoading--;
-		};
+  dispose() {
+    if (this.geometry && this.parent != null) {
+      this.geometry.dispose();
+      this.geometry = null;
+      this.loaded = false;
 
-		xhr.send(null);
-	}
+      // this.dispatchEvent( { type: 'dispose' } );
+      for (let i = 0; i < this.oneTimeDisposeHandlers.length; i++) {
+        let handler = this.oneTimeDisposeHandlers[i];
+        handler();
+      }
+      this.oneTimeDisposeHandlers = [];
+    }
+  }
 
-	dispose(){
-		if (this.geometry && this.parent != null) {
-			this.geometry.dispose();
-			this.geometry = null;
-			this.loaded = false;
-
-			// this.dispatchEvent( { type: 'dispose' } );
-			for (let i = 0; i < this.oneTimeDisposeHandlers.length; i++) {
-				let handler = this.oneTimeDisposeHandlers[i];
-				handler();
-			}
-			this.oneTimeDisposeHandlers = [];
-		}
-	}
-
-	getNumPoints(){
-		return this.numPoints;
-	}
+  getNumPoints() {
+    return this.numPoints;
+  }
 };
 
+Potree.PointCloudArena4DGeometry = class PointCloudArena4DGeometry extends EventDispatcher {
+  constructor() {
+    super();
 
+    this.numPoints = 0;
+    this.version = 0;
+    this.boundingBox = null;
+    this.numNodes = 0;
+    this.name = null;
+    this.provider = null;
+    this.url = null;
+    this.root = null;
+    this.levels = 0;
+    this._spacing = null;
+    this.pointAttributes = new Potree.PointAttributes(['POSITION_CARTESIAN', 'COLOR_PACKED']);
+  }
 
+  static load(url, callback) {
+    let xhr = Potree.XHRFactory.createXMLHttpRequest();
+    xhr.open('GET', url + '?info', true);
 
+    xhr.onreadystatechange = function () {
+      try {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          let response = JSON.parse(xhr.responseText);
 
-Potree.PointCloudArena4DGeometry = class PointCloudArena4DGeometry extends EventDispatcher{
+          let geometry = new Potree.PointCloudArena4DGeometry();
+          geometry.url = url;
+          geometry.name = response.Name;
+          geometry.provider = response.Provider;
+          geometry.numNodes = response.Nodes;
+          geometry.numPoints = response.Points;
+          geometry.version = response.Version;
+          geometry.boundingBox = new THREE.Box3(new THREE.Vector3().fromArray(response.BoundingBox.slice(0, 3)), new THREE.Vector3().fromArray(response.BoundingBox.slice(3, 6)));
+          if (response.Spacing) {
+            geometry.spacing = response.Spacing;
+          }
 
-	constructor(){
-		super();
+          let offset = geometry.boundingBox.min.clone().multiplyScalar(-1);
 
-		this.numPoints = 0;
-		this.version = 0;
-		this.boundingBox = null;
-		this.numNodes = 0;
-		this.name = null;
-		this.provider = null;
-		this.url = null;
-		this.root = null;
-		this.levels = 0;
-		this._spacing = null;
-		this.pointAttributes = new Potree.PointAttributes([
-			'POSITION_CARTESIAN',
-			'COLOR_PACKED'
-		]);
-	}
+          geometry.boundingBox.min.add(offset);
+          geometry.boundingBox.max.add(offset);
+          geometry.offset = offset;
 
-	static load(url, callback) {
-		let xhr = Potree.XHRFactory.createXMLHttpRequest();
-		xhr.open('GET', url + '?info', true);
+          let center = geometry.boundingBox.getCenter(new THREE.Vector3());
+          let radius = geometry.boundingBox.getSize(new THREE.Vector3()).length() / 2;
+          geometry.boundingSphere = new THREE.Sphere(center, radius);
 
-		xhr.onreadystatechange = function () {
-			try {
-				if (xhr.readyState === 4 && xhr.status === 200) {
-					let response = JSON.parse(xhr.responseText);
+          geometry.loadHierarchy();
 
-					let geometry = new Potree.PointCloudArena4DGeometry();
-					geometry.url = url;
-					geometry.name = response.Name;
-					geometry.provider = response.Provider;
-					geometry.numNodes = response.Nodes;
-					geometry.numPoints = response.Points;
-					geometry.version = response.Version;
-					geometry.boundingBox = new THREE.Box3(
-						new THREE.Vector3().fromArray(response.BoundingBox.slice(0, 3)),
-						new THREE.Vector3().fromArray(response.BoundingBox.slice(3, 6))
-					);
-					if (response.Spacing) {
-						geometry.spacing = response.Spacing;
-					}
+          callback(geometry);
+        } else if (xhr.readyState === 4) {
+          callback(null);
+        }
+      } catch (e) {
+        console.error(e.message);
+        callback(null);
+      }
+    };
 
-					let offset = geometry.boundingBox.min.clone().multiplyScalar(-1);
+    xhr.send(null);
+  }
 
-					geometry.boundingBox.min.add(offset);
-					geometry.boundingBox.max.add(offset);
-					geometry.offset = offset;
+  loadHierarchy() {
+    let url = this.url + '?tree';
+    let xhr = Potree.XHRFactory.createXMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.responseType = 'arraybuffer';
 
-					let center = geometry.boundingBox.getCenter(new THREE.Vector3());
-					let radius = geometry.boundingBox.getSize(new THREE.Vector3()).length() / 2;
-					geometry.boundingSphere = new THREE.Sphere(center, radius);
+    xhr.onreadystatechange = () => {
+      if (!(xhr.readyState === 4 && xhr.status === 200)) {
+        return;
+      }
 
-					geometry.loadHierarchy();
+      let buffer = xhr.response;
+      let numNodes = buffer.byteLength / 3;
+      let view = new DataView(buffer);
+      let stack = [];
+      let root = null;
 
-					callback(geometry);
-				} else if (xhr.readyState === 4) {
-					callback(null);
-				}
-			} catch (e) {
-				console.error(e.message);
-				callback(null);
-			}
-		};
+      let levels = 0;
 
-		xhr.send(null);
-	};
+      // TODO Debug: let start = new Date().getTime();
+      // read hierarchy
+      for (let i = 0; i < numNodes; i++) {
+        let mask = view.getUint8(i * 3 + 0, true);
+        // TODO Unused: let numPoints = view.getUint16(i * 3 + 1, true);
 
-	loadHierarchy(){
-		let url = this.url + '?tree';
-		let xhr = Potree.XHRFactory.createXMLHttpRequest();
-		xhr.open('GET', url, true);
-		xhr.responseType = 'arraybuffer';
+        let hasLeft = (mask & 1) > 0;
+        let hasRight = (mask & 2) > 0;
+        let splitX = (mask & 4) > 0;
+        let splitY = (mask & 8) > 0;
+        let splitZ = (mask & 16) > 0;
+        let split = null;
+        if (splitX) {
+          split = 'X';
+        } else if (splitY) {
+          split = 'Y';
+        }
+        if (splitZ) {
+          split = 'Z';
+        }
 
-		xhr.onreadystatechange = () => {
-			if (!(xhr.readyState === 4 && xhr.status === 200)) {
-				return;
-			}
+        let node = new Potree.PointCloudArena4DGeometryNode();
+        node.hasLeft = hasLeft;
+        node.hasRight = hasRight;
+        node.split = split;
+        node.isLeaf = !hasLeft && !hasRight;
+        node.number = i;
+        node.left = null;
+        node.right = null;
+        node.pcoGeometry = this;
+        node.level = stack.length;
+        levels = Math.max(levels, node.level);
 
-			let buffer = xhr.response;
-			let numNodes = buffer.byteLength /	3;
-			let view = new DataView(buffer);
-			let stack = [];
-			let root = null;
+        if (stack.length > 0) {
+          let parent = stack[stack.length - 1];
+          node.boundingBox = parent.boundingBox.clone();
+          let parentBBSize = parent.boundingBox.getSize(new THREE.Vector3());
 
-			let levels = 0;
+          if (parent.hasLeft && !parent.left) {
+            parent.left = node;
+            parent.children.push(node);
 
-			// TODO Debug: let start = new Date().getTime();
-			// read hierarchy
-			for (let i = 0; i < numNodes; i++) {
-				let mask = view.getUint8(i * 3 + 0, true);
-				// TODO Unused: let numPoints = view.getUint16(i * 3 + 1, true);
+            if (parent.split === 'X') {
+              node.boundingBox.max.x = node.boundingBox.min.x + parentBBSize.x / 2;
+            } else if (parent.split === 'Y') {
+              node.boundingBox.max.y = node.boundingBox.min.y + parentBBSize.y / 2;
+            } else if (parent.split === 'Z') {
+              node.boundingBox.max.z = node.boundingBox.min.z + parentBBSize.z / 2;
+            }
 
-				let hasLeft = (mask & 1) > 0;
-				let hasRight = (mask & 2) > 0;
-				let splitX = (mask & 4) > 0;
-				let splitY = (mask & 8) > 0;
-				let splitZ = (mask & 16) > 0;
-				let split = null;
-				if (splitX) {
-					split = 'X';
-				} else if (splitY) {
-					split = 'Y';
-				} if (splitZ) {
-					split = 'Z';
-				}
+            let center = node.boundingBox.getCenter(new THREE.Vector3());
+            let radius = node.boundingBox.getSize(new THREE.Vector3()).length() / 2;
+            node.boundingSphere = new THREE.Sphere(center, radius);
+          } else {
+            parent.right = node;
+            parent.children.push(node);
 
-				let node = new Potree.PointCloudArena4DGeometryNode();
-				node.hasLeft = hasLeft;
-				node.hasRight = hasRight;
-				node.split = split;
-				node.isLeaf = !hasLeft && !hasRight;
-				node.number = i;
-				node.left = null;
-				node.right = null;
-				node.pcoGeometry = this;
-				node.level = stack.length;
-				levels = Math.max(levels, node.level);
+            if (parent.split === 'X') {
+              node.boundingBox.min.x = node.boundingBox.min.x + parentBBSize.x / 2;
+            } else if (parent.split === 'Y') {
+              node.boundingBox.min.y = node.boundingBox.min.y + parentBBSize.y / 2;
+            } else if (parent.split === 'Z') {
+              node.boundingBox.min.z = node.boundingBox.min.z + parentBBSize.z / 2;
+            }
 
-				if (stack.length > 0) {
-					let parent = stack[stack.length - 1];
-					node.boundingBox = parent.boundingBox.clone();
-					let parentBBSize = parent.boundingBox.getSize(new THREE.Vector3());
+            let center = node.boundingBox.getCenter(new THREE.Vector3());
+            let radius = node.boundingBox.getSize(new THREE.Vector3()).length() / 2;
+            node.boundingSphere = new THREE.Sphere(center, radius);
+          }
+        } else {
+          root = node;
+          root.boundingBox = this.boundingBox.clone();
+          let center = root.boundingBox.getCenter(new THREE.Vector3());
+          let radius = root.boundingBox.getSize(new THREE.Vector3()).length() / 2;
+          root.boundingSphere = new THREE.Sphere(center, radius);
+        }
 
-					if (parent.hasLeft && !parent.left) {
-						parent.left = node;
-						parent.children.push(node);
+        let bbSize = node.boundingBox.getSize(new THREE.Vector3());
+        node.spacing = (bbSize.x + bbSize.y + bbSize.z) / 3 / 75;
+        node.estimatedSpacing = node.spacing;
 
-						if (parent.split === 'X') {
-							node.boundingBox.max.x = node.boundingBox.min.x + parentBBSize.x / 2;
-						} else if (parent.split === 'Y') {
-							node.boundingBox.max.y = node.boundingBox.min.y + parentBBSize.y / 2;
-						} else if (parent.split === 'Z') {
-							node.boundingBox.max.z = node.boundingBox.min.z + parentBBSize.z / 2;
-						}
+        stack.push(node);
 
-						let center = node.boundingBox.getCenter(new THREE.Vector3());
-						let radius = node.boundingBox.getSize(new THREE.Vector3()).length() / 2;
-						node.boundingSphere = new THREE.Sphere(center, radius);
-					} else {
-						parent.right = node;
-						parent.children.push(node);
+        if (node.isLeaf) {
+          let done = false;
+          while (!done && stack.length > 0) {
+            stack.pop();
 
-						if (parent.split === 'X') {
-							node.boundingBox.min.x = node.boundingBox.min.x + parentBBSize.x / 2;
-						} else if (parent.split === 'Y') {
-							node.boundingBox.min.y = node.boundingBox.min.y + parentBBSize.y / 2;
-						} else if (parent.split === 'Z') {
-							node.boundingBox.min.z = node.boundingBox.min.z + parentBBSize.z / 2;
-						}
+            let top = stack[stack.length - 1];
 
-						let center = node.boundingBox.getCenter(new THREE.Vector3());
-						let radius = node.boundingBox.getSize(new THREE.Vector3()).length() / 2;
-						node.boundingSphere = new THREE.Sphere(center, radius);
-					}
-				} else {
-					root = node;
-					root.boundingBox = this.boundingBox.clone();
-					let center = root.boundingBox.getCenter(new THREE.Vector3());
-					let radius = root.boundingBox.getSize(new THREE.Vector3()).length() / 2;
-					root.boundingSphere = new THREE.Sphere(center, radius);
-				}
+            done = stack.length > 0 && top.hasRight && top.right == null;
+          }
+        }
+      }
+      // TODO Debug:
+      // let end = new Date().getTime();
+      // let parseDuration = end - start;
+      // let msg = parseDuration;
+      // document.getElementById("lblDebug").innerHTML = msg;
 
-				let bbSize = node.boundingBox.getSize(new THREE.Vector3());
-				node.spacing = ((bbSize.x + bbSize.y + bbSize.z) / 3) / 75;
-				node.estimatedSpacing = node.spacing;
+      this.root = root;
+      this.levels = levels;
+      // console.log(this.root);
 
-				stack.push(node);
+      this.dispatchEvent({ type: 'hierarchy_loaded' });
+    };
 
-				if (node.isLeaf) {
-					let done = false;
-					while (!done && stack.length > 0) {
-						stack.pop();
+    xhr.send(null);
+  }
 
-						let top = stack[stack.length - 1];
+  get spacing() {
+    if (this._spacing) {
+      return this._spacing;
+    } else if (this.root) {
+      return this.root.spacing;
+    } else {
+      // TODO ???: null;
+    }
+  }
 
-						done = stack.length > 0 && top.hasRight && top.right == null;
-					}
-				}
-			}
-			// TODO Debug:
-			// let end = new Date().getTime();
-			// let parseDuration = end - start;
-			// let msg = parseDuration;
-			// document.getElementById("lblDebug").innerHTML = msg;
-
-			this.root = root;
-			this.levels = levels;
-			// console.log(this.root);
-
-			this.dispatchEvent({type: 'hierarchy_loaded'});
-		};
-
-		xhr.send(null);
-	};
-
-	get spacing(){
-		if (this._spacing) {
-			return this._spacing;
-		} else if (this.root) {
-			return this.root.spacing;
-		} else {
-			// TODO ???: null;
-		}
-	}
-
-	set spacing(value){
-		this._spacing = value;
-	}
-
+  set spacing(value) {
+    this._spacing = value;
+  }
 };
-

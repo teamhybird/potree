@@ -21,6 +21,8 @@
     "prebuild": "rimraf build",
     "lint": "eslint ./src",
     "lint:fix": "eslint --fix ./src",
+    "lint:prettier": "prettier --check \"src/**/*.js{,x}\"",
+    "fix:prettier": "prettier --write \"src/**/*.js{,x}\"",
     "prepublish": "npm run build"
   },
   "dependencies": {
@@ -39,6 +41,7 @@
     "eslint-plugin-import": "^2.25.2",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^5.1.0",
-    "eslint-plugin-standard": "^5.0.0"
+    "eslint-plugin-standard": "^5.0.0",
+    "prettier": "^2.6.2"
   }
 }
