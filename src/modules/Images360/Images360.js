@@ -19,15 +19,32 @@ let previousView = {
 };
 
 class Image360 {
-  constructor(file, time, longitude, latitude, altitude, course, pitch, roll) {
+  constructor(file, time, longitude, latitude, altitude, x, y, z, w) {
     this.file = file;
     this.time = time;
     this.longitude = longitude;
     this.latitude = latitude;
     this.altitude = altitude;
-    this.course = course;
-    this.pitch = pitch;
-    this.roll = roll;
+
+    //this.course = course;
+    //this.pitch = pitch;
+    //this.roll = roll;
+
+    if (w) {
+      var quat = new THREE.Quaternion(x, y, z, w);
+
+      var eu = new THREE.Euler().setFromQuaternion(quat, 'XYZ');
+
+      console.log(eu, quat);
+      this.roll = eu.z;
+      this.pitch = eu.y;
+      this.course = eu.x;
+    } else {
+      this.course = x;
+      this.pitch = y;
+      this.roll = z;
+    }
+
     this.mesh = null;
   }
 }
@@ -45,7 +62,7 @@ export class Images360 extends EventDispatcher {
 
     this.sphere = new THREE.Mesh(sgHigh, sm);
     this.sphere.visible = false;
-    this.sphere.scale.set(1000, 1000, 1000);
+    this.sphere.scale.set(1, 1, 1);
     this.node.add(this.sphere);
     this._visible = true;
     // this.node.add(label);
@@ -185,6 +202,7 @@ export class Images360 extends EventDispatcher {
     return new Promise((resolve) => {
       let texture = new THREE.TextureLoader().load(image360.file, resolve);
       texture.wrapS = THREE.RepeatWrapping;
+      texture.mapping = THREE.EquirectangularReflectionMapping;
       texture.repeat.x = -1;
 
       image360.texture = texture;
@@ -239,9 +257,8 @@ export class Images360Loader {
       };
     }
 
-    let response = await fetch(`${url}/coordinates.txt`);
+    let response = await fetch(`${url}/pano-poses.csv`);
     let text = await response.text();
-
     let lines = text.split(/\r?\n/);
     let coordinateLines = lines.slice(1);
 
@@ -252,21 +269,24 @@ export class Images360Loader {
         continue;
       }
 
-      let tokens = line.split(/\t/);
+      let tokens = line.split(/; /);
 
-      let [filename, time, long, lat, alt, course, pitch, roll] = tokens;
+      console.log(tokens);
+      let [ID, filename, time, long, lat, alt, w, x, y, z] = tokens;
+      ID = parseFloat(ID);
       time = parseFloat(time);
       long = parseFloat(long);
       lat = parseFloat(lat);
       alt = parseFloat(alt);
-      course = parseFloat(course);
-      pitch = parseFloat(pitch);
-      roll = parseFloat(roll);
+      z = parseFloat(z);
+      y = parseFloat(y);
+      x = parseFloat(x);
+      w = parseFloat(w);
 
-      filename = filename.replace(/"/g, '');
+      // filename = filename.replace(/"/g, '');
       let file = `${url}/${filename}`;
 
-      let image360 = new Image360(file, time, long, lat, alt, course, pitch, roll);
+      let image360 = new Image360(file, time, long, lat, alt, x, y, z, w);
 
       let xy = params.transform.forward([long, lat]);
       let position = [...xy, alt];

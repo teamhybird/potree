@@ -130,6 +130,18 @@ let resourcePath = scriptPath + '/resources';
 // resourcePath:build/potree/resources
 export { scriptPath, resourcePath };
 
+export function toAngle(x) {
+  return (x * 180) / Math.PI;
+}
+
+export function toReal(x) {
+  if (!isNaN(parseFloat(x)) && isFinite(parseFloat(x))) {
+    return parseFloat(parseFloat(x).toFixed(7));
+  } else {
+    return x;
+  }
+}
+
 export function loadPointCloud(path, name, callback) {
   let loaded = function (e) {
     e.pointcloud.name = name;
