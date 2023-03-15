@@ -42,9 +42,9 @@
       viewer.setFOV(60);
       viewer.setPointBudget(2_000_000);
       viewer.loadSettingsFromURL();
-      viewer.setDescription(`Mobile LIDAR with 360 degree image overlays. 
-		Click on a sphere to enter 360 view. Click "unfocus" to leave 360 view. <br>
-		Point cloud courtesy of <a href="http://www.helimap.com/">Helimap System SA</a>. Images were downsized for this online demo; Original size is 8000x400.`);
+      viewer.setDescription(`Mobile LIDAR with 360 degree image overlays.
+      		Click on a sphere to enter 360 view. Click "unfocus" to leave 360 view. <br>
+      		Point cloud courtesy of <a href="http://www.helimap.com/">Helimap System SA</a>. Images were downsized for this online demo; Original size is 8000x400.`);
 
       viewer.loadGUI(() => {
         viewer.setLanguage('en');
@@ -85,8 +85,7 @@
         };
 
         // this file contains coordinates, orientation and filenames of the images:
-        Potree.Images360Loader.load('http://localhost:1234/panorama', viewer, params).then((images) => {
-          console.log(images);
+        Potree.NavvisImages360Loader.load('http://localhost:1234/panorama', viewer, params).then((images) => {
           viewer.scene.add360Images(images);
         });
 

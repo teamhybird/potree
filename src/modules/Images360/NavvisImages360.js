@@ -6,7 +6,8 @@ import { Utils } from '../../utils.js';
 let sg = new THREE.SphereGeometry(1, 8, 8);
 let sgHigh = new THREE.SphereGeometry(1, 128, 128);
 
-let sm = new THREE.MeshBasicMaterial({ side: THREE.BackSide });
+let sm = new THREE.MeshBasicMaterial({ side: THREE.BackSide, depthTest: false });
+let smDefault = new THREE.MeshBasicMaterial({ side: THREE.BackSide, depthTest: false });
 let smHovered = new THREE.MeshBasicMaterial({ side: THREE.BackSide, color: 0xff0000 });
 
 let raycaster = new THREE.Raycaster();
@@ -19,21 +20,21 @@ let previousView = {
 };
 
 class Image360 {
-  constructor(file, time, longitude, latitude, altitude, course, pitch, roll) {
+  constructor(file, time, longitude, latitude, altitude, x, y, z, w) {
     this.file = file;
     this.time = time;
     this.longitude = longitude;
     this.latitude = latitude;
     this.altitude = altitude;
-    this.course = course;
-    this.pitch = pitch;
-    this.roll = roll;
-
+    this.x = x;
+    this.y = y;
+    this.z = z;
+    this.w = w;
     this.mesh = null;
   }
 }
 
-export class Images360 extends EventDispatcher {
+export class NavvisImages360 extends EventDispatcher {
   constructor(viewer) {
     super();
 
@@ -112,7 +113,7 @@ export class Images360 extends EventDispatcher {
       target: viewer.scene.view.getPivot(),
     };
 
-    this.viewer.setControls(this.viewer.orbitControls);
+    this.viewer.setControls(this.viewer.fpControls);
     this.viewer.orbitControls.doubleClockZoomEnabled = false;
 
     for (let image of this.images) {
@@ -131,8 +132,10 @@ export class Images360 extends EventDispatcher {
 
     {
       // orientation
-      let { course, pitch, roll } = image360;
-      this.sphere.rotation.set(THREE.Math.degToRad(+roll + 90), THREE.Math.degToRad(-pitch), THREE.Math.degToRad(-course + 90), 'ZYX');
+      let { x, y, z, w } = image360;
+
+      this.sphere.setRotationFromQuaternion(new THREE.Quaternion(x, y, z, w));
+      this.sphere.rotateX(THREE.Math.degToRad(90));
     }
 
     this.sphere.position.set(...image360.position);
@@ -222,7 +225,7 @@ export class Images360 extends EventDispatcher {
     let { viewer } = this;
 
     if (currentlyHovered) {
-      currentlyHovered.material = sm;
+      currentlyHovered.material = smDefault;
       currentlyHovered = null;
     }
 
@@ -232,7 +235,7 @@ export class Images360 extends EventDispatcher {
   }
 }
 
-export class Images360Loader {
+export class NavvisImages360Loader {
   static async load(url, viewer, params = {}) {
     if (!params.transform) {
       params.transform = {
@@ -240,34 +243,35 @@ export class Images360Loader {
       };
     }
 
-    let response = await fetch(`${url}/coordinates.txt`);
+    let response = await fetch(`${url}/pano-poses.csv`);
     let text = await response.text();
-
     let lines = text.split(/\r?\n/);
     let coordinateLines = lines.slice(1);
 
-    let images360 = new Images360(viewer);
+    let images360 = new NavvisImages360(viewer);
 
     for (let line of coordinateLines) {
       if (line.trim().length === 0) {
         continue;
       }
 
-      let tokens = line.split(/\t/);
+      let tokens = line.split(/; /);
 
-      let [filename, time, long, lat, alt, course, pitch, roll] = tokens;
+      let [ID, filename, time, long, lat, alt, w, x, y, z] = tokens;
+      ID = parseFloat(ID);
       time = parseFloat(time);
       long = parseFloat(long);
       lat = parseFloat(lat);
       alt = parseFloat(alt);
-      course = parseFloat(course);
-      pitch = parseFloat(pitch);
-      roll = parseFloat(roll);
+      z = parseFloat(z);
+      y = parseFloat(y);
+      x = parseFloat(x);
+      w = parseFloat(w);
 
-      filename = filename.replace(/"/g, '');
+      // filename = filename.replace(/"/g, '');
       let file = `${url}/${filename}`;
 
-      let image360 = new Image360(file, time, long, lat, alt, course, pitch, roll);
+      let image360 = new Image360(file, time, long, lat, alt, x, y, z, w);
 
       let xy = params.transform.forward([long, lat]);
       let position = [...xy, alt];
@@ -276,7 +280,7 @@ export class Images360Loader {
       images360.images.push(image360);
     }
 
-    Images360Loader.createSceneNodes(images360, params.transform);
+    NavvisImages360Loader.createSceneNodes(images360, params.transform);
 
     return images360;
   }
@@ -286,7 +290,7 @@ export class Images360Loader {
       let { longitude, latitude, altitude } = image360;
       let xy = transform.forward([longitude, latitude]);
 
-      let mesh = new THREE.Mesh(sg, sm);
+      let mesh = new THREE.Mesh(sg, smDefault);
       mesh.position.set(...xy, altitude);
       mesh.scale.set(1, 1, 1);
       mesh.material.transparent = true;
@@ -295,8 +299,11 @@ export class Images360Loader {
 
       {
         // orientation
-        var { course, pitch, roll } = image360;
-        mesh.rotation.set(THREE.Math.degToRad(+roll + 90), THREE.Math.degToRad(-pitch), THREE.Math.degToRad(-course + 90), 'ZYX');
+        var { x, y, z, w } = image360;
+        mesh.setRotationFromQuaternion(new THREE.Quaternion(x, y, z, w));
+        mesh.rotateX(THREE.Math.degToRad(90));
+
+        // mesh.add(new THREE.AxesHelper(3));
       }
 
       images360.node.add(mesh);
