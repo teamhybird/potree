@@ -3,12 +3,11 @@ import { EventDispatcher } from '../../EventDispatcher.js';
 import { TextSprite } from '../../TextSprite.js';
 import { Utils } from '../../utils.js';
 
-let sg = new THREE.SphereGeometry(1, 8, 8);
 let sgHigh = new THREE.SphereGeometry(1, 128, 128);
 
 let sm = new THREE.MeshBasicMaterial({ side: THREE.BackSide, depthTest: false });
-let smDefault = new THREE.MeshBasicMaterial({ side: THREE.BackSide, depthTest: false });
-let smHovered = new THREE.MeshBasicMaterial({ side: THREE.BackSide, color: 0xff0000 });
+let footprintDefaultOpacity = 0.2,
+  footprintHoveredOpacity = 1;
 
 let raycaster = new THREE.Raycaster();
 let currentlyHovered = null;
@@ -19,10 +18,19 @@ let previousView = {
   target: null,
 };
 
+let previousImage360 = null;
+
 class Image360 {
-  constructor(file, time, longitude, latitude, altitude, x, y, z, w) {
+  constructor(file, time, longitude, latitude, altitude, x, y, z, w, panoLongitude, panoLatitude, panoAltitude, panoX, panoY, panoZ, panoW) {
     this.file = file;
     this.time = time;
+    this.panoLongitude = panoLongitude;
+    this.panoLatitude = panoLatitude;
+    this.panoAltitude = panoAltitude;
+    this.panoX = panoX;
+    this.panoY = panoY;
+    this.panoZ = panoZ;
+    this.panoW = panoW;
     this.longitude = longitude;
     this.latitude = latitude;
     this.altitude = altitude;
@@ -40,10 +48,10 @@ export class NavvisImages360 extends EventDispatcher {
 
     this.viewer = viewer;
 
-    this.selectingEnabled = true;
-
     this.images = [];
     this.node = new THREE.Object3D();
+    this.footprints = [];
+    this._view360Enabled = false;
 
     this.sphere = new THREE.Mesh(sgHigh, sm);
     this.sphere.visible = false;
@@ -86,10 +94,6 @@ export class NavvisImages360 extends EventDispatcher {
       return;
     }
 
-    for (const image of this.images) {
-      image.mesh.visible = visible && this.focusedImage == null;
-    }
-
     this.sphere.visible = visible && this.focusedImage != null;
     this._visible = visible;
     this.dispatchEvent({
@@ -102,50 +106,97 @@ export class NavvisImages360 extends EventDispatcher {
     return this._visible;
   }
 
+  set view360Enabled(view360Enabled) {
+    if (this._view360Enabled === view360Enabled) {
+      return;
+    }
+    this._view360Enabled = view360Enabled;
+    if (view360Enabled) {
+      for (const pointcloud of this.viewer.scene.pointclouds) {
+        pointcloud.visible = false;
+      }
+      this.focus(previousImage360 || this.images[0]);
+    } else {
+      for (const pointcloud of this.viewer.scene.pointclouds) {
+        pointcloud.visible = true;
+      }
+      this.unfocus();
+    }
+  }
+
+  get view360Enabled() {
+    return this._view360Enabled;
+  }
+
   focus(image360) {
     if (this.focusedImage !== null) {
       this.unfocus();
     }
+
+    image360.mesh.visible = false;
 
     previousView = {
       controls: this.viewer.controls,
       position: this.viewer.scene.view.position.clone(),
       target: viewer.scene.view.getPivot(),
     };
+    this.sphere.visible = true;
 
-    this.viewer.setControls(this.viewer.fpControls);
-    this.viewer.orbitControls.doubleClockZoomEnabled = false;
+    const moveToTarget = () => {
+      this.sphere.visible = false;
 
-    for (let image of this.images) {
-      image.mesh.visible = false;
+      if (this.view360Enabled) {
+        this.viewer.setControls(this.viewer.fpControls);
+
+        this.load(image360).then(() => {
+          previousImage360 = image360;
+
+          this.sphere.visible = true;
+          this.sphere.material.map = image360.texture;
+          this.sphere.material.needsUpdate = true;
+          for (const footprint of this.footprints) {
+            footprint.visible = true;
+          }
+        });
+      } else {
+        for (const footprint of this.footprints) {
+          footprint.visible = true;
+        }
+      }
+
+      {
+        // orientation
+        let { panoX, panoY, panoZ, panoW } = image360;
+
+        this.sphere.setRotationFromQuaternion(new THREE.Quaternion(panoX, panoY, panoZ, panoW));
+        this.sphere.rotateX(THREE.Math.degToRad(90));
+      }
+      let { panoLongitude, panoLatitude, panoAltitude } = image360;
+
+      this.sphere.position.set(panoLongitude, panoLatitude, panoAltitude);
+
+      let target = new THREE.Vector3().copy(this.sphere.position);
+      let dir = target.clone().sub(viewer.scene.view.position).normalize();
+      let move = dir.multiplyScalar(0.000001);
+      let newCamPos = target.clone().sub(move);
+      viewer.scene.view.setView(newCamPos, target, this.view360Enabled ? 0 : 500);
+    };
+
+    if (this.view360Enabled && previousImage360) {
+      let { panoLongitude, panoLatitude, panoAltitude } = image360;
+      let target = new THREE.Vector3(panoLongitude, panoLatitude, panoAltitude);
+      let dir = new THREE.Vector3().subVectors(target, viewer.scene.view.position).normalize();
+      let move = dir.multiplyScalar(0.2);
+      let newCamPos = viewer.scene.view.position.clone().add(move);
+      // disable all footprints while animation is playing
+      for (const footprint of this.footprints) {
+        footprint.visible = false;
+      }
+
+      viewer.scene.view.setView(newCamPos, newCamPos, 500, () => moveToTarget());
+    } else {
+      moveToTarget();
     }
-
-    this.selectingEnabled = false;
-
-    this.sphere.visible = false;
-
-    this.load(image360).then(() => {
-      this.sphere.visible = true;
-      this.sphere.material.map = image360.texture;
-      this.sphere.material.needsUpdate = true;
-    });
-
-    {
-      // orientation
-      let { x, y, z, w } = image360;
-
-      this.sphere.setRotationFromQuaternion(new THREE.Quaternion(x, y, z, w));
-      this.sphere.rotateX(THREE.Math.degToRad(90));
-    }
-
-    this.sphere.position.set(...image360.position);
-
-    let target = new THREE.Vector3(...image360.position);
-    let dir = target.clone().sub(viewer.scene.view.position).normalize();
-    let move = dir.multiplyScalar(0.000001);
-    let newCamPos = target.clone().sub(move);
-
-    viewer.scene.view.setView(newCamPos, target, 500);
 
     this.focusedImage = image360;
 
@@ -153,20 +204,16 @@ export class NavvisImages360 extends EventDispatcher {
   }
 
   unfocus() {
-    this.selectingEnabled = true;
-
-    for (let image of this.images) {
-      image.mesh.visible = true;
-    }
-
     let image = this.focusedImage;
 
     if (image === null) {
       return;
     }
 
-    this.sphere.material.map = null;
-    this.sphere.material.needsUpdate = true;
+    image.mesh.visible = true;
+
+    // this.sphere.material.map = null;
+    // this.sphere.material.needsUpdate = true;
     this.sphere.visible = false;
 
     let pos = viewer.scene.view.position;
@@ -175,10 +222,9 @@ export class NavvisImages360 extends EventDispatcher {
     let move = dir.multiplyScalar(10);
     let newCamPos = target.clone().sub(move);
 
-    viewer.orbitControls.doubleClockZoomEnabled = true;
     viewer.setControls(previousView.controls);
 
-    viewer.scene.view.setView(previousView.position, previousView.target, 500);
+    // viewer.scene.view.setView(previousView.position, previousView.target, 500);
 
     this.focusedImage = null;
 
@@ -204,7 +250,7 @@ export class NavvisImages360 extends EventDispatcher {
 
     // let tStart = performance.now();
     raycaster.ray.copy(ray);
-    let intersections = raycaster.intersectObjects(this.node.children);
+    let intersections = raycaster.intersectObjects(this.footprints);
 
     if (intersections.length === 0) {
       // label.visible = false;
@@ -213,9 +259,10 @@ export class NavvisImages360 extends EventDispatcher {
     }
 
     let intersection = intersections[0];
-    currentlyHovered = intersection.object;
-    currentlyHovered.material = smHovered;
-
+    if (intersection.object && intersection.object.image360 && intersection.object.visible) {
+      currentlyHovered = intersection.object;
+      currentlyHovered.material.opacity = footprintHoveredOpacity;
+    }
     //label.visible = true;
     //label.setText(currentlyHovered.image360.file);
     //currentlyHovered.getWorldPosition(label.position);
@@ -225,13 +272,11 @@ export class NavvisImages360 extends EventDispatcher {
     let { viewer } = this;
 
     if (currentlyHovered) {
-      currentlyHovered.material = smDefault;
+      currentlyHovered.material.opacity = footprintDefaultOpacity;
       currentlyHovered = null;
     }
 
-    if (this.selectingEnabled) {
-      this.handleHovering();
-    }
+    this.handleHovering();
   }
 }
 
@@ -257,24 +302,30 @@ export class NavvisImages360Loader {
 
       let tokens = line.split(/; /);
 
-      let [ID, filename, time, long, lat, alt, w, x, y, z] = tokens;
+      let [ID, filename, time, long, lat, alt, w, x, y, z, fLong, fLat, fAlt, fW, fX, fY, fZ] = tokens;
       ID = parseFloat(ID);
       time = parseFloat(time);
       long = parseFloat(long);
       lat = parseFloat(lat);
       alt = parseFloat(alt);
-      z = parseFloat(z);
-      y = parseFloat(y);
       x = parseFloat(x);
+      y = parseFloat(y);
+      z = parseFloat(z);
       w = parseFloat(w);
-
+      fLong = parseFloat(fLong);
+      fLat = parseFloat(fLat);
+      fAlt = parseFloat(fAlt);
+      fX = parseFloat(fX);
+      fY = parseFloat(fY);
+      fZ = parseFloat(fZ);
+      fW = parseFloat(fW);
       // filename = filename.replace(/"/g, '');
       let file = `${url}/${filename}`;
 
-      let image360 = new Image360(file, time, long, lat, alt, x, y, z, w);
+      let image360 = new Image360(file, time, fLong, fLat, fAlt, fX, fY, fZ, fW, long, lat, alt, x, y, z, w);
 
-      let xy = params.transform.forward([long, lat]);
-      let position = [...xy, alt];
+      let xy = params.transform.forward([fLong, fLat]);
+      let position = [...xy, fAlt];
       image360.position = position;
 
       images360.images.push(image360);
@@ -290,23 +341,30 @@ export class NavvisImages360Loader {
       let { longitude, latitude, altitude } = image360;
       let xy = transform.forward([longitude, latitude]);
 
-      let mesh = new THREE.Mesh(sg, smDefault);
+      const footprintImagePath = `${Potree.resourcePath}/textures/footprint360.png`;
+      const texture = new THREE.TextureLoader().load(footprintImagePath);
+      const geometry = new THREE.PlaneGeometry(1, 1);
+      const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, color: 0xffffff, alphaTest: footprintDefaultOpacity - 0.1 });
+
+      const mesh = new THREE.Mesh(geometry, material);
       mesh.position.set(...xy, altitude);
       mesh.scale.set(1, 1, 1);
-      mesh.material.transparent = true;
-      mesh.material.opacity = 0.75;
+      mesh.material.opacity = footprintDefaultOpacity;
       mesh.image360 = image360;
 
       {
         // orientation
         var { x, y, z, w } = image360;
-        mesh.setRotationFromQuaternion(new THREE.Quaternion(x, y, z, w));
-        mesh.rotateX(THREE.Math.degToRad(90));
 
+        mesh.setRotationFromQuaternion(new THREE.Quaternion(x, y, z, w));
+        const v = new THREE.Vector3(0, 0, 1).applyQuaternion(mesh.quaternion);
+        // add small offset moving up along world axis
+        mesh.position.add(v.multiplyScalar(0.01));
         // mesh.add(new THREE.AxesHelper(3));
       }
 
       images360.node.add(mesh);
+      images360.footprints.push(mesh);
 
       image360.mesh = mesh;
     }

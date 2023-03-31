@@ -84,8 +84,14 @@
           transform: null,
         };
 
+        let images = null;
+        viewer.setControls(viewer.fpControls);
+        viewer.fpControls.lockElevation = true;
+        const baseUrl = 'http://localhost:1234/panorama';
         // this file contains coordinates, orientation and filenames of the images:
-        Potree.NavvisImages360Loader.load('http://localhost:1234/panorama', viewer, params).then((images) => {
+        Potree.NavvisImages360Loader.load(baseUrl, viewer, params).then((images) => {
+          images = images;
+          // images.view360Enabled = true;
           viewer.scene.add360Images(images);
         });
 
