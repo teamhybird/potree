@@ -281,46 +281,24 @@ export class NavvisImages360 extends EventDispatcher {
 }
 
 export class NavvisImages360Loader {
-  static async load(url, viewer, params = {}) {
+  static async load(dataset, viewer, params = {}) {
     if (!params.transform) {
       params.transform = {
         forward: (a) => a,
       };
     }
 
-    let response = await fetch(`${url}/pano-poses.csv`);
-    let text = await response.text();
-    let lines = text.split(/\r?\n/);
-    let coordinateLines = lines.slice(1);
-
     let images360 = new NavvisImages360(viewer);
 
-    for (let line of coordinateLines) {
-      if (line.trim().length === 0) {
-        continue;
-      }
+    for (const imageInfo of dataset.ImageInfos) {
+      const file = imageInfo.S3Path;
+      const { TimeStamp: time } = imageInfo;
 
-      let tokens = line.split(/; /);
+      const { X: fLong, Y: fLat, Z: fAlt } = imageInfo.FootPrint.Position;
+      const { X: fX, Y: fY, Z: fZ, W: fW } = imageInfo.FootPrint.Orientation;
 
-      let [ID, filename, time, long, lat, alt, w, x, y, z, fLong, fLat, fAlt, fW, fX, fY, fZ] = tokens;
-      ID = parseFloat(ID);
-      time = parseFloat(time);
-      long = parseFloat(long);
-      lat = parseFloat(lat);
-      alt = parseFloat(alt);
-      x = parseFloat(x);
-      y = parseFloat(y);
-      z = parseFloat(z);
-      w = parseFloat(w);
-      fLong = parseFloat(fLong);
-      fLat = parseFloat(fLat);
-      fAlt = parseFloat(fAlt);
-      fX = parseFloat(fX);
-      fY = parseFloat(fY);
-      fZ = parseFloat(fZ);
-      fW = parseFloat(fW);
-      // filename = filename.replace(/"/g, '');
-      let file = `${url}/${filename}`;
+      const { X: long, Y: lat, Z: alt } = imageInfo.CamHead.Position;
+      const { X: x, Y: y, Z: z, W: w } = imageInfo.CamHead.Orientation;
 
       let image360 = new Image360(file, time, fLong, fLat, fAlt, fX, fY, fZ, fW, long, lat, alt, x, y, z, w);
 
