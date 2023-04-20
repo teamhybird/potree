@@ -99,8 +99,8 @@
           DatasetEndTime: 1676533806.865488,
           ImageInfos: [
             {
-              ImageName: '00000.jpg',
-              S3Path: 'https://s3.console.aws.amazon.com/s3/buckets/hybird-dev?region=eu-west-2&prefix=1/19/86/inspection/undistorted_images/360/2023-02-16_08.48.10/00000.jpg',
+              ImageName: '00000-pano.jpg',
+              S3Path: 'https://s3.console.aws.amazon.com/s3/buckets/hybird-dev?region=eu-west-2&prefix=1/19/86/inspection/undistorted_images/360/2023-02-16_08.48.10/00000-pano.jpg',
               TimeStamp: 1676533709.8917356,
               CamHead: {
                 Position: {
@@ -5071,7 +5071,7 @@
         // this file contains coordinates, orientation and filenames of the images:
         Potree.NavvisImages360Loader.load(dataset, viewer, params).then((images) => {
           images = images;
-          images.view360Enabled = true;
+          // images.view360Enabled = true;
           viewer.scene.add360Images(images);
         });
 

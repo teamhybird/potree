@@ -1,21 +1,21 @@
 {
-	"workbench.editor.enablePreview": false,
-	"files.associations": {
-		"*.vs": "cpp",
-		"*.fs": "cpp"
-	},
-	"files.trimTrailingWhitespace": false,
-	"editor.autoIndent": "none",
-	"editor.detectIndentation": false,
-	"editor.insertSpaces": false,
-	"editor.formatOnType": false,
-	"editor.acceptSuggestionOnEnter": "off",
-	"editor.acceptSuggestionOnCommitCharacter": false,
-	"editor.renderWhitespace": "all",
-	"workbench.tree.indent": 30,
-	"emmet.triggerExpansionOnTab": true,
+  "workbench.editor.enablePreview": false,
+  "files.associations": {
+    "*.vs": "cpp",
+    "*.fs": "cpp"
+  },
+  "files.trimTrailingWhitespace": false,
+  "editor.autoIndent": "none",
+  "editor.detectIndentation": false,
+  "editor.insertSpaces": false,
+  "editor.formatOnType": false,
+  "editor.acceptSuggestionOnEnter": "off",
+  "editor.acceptSuggestionOnCommitCharacter": false,
+  "editor.renderWhitespace": "all",
+  "workbench.tree.indent": 30,
+  "emmet.triggerExpansionOnTab": true,
   "editor.tabSize": 2,
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true,
-  },
+    "source.fixAll.eslint": true
+  }
 }

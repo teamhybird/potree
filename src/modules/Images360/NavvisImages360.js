@@ -62,25 +62,10 @@ export class NavvisImages360 extends EventDispatcher {
 
     this.focusedImage = null;
 
-    let elUnfocus = document.createElement('input');
-    elUnfocus.type = 'button';
-    elUnfocus.value = 'unfocus';
-    elUnfocus.style.position = 'absolute';
-    elUnfocus.style.right = '10px';
-    elUnfocus.style.bottom = '10px';
-    elUnfocus.style.zIndex = '10000';
-    elUnfocus.style.fontSize = '2em';
-    elUnfocus.addEventListener('click', () => this.unfocus());
-    this.elUnfocus = elUnfocus;
-
-    this.domRoot = viewer.renderer.domElement.parentElement;
-    this.domRoot.appendChild(elUnfocus);
-    this.elUnfocus.style.display = 'none';
-
-    viewer.addEventListener('update', () => {
-      this.update(viewer);
+    this.viewer.addEventListener('update', () => {
+      this.update(this.viewer);
     });
-    viewer.inputHandler.addInputListener(this);
+    this.viewer.inputHandler.addInputListener(this);
 
     this.addEventListener('mousedown', () => {
       if (currentlyHovered && currentlyHovered.image360) {
@@ -138,7 +123,7 @@ export class NavvisImages360 extends EventDispatcher {
     previousView = {
       controls: this.viewer.controls,
       position: this.viewer.scene.view.position.clone(),
-      target: viewer.scene.view.getPivot(),
+      target: this.viewer.scene.view.getPivot(),
     };
     this.sphere.visible = true;
 
@@ -176,31 +161,30 @@ export class NavvisImages360 extends EventDispatcher {
       this.sphere.position.set(panoLongitude, panoLatitude, panoAltitude);
 
       let target = new THREE.Vector3().copy(this.sphere.position);
-      let dir = target.clone().sub(viewer.scene.view.position).normalize();
+      let dir = target.clone().sub(this.viewer.scene.view.position).normalize();
       let move = dir.multiplyScalar(0.000001);
       let newCamPos = target.clone().sub(move);
-      viewer.scene.view.setView(newCamPos, target, this.view360Enabled ? 0 : 500);
+
+      this.viewer.scene.view.setView(newCamPos, null, this.view360Enabled ? 0 : 500);
     };
 
     if (this.view360Enabled && previousImage360) {
       let { panoLongitude, panoLatitude, panoAltitude } = image360;
       let target = new THREE.Vector3(panoLongitude, panoLatitude, panoAltitude);
-      let dir = new THREE.Vector3().subVectors(target, viewer.scene.view.position).normalize();
+      let dir = new THREE.Vector3().subVectors(target, this.viewer.scene.view.position).normalize();
       let move = dir.multiplyScalar(0.2);
-      let newCamPos = viewer.scene.view.position.clone().add(move);
+      let newCamPos = this.viewer.scene.view.position.clone().add(move);
       // disable all footprints while animation is playing
       for (const footprint of this.footprints) {
         footprint.visible = false;
       }
 
-      viewer.scene.view.setView(newCamPos, newCamPos, 500, () => moveToTarget());
+      this.viewer.scene.view.setView(newCamPos, newCamPos, 500, () => moveToTarget());
     } else {
       moveToTarget();
     }
 
     this.focusedImage = image360;
-
-    this.elUnfocus.style.display = '';
   }
 
   unfocus() {
@@ -216,19 +200,17 @@ export class NavvisImages360 extends EventDispatcher {
     // this.sphere.material.needsUpdate = true;
     this.sphere.visible = false;
 
-    let pos = viewer.scene.view.position;
-    let target = viewer.scene.view.getPivot();
+    let pos = this.viewer.scene.view.position;
+    let target = this.viewer.scene.view.getPivot();
     let dir = target.clone().sub(pos).normalize();
     let move = dir.multiplyScalar(10);
     let newCamPos = target.clone().sub(move);
 
-    viewer.setControls(previousView.controls);
+    this.viewer.setControls(previousView.controls);
 
-    // viewer.scene.view.setView(previousView.position, previousView.target, 500);
+    // this.viewer.scene.view.setView(previousView.position, previousView.target, 500);
 
     this.focusedImage = null;
-
-    this.elUnfocus.style.display = 'none';
   }
 
   load(image360) {
@@ -242,9 +224,9 @@ export class NavvisImages360 extends EventDispatcher {
   }
 
   handleHovering() {
-    let mouse = viewer.inputHandler.mouse;
-    let camera = viewer.scene.getActiveCamera();
-    let domElement = viewer.renderer.domElement;
+    let mouse = this.viewer.inputHandler.mouse;
+    let camera = this.viewer.scene.getActiveCamera();
+    let domElement = this.viewer.renderer.domElement;
 
     let ray = Utils.mouseToRay(mouse, camera, domElement.clientWidth, domElement.clientHeight);
 
@@ -269,8 +251,6 @@ export class NavvisImages360 extends EventDispatcher {
   }
 
   update() {
-    let { viewer } = this;
-
     if (currentlyHovered) {
       currentlyHovered.material.opacity = footprintDefaultOpacity;
       currentlyHovered = null;
@@ -322,12 +302,11 @@ export class NavvisImages360Loader {
       const footprintImagePath = `${Potree.resourcePath}/textures/footprint360.png`;
       const texture = new THREE.TextureLoader().load(footprintImagePath);
       const geometry = new THREE.PlaneGeometry(1, 1);
-      const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, color: 0xffffff, alphaTest: footprintDefaultOpacity - 0.1 });
+      const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, opacity: footprintDefaultOpacity, color: 0xffffff, alphaTest: footprintDefaultOpacity - 0.1 });
 
       const mesh = new THREE.Mesh(geometry, material);
       mesh.position.set(...xy, altitude);
       mesh.scale.set(1, 1, 1);
-      mesh.material.opacity = footprintDefaultOpacity;
       mesh.image360 = image360;
 
       {
