@@ -133,16 +133,23 @@ export class NavvisImages360 extends EventDispatcher {
       if (this.view360Enabled) {
         this.viewer.setControls(this.viewer.fpControls);
 
-        this.load(image360).then(() => {
-          previousImage360 = image360;
+        const viewer = this.load(image360);
+        this.node.remove(this.sphere);
+        this.sphere = viewer.renderer.mesh;
+        this.sphere.material.needsUpdate = true;
+        this.node.add(viewer.renderer.mesh);
+        // this.node.add(viewer.renderer.mesh);
+        console.log(viewer, this.sphere);
+        // this.load(image360).then(() => {
+        //   previousImage360 = image360;
 
-          this.sphere.visible = true;
-          this.sphere.material.map = image360.texture;
-          this.sphere.material.needsUpdate = true;
-          for (const footprint of this.footprints) {
-            footprint.visible = true;
-          }
-        });
+        //   this.sphere.visible = true;
+        //   this.sphere.material.map = image360.texture;
+        //   this.sphere.material.needsUpdate = true;
+        //   for (const footprint of this.footprints) {
+        //     footprint.visible = true;
+        //   }
+        // });
       } else {
         for (const footprint of this.footprints) {
           footprint.visible = true;
@@ -214,6 +221,71 @@ export class NavvisImages360 extends EventDispatcher {
   }
 
   load(image360) {
+    const pano = {
+      minFov: 30,
+      options: {
+        yaw: 0,
+        pitch: 0,
+        zoom: 2,
+        caption: 'Parc national du Mercantour <b>&copy; Damien Sorel</b>',
+      },
+      config: {
+        width: 8192,
+        cols: 8,
+        rows: 4,
+        levels: [
+          {
+            width: 4096, // 128
+            cols: 8,
+            rows: 4,
+            zoomRange: [0, 1],
+          },
+          {
+            width: 8192, // 256
+            cols: 8,
+            rows: 4,
+            zoomRange: [1, 30],
+          },
+          {
+            width: 16384, // 512
+            cols: 8,
+            rows: 4,
+            zoomRange: [30, 70],
+          },
+          {
+            width: 32768, // 1024
+            cols: 8,
+            rows: 4,
+            zoomRange: [70, 100],
+          },
+        ],
+        tileUrl: (col, row, level) => {
+          const imageNum = 0;
+          const num = row * 8 + (7 - col);
+
+          return `${Potree.resourcePath}/assets/tiles/r${level}/0/${String(imageNum).padStart(5, '0')}-pano-tex-r${level}-${String(num).padStart(2, '0')}.jpg`;
+        },
+      },
+    };
+    const viewer = new PhotoSphereViewer.Viewer({
+      container: 'photosphere',
+      adapter: [
+        PhotoSphereViewer.EquirectangularTilesAdapter,
+        {
+          showErrorTile: true,
+          baseBlur: true,
+          // resolution: 216,
+          // debug: true,
+        },
+      ],
+      plugins: [PhotoSphereViewer.GyroscopePlugin],
+      loadingImg: 'https://photo-sphere-viewer-data.netlify.app/assets/loader.gif',
+    });
+    viewer.setOption('minFov', pano.minFov);
+    viewer.setPanorama(pano.config, pano.options);
+
+    console.log('HELLOOO', viewer.renderer);
+    return viewer;
     return new Promise((resolve) => {
       let texture = new THREE.TextureLoader().load(image360.file, resolve);
       texture.wrapS = THREE.RepeatWrapping;
