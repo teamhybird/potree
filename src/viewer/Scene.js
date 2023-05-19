@@ -40,6 +40,7 @@ export class Scene extends EventDispatcher {
     this.earthControls = null;
     this.geoControls = null;
     this.deviceControls = null;
+    this.panoControls = null;
     this.inputHandler = null;
 
     this.view = new View();
@@ -174,6 +175,7 @@ export class Scene extends EventDispatcher {
   remove360Images(images) {
     let index = this.images360.indexOf(images);
     if (index > -1) {
+      this.scene.remove(this.images360[index].node);
       this.images360.splice(index, 1);
 
       this.dispatchEvent({

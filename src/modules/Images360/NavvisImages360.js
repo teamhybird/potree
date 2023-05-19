@@ -11,6 +11,7 @@ let footprintDefaultOpacity = 0.2,
 
 let raycaster = new THREE.Raycaster();
 let currentlyHovered = null;
+let previousFOV = null;
 
 let previousView = {
   controls: null,
@@ -21,7 +22,7 @@ let previousView = {
 let previousImage360 = null;
 
 class Image360 {
-  constructor(file, time, longitude, latitude, altitude, x, y, z, w, panoLongitude, panoLatitude, panoAltitude, panoX, panoY, panoZ, panoW) {
+  constructor(id, file, time, longitude, latitude, altitude, x, y, z, w, panoLongitude, panoLatitude, panoAltitude, panoX, panoY, panoZ, panoW) {
     this.file = file;
     this.time = time;
     this.panoLongitude = panoLongitude;
@@ -39,6 +40,7 @@ class Image360 {
     this.z = z;
     this.w = w;
     this.mesh = null;
+    this.id = id;
   }
 }
 
@@ -55,7 +57,7 @@ export class NavvisImages360 extends EventDispatcher {
 
     this.sphere = new THREE.Mesh(sgHigh, sm);
     this.sphere.visible = false;
-    this.sphere.scale.set(1, 1, 1);
+    this.sphere.scale.set(5, 5, 5);
     this.node.add(this.sphere);
     this._visible = true;
     // this.node.add(label);
@@ -101,11 +103,18 @@ export class NavvisImages360 extends EventDispatcher {
         pointcloud.visible = false;
       }
       this.focus(previousImage360 || this.images[0]);
+      this.viewer.setControls(this.viewer.panoControls);
+      // remember FOV
+      previousFOV = this.viewer.getFOV();
     } else {
       for (const pointcloud of this.viewer.scene.pointclouds) {
         pointcloud.visible = true;
       }
       this.unfocus();
+      // restart FOV
+      if (previousFOV) {
+        this.viewer.setFOV(previousFOV);
+      }
     }
   }
 
@@ -131,25 +140,16 @@ export class NavvisImages360 extends EventDispatcher {
       this.sphere.visible = false;
 
       if (this.view360Enabled) {
-        this.viewer.setControls(this.viewer.fpControls);
+        this.load(image360).then(() => {
+          previousImage360 = image360;
 
-        const viewer = this.load(image360);
-        this.node.remove(this.sphere);
-        this.sphere = viewer.renderer.mesh;
-        this.sphere.material.needsUpdate = true;
-        this.node.add(viewer.renderer.mesh);
-        // this.node.add(viewer.renderer.mesh);
-        console.log(viewer, this.sphere);
-        // this.load(image360).then(() => {
-        //   previousImage360 = image360;
-
-        //   this.sphere.visible = true;
-        //   this.sphere.material.map = image360.texture;
-        //   this.sphere.material.needsUpdate = true;
-        //   for (const footprint of this.footprints) {
-        //     footprint.visible = true;
-        //   }
-        // });
+          this.sphere.visible = true;
+          this.sphere.material.map = image360.texture;
+          this.sphere.material.needsUpdate = true;
+          for (const footprint of this.footprints) {
+            footprint.visible = true;
+          }
+        });
       } else {
         for (const footprint of this.footprints) {
           footprint.visible = true;
@@ -186,7 +186,7 @@ export class NavvisImages360 extends EventDispatcher {
         footprint.visible = false;
       }
 
-      this.viewer.scene.view.setView(newCamPos, newCamPos, 500, () => moveToTarget());
+      this.viewer.scene.view.setView(newCamPos, null, 500, () => moveToTarget());
     } else {
       moveToTarget();
     }
@@ -221,71 +221,6 @@ export class NavvisImages360 extends EventDispatcher {
   }
 
   load(image360) {
-    const pano = {
-      minFov: 30,
-      options: {
-        yaw: 0,
-        pitch: 0,
-        zoom: 2,
-        caption: 'Parc national du Mercantour <b>&copy; Damien Sorel</b>',
-      },
-      config: {
-        width: 8192,
-        cols: 8,
-        rows: 4,
-        levels: [
-          {
-            width: 4096, // 128
-            cols: 8,
-            rows: 4,
-            zoomRange: [0, 1],
-          },
-          {
-            width: 8192, // 256
-            cols: 8,
-            rows: 4,
-            zoomRange: [1, 30],
-          },
-          {
-            width: 16384, // 512
-            cols: 8,
-            rows: 4,
-            zoomRange: [30, 70],
-          },
-          {
-            width: 32768, // 1024
-            cols: 8,
-            rows: 4,
-            zoomRange: [70, 100],
-          },
-        ],
-        tileUrl: (col, row, level) => {
-          const imageNum = 0;
-          const num = row * 8 + (7 - col);
-
-          return `${Potree.resourcePath}/assets/tiles/r${level}/0/${String(imageNum).padStart(5, '0')}-pano-tex-r${level}-${String(num).padStart(2, '0')}.jpg`;
-        },
-      },
-    };
-    const viewer = new PhotoSphereViewer.Viewer({
-      container: 'photosphere',
-      adapter: [
-        PhotoSphereViewer.EquirectangularTilesAdapter,
-        {
-          showErrorTile: true,
-          baseBlur: true,
-          // resolution: 216,
-          // debug: true,
-        },
-      ],
-      plugins: [PhotoSphereViewer.GyroscopePlugin],
-      loadingImg: 'https://photo-sphere-viewer-data.netlify.app/assets/loader.gif',
-    });
-    viewer.setOption('minFov', pano.minFov);
-    viewer.setPanorama(pano.config, pano.options);
-
-    console.log('HELLOOO', viewer.renderer);
-    return viewer;
     return new Promise((resolve) => {
       let texture = new THREE.TextureLoader().load(image360.file, resolve);
       texture.wrapS = THREE.RepeatWrapping;
@@ -304,7 +239,10 @@ export class NavvisImages360 extends EventDispatcher {
 
     // let tStart = performance.now();
     raycaster.ray.copy(ray);
-    let intersections = raycaster.intersectObjects(this.footprints);
+    let intersections = raycaster.intersectObjects(
+      this.footprints.filter((v) => v.visible),
+      false
+    );
 
     if (intersections.length === 0) {
       // label.visible = false;
@@ -343,7 +281,7 @@ export class NavvisImages360Loader {
     let images360 = new NavvisImages360(viewer);
 
     for (const imageInfo of dataset.ImageInfos) {
-      const file = imageInfo.S3Path;
+      const file = imageInfo.ImageURL;
       const { TimeStamp: time } = imageInfo;
 
       const { X: fLong, Y: fLat, Z: fAlt } = imageInfo.FootPrint.Position;
@@ -352,7 +290,7 @@ export class NavvisImages360Loader {
       const { X: long, Y: lat, Z: alt } = imageInfo.CamHead.Position;
       const { X: x, Y: y, Z: z, W: w } = imageInfo.CamHead.Orientation;
 
-      let image360 = new Image360(file, time, fLong, fLat, fAlt, fX, fY, fZ, fW, long, lat, alt, x, y, z, w);
+      let image360 = new Image360(imageInfo.ID, file, time, fLong, fLat, fAlt, fX, fY, fZ, fW, long, lat, alt, x, y, z, w);
 
       let xy = params.transform.forward([fLong, fLat]);
       let position = [...xy, fAlt];
@@ -374,7 +312,7 @@ export class NavvisImages360Loader {
       const footprintImagePath = `${Potree.resourcePath}/textures/footprint360.png`;
       const texture = new THREE.TextureLoader().load(footprintImagePath);
       const geometry = new THREE.PlaneGeometry(1, 1);
-      const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, opacity: footprintDefaultOpacity, color: 0xffffff, alphaTest: footprintDefaultOpacity - 0.1 });
+      const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false, opacity: footprintDefaultOpacity, color: 0xffffff, alphaTest: footprintDefaultOpacity - 0.1 });
 
       const mesh = new THREE.Mesh(geometry, material);
       mesh.position.set(...xy, altitude);

@@ -27,6 +27,7 @@ import { NavigationCube } from './NavigationCube.js';
 import { Compass } from '../utils/Compass.js';
 import { OrbitControls } from '../navigation/OrbitControls.js';
 import { FirstPersonControls } from '../navigation/FirstPersonControls.js';
+import { PanoControls } from '../navigation/PanoControls.js';
 import { EarthControls } from '../navigation/EarthControls.js';
 import { DeviceOrientationControls } from '../navigation/DeviceOrientationControls.js';
 import { VRControls } from '../navigation/VRControls.js';
@@ -1276,6 +1277,14 @@ export class Viewer extends EventDispatcher {
       this.vrControls.enabled = false;
       this.vrControls.addEventListener('start', this.disableAnnotations.bind(this));
       this.vrControls.addEventListener('end', this.enableAnnotations.bind(this));
+    }
+
+    {
+      // create FIRST PERSON CONTROLS
+      this.panoControls = new PanoControls(this);
+      this.panoControls.enabled = false;
+      this.panoControls.addEventListener('start', this.disableAnnotations.bind(this));
+      this.panoControls.addEventListener('end', this.enableAnnotations.bind(this));
     }
   }
 
