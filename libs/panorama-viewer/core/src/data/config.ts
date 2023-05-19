@@ -15,6 +15,8 @@ export const DEFAULTS: Required<ParsedViewerConfig> = {
     overlay: null,
     overlayOpacity: 1,
     container: null,
+    camera: null,
+    meshContainer: null,
     adapter: [EquirectangularAdapter as any, null],
     plugins: [],
     caption: null,

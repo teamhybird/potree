@@ -1,4 +1,4 @@
-import { Mesh, Vector3, Euler, WebGLRenderer, Renderer as Renderer$1, Intersection, Object3D, Texture, BufferGeometry, ShaderMaterial } from 'three';
+import { Mesh, Vector3, Euler, WebGLRenderer, Renderer as Renderer$1, Intersection, Object3D, PerspectiveCamera, Group, Texture, BufferGeometry, ShaderMaterial } from 'three';
 
 /**
  * Default duration of the transition between panoramas
@@ -1172,6 +1172,8 @@ declare class Viewer extends TypedEventTarget<ViewerEvents> {
     readonly config: ParsedViewerConfig;
     readonly parent: HTMLElement;
     readonly container: HTMLElement;
+    readonly camera: PerspectiveCamera;
+    readonly meshContainer: Group;
     readonly renderer: Renderer;
     readonly textureLoader: TextureLoader;
     readonly dataHelper: DataHelper;
@@ -1625,6 +1627,8 @@ type NavbarCustomButton = {
  */
 type ViewerConfig = {
     container: HTMLElement | string;
+    camera?: PerspectiveCamera;
+    meshContainer?: Group;
     panorama?: any;
     overlay?: any;
     /** @default 1 */

@@ -1,4 +1,4 @@
-import { Object3D, Texture } from 'three';
+import { Group, Object3D, PerspectiveCamera, Texture } from 'three';
 import { AdapterConstructor } from './adapters/AbstractAdapter';
 import { ACTIONS } from './data/constants';
 import { PluginConstructor } from './plugins/AbstractPlugin';
@@ -264,6 +264,8 @@ export type NavbarCustomButton = {
  */
 export type ViewerConfig = {
     container: HTMLElement | string;
+    camera?: PerspectiveCamera;
+    meshContainer?: Group;
     panorama?: any;
     overlay?: any;
     /** @default 1 */

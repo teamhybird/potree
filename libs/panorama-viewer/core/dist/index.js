@@ -2814,6 +2814,8 @@ void main() {
     overlay: null,
     overlayOpacity: 1,
     container: null,
+    camera: null,
+    meshContainer: null,
     adapter: [EquirectangularAdapter, null],
     plugins: [],
     caption: null,
@@ -4786,10 +4788,11 @@ void main() {
       this.renderer.setPixelRatio(SYSTEM.pixelRatio);
       this.renderer.domElement.className = "psv-canvas";
       this.scene = new import_three8.Scene();
-      this.camera = new import_three8.PerspectiveCamera(50, 16 / 9, 0.1, 2 * SPHERE_RADIUS);
+      this.camera = this.viewer.camera || new import_three8.PerspectiveCamera(50, 16 / 9, 0.1, 2 * SPHERE_RADIUS);
       this.mesh = this.viewer.adapter.createMesh();
       this.mesh.userData = { [VIEWER_DATA]: true };
-      this.meshContainer = new import_three8.Group();
+      console.log(this.viewer.meshContainer);
+      this.meshContainer = this.viewer.meshContainer || new import_three8.Group();
       this.meshContainer.add(this.mesh);
       this.scene.add(this.meshContainer);
       this.raycaster = new import_three8.Raycaster();
@@ -4797,7 +4800,6 @@ void main() {
       this.container.className = "psv-canvas-container";
       this.container.style.background = this.config.canvasBackground;
       this.container.appendChild(this.renderer.domElement);
-      this.viewer.container.appendChild(this.container);
       this.viewer.addEventListener(SizeUpdatedEvent.type, this);
       this.viewer.addEventListener(ZoomUpdatedEvent.type, this);
       this.viewer.addEventListener(PositionUpdatedEvent.type, this);
@@ -4888,27 +4890,18 @@ void main() {
      */
     __onSizeUpdated() {
       this.renderer.setSize(this.state.size.width, this.state.size.height);
-      this.camera.aspect = this.state.aspect;
-      this.camera.updateProjectionMatrix();
       this.viewer.needsUpdate();
     }
     /**
      * Updates the fov of the camera
      */
     __onZoomUpdated() {
-      this.camera.fov = this.state.vFov;
-      this.camera.updateProjectionMatrix();
       this.viewer.needsUpdate();
     }
     /**
      * Updates the position of the camera
      */
     __onPositionUpdated() {
-      this.camera.position.set(0, 0, 0);
-      this.camera.lookAt(this.state.direction);
-      if (this.config.fisheye) {
-        this.camera.position.copy(this.state.direction).multiplyScalar(this.config.fisheye / 2).negate();
-      }
       this.viewer.needsUpdate();
     }
     /**
@@ -4946,17 +4939,15 @@ void main() {
      * Applies a panorama data pose to a Mesh
      * @internal
      */
-    setPanoramaPose(panoData, mesh = this.mesh) {
-      const cleanCorrection = this.viewer.dataHelper.cleanPanoramaPose(panoData);
-      mesh.rotation.set(-cleanCorrection.tilt, -cleanCorrection.pan, -cleanCorrection.roll, "ZXY");
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    setPanoramaPose(_panoData, _mesh = this.mesh) {
     }
     /**
      * Applies a SphereCorrection to a Group
      * @internal
      */
-    setSphereCorrection(sphereCorrection, group = this.meshContainer) {
-      const cleanCorrection = this.viewer.dataHelper.cleanSphereCorrection(sphereCorrection);
-      group.rotation.set(cleanCorrection.tilt, cleanCorrection.pan, cleanCorrection.roll, "ZXY");
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    setSphereCorrection(_sphereCorrection, _group = this.meshContainer) {
     }
     /**
      * Performs transition between the current and a new texture
@@ -5317,9 +5308,9 @@ void main() {
       this.config = getViewerConfig(config);
       this.parent = getElement(config.container);
       this.parent[VIEWER_DATA] = this;
-      this.container = document.createElement("div");
-      this.container.classList.add("psv-container");
-      this.parent.appendChild(this.container);
+      this.container = this.parent;
+      this.camera = config.camera;
+      this.meshContainer = config.meshContainer;
       this.adapter = new this.config.adapter[0](this, this.config.adapter[1]);
       this.renderer = new Renderer(this);
       this.textureLoader = new TextureLoader(this);

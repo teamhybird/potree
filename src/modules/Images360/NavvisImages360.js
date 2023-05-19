@@ -53,12 +53,8 @@ export class NavvisImages360 extends EventDispatcher {
     this.footprints = [];
     this._view360Enabled = false;
 
-    this.sphere = new THREE.Mesh(sgHigh, sm);
-    this.sphere.visible = false;
-    this.sphere.scale.set(1, 1, 1);
-    this.node.add(this.sphere);
+    this.sphere = new THREE.Group();
     this._visible = true;
-    // this.node.add(label);
 
     this.focusedImage = null;
 
@@ -134,12 +130,22 @@ export class NavvisImages360 extends EventDispatcher {
         this.viewer.setControls(this.viewer.fpControls);
 
         const viewer = this.load(image360);
+        previousImage360 = image360;
+
+        this.sphere.visible = true;
+        for (const footprint of this.footprints) {
+          footprint.visible = true;
+        }
+        // this.sphere.visible = true;
         this.node.remove(this.sphere);
-        this.sphere = viewer.renderer.mesh;
-        this.sphere.material.needsUpdate = true;
-        this.node.add(viewer.renderer.mesh);
+        // console.log(viewer.renderer.mesh);
+        // this.sphere = viewer.renderer.mesh;
+        // this.sphere.scale.set(1, 1, 1);
+        this.sphere.add(new THREE.AxesHelper(3));
+        this.node.add(this.sphere);
+        // viewer.renderer.mesh.add(new THREE.AxesHelper(3));
         // this.node.add(viewer.renderer.mesh);
-        console.log(viewer, this.sphere);
+
         // this.load(image360).then(() => {
         //   previousImage360 = image360;
 
@@ -268,11 +274,13 @@ export class NavvisImages360 extends EventDispatcher {
       },
     };
     const viewer = new PhotoSphereViewer.Viewer({
-      container: 'photosphere',
+      container: 'potree_render_area',
+      camera: this.viewer.scene.cameraP,
+      meshContainer: this.sphere,
       adapter: [
         PhotoSphereViewer.EquirectangularTilesAdapter,
         {
-          showErrorTile: true,
+          // showErrorTile: true,
           baseBlur: true,
           // resolution: 216,
           // debug: true,
@@ -389,7 +397,7 @@ export class NavvisImages360Loader {
         const v = new THREE.Vector3(0, 0, 1).applyQuaternion(mesh.quaternion);
         // add small offset moving up along world axis
         mesh.position.add(v.multiplyScalar(0.01));
-        // mesh.add(new THREE.AxesHelper(3));
+        mesh.add(new THREE.AxesHelper(3));
       }
 
       images360.node.add(mesh);

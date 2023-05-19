@@ -58,6 +58,7 @@ import {
     throttle,
     toggleClass,
 } from './utils';
+import { Group, PerspectiveCamera } from 'three';
 
 /**
  * Photo Sphere Viewer controller
@@ -68,6 +69,8 @@ export class Viewer extends TypedEventTarget<ViewerEvents> {
 
     readonly parent: HTMLElement;
     readonly container: HTMLElement;
+    readonly camera: PerspectiveCamera;
+    readonly meshContainer: Group;
 
     /** @internal */
     readonly adapter: AbstractAdapter<any, any>;
@@ -105,9 +108,11 @@ export class Viewer extends TypedEventTarget<ViewerEvents> {
         // @ts-ignore
         this.parent[VIEWER_DATA] = this;
 
-        this.container = document.createElement('div');
-        this.container.classList.add('psv-container');
-        this.parent.appendChild(this.container);
+        this.container = this.parent;
+        // this.container.classList.add('psv-container');
+        // this.parent.appendChild(this.container);
+        this.camera = config.camera;
+        this.meshContainer = config.meshContainer;
 
         // @ts-ignore
         this.adapter = new this.config.adapter[0](this, this.config.adapter[1]);
