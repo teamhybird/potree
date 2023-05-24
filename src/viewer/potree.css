@@ -81,6 +81,21 @@
 	text-decoration: underline !important;
 }
 
+.potree_loadingpage{
+	display: none;
+	width: 100%;
+	height: 100%;
+	background-color: black;
+	position: relative;
+}
+
+.potree_loadingpage img{
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate( -50%, -50% );
+}
+
 .potree_info_text{
 	color:		white;
 	font-weight: bold;

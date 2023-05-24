@@ -102,15 +102,24 @@ export class NavvisImages360 extends EventDispatcher {
       for (const pointcloud of this.viewer.scene.pointclouds) {
         pointcloud.visible = false;
       }
-      this.focus(previousImage360 || this.images[0]);
+      if (!previousImage360 && this.images.length === 0) {
+        return;
+      }
+      previousView = {
+        controls: this.viewer.controls,
+        position: this.viewer.scene.view.position.clone(),
+        target: this.viewer.scene.view.getPivot(),
+      };
       this.viewer.setControls(this.viewer.panoControls);
+      this.focus(previousImage360 || this.images[0], false);
       // remember FOV
       previousFOV = this.viewer.getFOV();
     } else {
       for (const pointcloud of this.viewer.scene.pointclouds) {
         pointcloud.visible = true;
       }
-      this.unfocus();
+      if (previousView.controls) this.viewer.setControls(previousView.controls);
+      this.unfocus(false);
       // restart FOV
       if (previousFOV) {
         this.viewer.setFOV(previousFOV);
@@ -122,24 +131,29 @@ export class NavvisImages360 extends EventDispatcher {
     return this._view360Enabled;
   }
 
-  focus(image360) {
+  setView(position, target = null, duration = 0, callback = null) {
+    this.viewer.scene.view.setView(position, target, duration, (...args) => {
+      this.viewer.controls.dispatchEvent({ type: 'end' });
+      if (callback) callback(...args);
+    });
+  }
+
+  focus(image360, withAnimation = true) {
     if (this.focusedImage !== null) {
       this.unfocus();
     }
 
-    image360.mesh.visible = false;
+    if (image360.mesh) {
+      image360.mesh.visible = false;
+    }
 
-    previousView = {
-      controls: this.viewer.controls,
-      position: this.viewer.scene.view.position.clone(),
-      target: this.viewer.scene.view.getPivot(),
-    };
     this.sphere.visible = true;
 
     const moveToTarget = () => {
       this.sphere.visible = false;
 
       if (this.view360Enabled) {
+        this.viewer.showLoadingScreen(true);
         this.load(image360).then(() => {
           previousImage360 = image360;
 
@@ -149,6 +163,7 @@ export class NavvisImages360 extends EventDispatcher {
           for (const footprint of this.footprints) {
             footprint.visible = true;
           }
+          this.viewer.showLoadingScreen(false);
         });
       } else {
         for (const footprint of this.footprints) {
@@ -172,7 +187,7 @@ export class NavvisImages360 extends EventDispatcher {
       let move = dir.multiplyScalar(0.000001);
       let newCamPos = target.clone().sub(move);
 
-      this.viewer.scene.view.setView(newCamPos, null, this.view360Enabled ? 0 : 500);
+      this.setView(newCamPos, null, this.view360Enabled ? 0 : withAnimation ? 500 : 0);
     };
 
     if (this.view360Enabled && previousImage360) {
@@ -186,7 +201,7 @@ export class NavvisImages360 extends EventDispatcher {
         footprint.visible = false;
       }
 
-      this.viewer.scene.view.setView(newCamPos, null, 500, () => moveToTarget());
+      this.setView(newCamPos, null, withAnimation ? 500 : 0, () => moveToTarget());
     } else {
       moveToTarget();
     }
@@ -201,7 +216,9 @@ export class NavvisImages360 extends EventDispatcher {
       return;
     }
 
-    image.mesh.visible = true;
+    if (image.mesh) {
+      image.mesh.visible = true;
+    }
 
     // this.sphere.material.map = null;
     // this.sphere.material.needsUpdate = true;
@@ -212,8 +229,6 @@ export class NavvisImages360 extends EventDispatcher {
     let dir = target.clone().sub(pos).normalize();
     let move = dir.multiplyScalar(10);
     let newCamPos = target.clone().sub(move);
-
-    this.viewer.setControls(previousView.controls);
 
     // this.viewer.scene.view.setView(previousView.position, previousView.target, 500);
 
@@ -258,6 +273,59 @@ export class NavvisImages360 extends EventDispatcher {
     //label.visible = true;
     //label.setText(currentlyHovered.image360.file);
     //currentlyHovered.getWorldPosition(label.position);
+  }
+
+  updateImages(newImages = [], closestImage = null, params = {}) {
+    if (!params.transform) {
+      params.transform = {
+        forward: (a) => a,
+      };
+    }
+    this.images.forEach((image) => {
+      this.node.remove(image.mesh);
+      this.viewer.scene.scene.remove(image.mesh);
+    });
+
+    this.images = [];
+    this.footprints = [];
+
+    // Remove all previous images
+    newImages.forEach((imageInfo) => {
+      const file = imageInfo.ImageURL;
+      const { TimeStamp: time } = imageInfo;
+
+      const { X: fLong, Y: fLat, Z: fAlt } = imageInfo.FootPrint.Position;
+      const { X: fX, Y: fY, Z: fZ, W: fW } = imageInfo.FootPrint.Orientation;
+
+      const { X: long, Y: lat, Z: alt } = imageInfo.CamHead.Position;
+      const { X: x, Y: y, Z: z, W: w } = imageInfo.CamHead.Orientation;
+
+      let image360 = new Image360(imageInfo.ID, file, time, fLong, fLat, fAlt, fX, fY, fZ, fW, long, lat, alt, x, y, z, w);
+      let xy = params.transform.forward([fLong, fLat]);
+      let position = [...xy, fAlt];
+      image360.position = position;
+      this.images.push(image360);
+    });
+    // Closest image
+    if (closestImage) {
+      const file = closestImage.ImageURL;
+      const { TimeStamp: time } = closestImage;
+
+      const { X: fLong, Y: fLat, Z: fAlt } = closestImage.FootPrint.Position;
+      const { X: fX, Y: fY, Z: fZ, W: fW } = closestImage.FootPrint.Orientation;
+
+      const { X: long, Y: lat, Z: alt } = closestImage.CamHead.Position;
+      const { X: x, Y: y, Z: z, W: w } = closestImage.CamHead.Orientation;
+
+      let image360 = new Image360(closestImage.ID, file, time, fLong, fLat, fAlt, fX, fY, fZ, fW, long, lat, alt, x, y, z, w);
+      let xy = params.transform.forward([fLong, fLat]);
+      let position = [...xy, fAlt];
+      image360.position = position;
+      previousImage360 = image360;
+    }
+
+    // Add new images if any
+    NavvisImages360Loader.createSceneNodes(this, params.transform);
   }
 
   update() {

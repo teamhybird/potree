@@ -179,6 +179,9 @@ export class Viewer extends EventDispatcher {
 
       this.skybox = null;
       this.clock = new THREE.Clock();
+      this.delta = 0;
+      // 60 fps
+      this.interval = 1 / 60;
       this.progressBar = new ProgressBar(args.progressBaseId || 'pc-progress');
       this.background = null;
 
@@ -383,6 +386,31 @@ export class Viewer extends EventDispatcher {
     }
 
     throw error;
+  }
+
+  showLoadingScreen(show = true) {
+    let renderArea = $('#potree_render_area');
+
+    let loadingPage = renderArea.find('#potree_loadingpage');
+    if (loadingPage.length === 0) {
+      let elLoadingPage = $(`
+			<div id="potree_loadingpage" class="potree_loadingpage"> 
+
+			</div>`);
+
+      let loadingGIF = document.createElement('img');
+      loadingGIF.src = new URL(Potree.resourcePath + '/loader.gif').href;
+      loadingGIF.classList.add('potree_loading_image');
+      elLoadingPage.append(loadingGIF);
+      $(this.renderArea).append(elLoadingPage);
+      loadingPage = elLoadingPage;
+    }
+
+    if (show) {
+      loadingPage.css('display', 'block');
+    } else {
+      loadingPage.css('display', 'none');
+    }
   }
 
   // ------------------------------------------------------------------------------------
@@ -2377,7 +2405,6 @@ export class Viewer extends EventDispatcher {
 
     this.update(this.clock.getDelta(), timestamp);
     this.render();
-
     // let vrActive = viewer.renderer.xr.isPresenting;
     // if(vrActive){
     // 	this.update(this.clock.getDelta(), timestamp);
@@ -2396,7 +2423,6 @@ export class Viewer extends EventDispatcher {
     this.resolveTimings(timestamp);
 
     Potree.framenumber++;
-
     if (this.stats) {
       this.stats.end();
     }
