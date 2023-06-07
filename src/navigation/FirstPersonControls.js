@@ -171,7 +171,7 @@ export class FirstPersonControls extends EventDispatcher {
         this.scene.view.position.z = (1 - t) * startPos.z + t * targetPos.z;
 
         this.scene.view.radius = (1 - t) * startRadius + t * targetRadius;
-        this.viewer.setMoveSpeed(this.scene.view.radius / 2.5);
+        // this.viewer.setMoveSpeed(this.scene.view.radius / 2.5);
       });
 
       tween.onComplete(() => {

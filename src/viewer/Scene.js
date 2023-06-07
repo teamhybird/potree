@@ -163,7 +163,7 @@ export class Scene extends EventDispatcher {
 
   add360Images(images) {
     this.images360.push(images);
-    this.scene.add(images.node);
+    // this.scene.add(images.node);
 
     this.dispatchEvent({
       type: '360_images_added',
@@ -175,7 +175,7 @@ export class Scene extends EventDispatcher {
   remove360Images(images) {
     let index = this.images360.indexOf(images);
     if (index > -1) {
-      this.scene.remove(this.images360[index].node);
+      // this.scene.remove(this.images360[index].node);
       this.images360.splice(index, 1);
 
       this.dispatchEvent({

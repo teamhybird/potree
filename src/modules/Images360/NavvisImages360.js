@@ -61,19 +61,64 @@ export class NavvisImages360 extends EventDispatcher {
     this.node.add(this.sphere);
     this._visible = true;
     // this.node.add(label);
-
     this.focusedImage = null;
+
+    this.scene = new THREE.Scene();
+    this.scene.name = 'scene_360_images';
+    this.light = new THREE.PointLight(0xffffff, 1.0);
+    this.scene.add(this.light);
+
+    this.viewer.inputHandler.registerInteractiveScene(this.scene);
 
     this.viewer.addEventListener('update', () => {
       this.update(this.viewer);
     });
+    this.viewer.addEventListener('render.pass.perspective_overlay', this.render.bind(this));
+    this.viewer.addEventListener('scene_changed', this.onSceneChange.bind(this));
+
     this.viewer.inputHandler.addInputListener(this);
 
-    this.addEventListener('mousedown', () => {
-      if (currentlyHovered && currentlyHovered.image360) {
-        this.focus(currentlyHovered.image360);
+    let domElement = this.viewer.renderer.domElement;
+    let mouseMoved = false;
+    let mouseMove = (e) => {
+      mouseMoved = true;
+    };
+    let mouseUp = (e) => {
+      if (!mouseMoved) {
+        if (currentlyHovered && currentlyHovered.image360) {
+          this.focus(currentlyHovered.image360);
+        }
       }
-    });
+      domElement.removeEventListener('mousemove', mouseMove);
+    };
+
+    let mouseDown = (e) => {
+      mouseMoved = false;
+      domElement.addEventListener('mousemove', mouseMove);
+    };
+
+    this.addEventListener('mouseup', mouseUp);
+    this.addEventListener('mousedown', mouseDown);
+    this.viewer.scene.addEventListener('360_images_added', this.onAdd.bind(this));
+    this.viewer.scene.addEventListener('360_images_removed', this.onRemove.bind(this));
+  }
+
+  onRemove(e) {
+    this.scene.remove(e.images.node);
+  }
+
+  onAdd(e) {
+    this.scene.add(e.images.node);
+  }
+
+  onSceneChange(e) {
+    if (e.oldScene) {
+      e.oldScene.removeEventListener('360_images_added', this.onAdd.bind(this));
+      e.oldScene.removeEventListener('360_images_removed', this.onRemove.bind(this));
+    }
+
+    e.scene.addEventListener('360_images_added', this.onAdd.bind(this));
+    e.scene.addEventListener('360_images_removed', this.onRemove.bind(this));
   }
 
   set visible(visible) {
@@ -94,16 +139,24 @@ export class NavvisImages360 extends EventDispatcher {
   }
 
   set view360Enabled(view360Enabled) {
-    if (this._view360Enabled === view360Enabled) {
-      return;
-    }
     this._view360Enabled = view360Enabled;
+  }
+
+  get view360Enabled() {
+    return this._view360Enabled;
+  }
+
+  setView360Enabled(view360Enabled) {
+    if (this.view360Enabled === view360Enabled) {
+      return false;
+    }
     if (view360Enabled) {
+      if (!previousImage360 && this.images.length === 0) {
+        return false;
+      }
+      this.view360Enabled = view360Enabled;
       for (const pointcloud of this.viewer.scene.pointclouds) {
         pointcloud.visible = false;
-      }
-      if (!previousImage360 && this.images.length === 0) {
-        return;
       }
       previousView = {
         controls: this.viewer.controls,
@@ -115,6 +168,8 @@ export class NavvisImages360 extends EventDispatcher {
       // remember FOV
       previousFOV = this.viewer.getFOV();
     } else {
+      this.view360Enabled = view360Enabled;
+
       for (const pointcloud of this.viewer.scene.pointclouds) {
         pointcloud.visible = true;
       }
@@ -124,11 +179,9 @@ export class NavvisImages360 extends EventDispatcher {
       if (previousFOV) {
         this.viewer.setFOV(previousFOV);
       }
+      this.viewer.showLoadingScreen(false);
     }
-  }
-
-  get view360Enabled() {
-    return this._view360Enabled;
+    return true;
   }
 
   setView(position, target = null, duration = 0, callback = null) {
@@ -154,17 +207,24 @@ export class NavvisImages360 extends EventDispatcher {
 
       if (this.view360Enabled) {
         this.viewer.showLoadingScreen(true);
-        this.load(image360).then(() => {
-          previousImage360 = image360;
-
-          this.sphere.visible = true;
-          this.sphere.material.map = image360.texture;
-          this.sphere.material.needsUpdate = true;
-          for (const footprint of this.footprints) {
-            footprint.visible = true;
-          }
-          this.viewer.showLoadingScreen(false);
-        });
+        this.load(image360)
+          .then(() => {
+            if (!this.view360Enabled) {
+              throw new Error("ABORTED: Image loaded but couldn't be renderered because the view was switched in the meantime while the image was loading");
+            }
+            this.sphere.visible = true;
+            this.sphere.material.map = image360.texture;
+            this.sphere.material.needsUpdate = true;
+            for (const footprint of this.footprints) {
+              footprint.visible = true;
+            }
+            this.viewer.showLoadingScreen(false);
+          })
+          .catch((e) => {
+            console.log(e);
+            this.view360Enabled = false;
+            this.viewer.showLoadingScreen(false);
+          });
       } else {
         for (const footprint of this.footprints) {
           footprint.visible = true;
@@ -236,8 +296,10 @@ export class NavvisImages360 extends EventDispatcher {
   }
 
   load(image360) {
-    return new Promise((resolve) => {
-      let texture = new THREE.TextureLoader().load(image360.file, resolve);
+    return new Promise((resolve, reject) => {
+      let texture = new THREE.TextureLoader().load(image360.file, resolve, undefined, (err) => {
+        reject(err);
+      });
       texture.wrapS = THREE.RepeatWrapping;
       texture.repeat.x = -1;
 
@@ -329,12 +391,19 @@ export class NavvisImages360 extends EventDispatcher {
   }
 
   update() {
+    let camera = this.viewer.scene.getActiveCamera();
+    this.light.position.copy(camera.position);
+
     if (currentlyHovered) {
       currentlyHovered.material.opacity = footprintDefaultOpacity;
       currentlyHovered = null;
     }
 
     this.handleHovering();
+  }
+
+  render() {
+    this.viewer.renderer.render(this.scene, this.viewer.scene.getActiveCamera());
   }
 }
 

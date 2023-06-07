@@ -268,11 +268,11 @@ export class Viewer extends EventDispatcher {
         this.clippingTool.setScene(this.scene);
 
         let onPointcloudAdded = (e) => {
-          if (this.scene.pointclouds.length === 1) {
-            let speed = e.pointcloud.boundingBox.getSize(new THREE.Vector3()).length();
-            speed = speed / 5;
-            this.setMoveSpeed(speed);
-          }
+          // if (this.scene.pointclouds.length === 1) {
+          //   let speed = e.pointcloud.boundingBox.getSize(new THREE.Vector3()).length();
+          //   speed = speed / 5;
+          //   this.setMoveSpeed(speed);
+          // }
         };
 
         let onVolumeRemoved = (e) => {
