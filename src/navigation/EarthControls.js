@@ -334,10 +334,6 @@ export class EarthControls extends EventDispatcher {
     }
   }
 
-  zoomInOut(direction = 1, jumpDistance = 20) {
-    this.wheelDelta = direction * jumpDistance;
-  }
-
   update(delta) {
     let view = this.scene.view;
     let fade = Math.pow(0.5, this.fadeFactor * delta);

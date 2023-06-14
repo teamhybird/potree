@@ -182,6 +182,19 @@ export class FirstPersonControls extends EventDispatcher {
     }
   }
 
+  // Overrides default zoomInOut behaviour
+  zoomInOut(direction = 1) {
+    let moveSpeed = this.viewer.getMoveSpeed();
+
+    let camera = this.scene.getActiveCamera();
+    const dir = camera.getWorldDirection();
+    let move = dir.multiplyScalar((direction * moveSpeed) / 5);
+    const newCamPos = this.scene.view.position.clone().add(move);
+
+    this.scene.view.setView(newCamPos, null, 500);
+    this.viewer.controls.dispatchEvent({ type: 'end' });
+  }
+
   update(delta) {
     let view = this.scene.view;
 

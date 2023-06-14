@@ -91,6 +91,15 @@ export class PanoControls extends EventDispatcher {
     this.addEventListener('mousewheel', scroll);
   }
 
+  // Overrides default zoomInOut behaviour
+  zoomInOut(direction = 1) {
+    let fov = this.viewer.getFOV();
+    fov = fov - direction;
+    fov = Math.min(Math.max(fov, 10), 100);
+    this.viewer.setFOV(fov);
+    this.viewer.controls.dispatchEvent({ type: 'end' });
+  }
+
   setScene(scene) {
     this.scene = scene;
   }

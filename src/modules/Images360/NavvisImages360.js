@@ -1,6 +1,5 @@
 import * as THREE from '../../../libs/three.js/build/three.module.js';
 import { EventDispatcher } from '../../EventDispatcher.js';
-import { TextSprite } from '../../TextSprite.js';
 import { Utils } from '../../utils.js';
 
 let sgHigh = new THREE.SphereGeometry(1, 128, 128);
@@ -53,6 +52,7 @@ export class NavvisImages360 extends EventDispatcher {
     this.images = [];
     this.node = new THREE.Object3D();
     this.footprints = [];
+    this._showFootprints = false;
     this._view360Enabled = false;
 
     this.sphere = new THREE.Mesh(sgHigh, sm);
@@ -144,6 +144,17 @@ export class NavvisImages360 extends EventDispatcher {
 
   get view360Enabled() {
     return this._view360Enabled;
+  }
+
+  set showFootprints(showFootprints) {
+    this._showFootprints = showFootprints;
+    for (const footprint of this.footprints) {
+      footprint.material.opacity = showFootprints ? footprintDefaultOpacity : 0;
+    }
+  }
+
+  get showFootprints() {
+    return this._showFootprints;
   }
 
   setView360Enabled(view360Enabled) {
@@ -395,7 +406,7 @@ export class NavvisImages360 extends EventDispatcher {
     this.light.position.copy(camera.position);
 
     if (currentlyHovered) {
-      currentlyHovered.material.opacity = footprintDefaultOpacity;
+      currentlyHovered.material.opacity = this.showFootprints ? footprintDefaultOpacity : 0;
       currentlyHovered = null;
     }
 
@@ -449,7 +460,14 @@ export class NavvisImages360Loader {
       const footprintImagePath = `${Potree.resourcePath}/textures/footprint360.png`;
       const texture = new THREE.TextureLoader().load(footprintImagePath);
       const geometry = new THREE.PlaneGeometry(1, 1);
-      const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false, opacity: footprintDefaultOpacity, color: 0xffffff, alphaTest: footprintDefaultOpacity - 0.1 });
+      const material = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        depthWrite: false,
+        opacity: images360.showFootprints ? footprintDefaultOpacity : 0,
+        color: 0xffffff,
+        alphaTest: footprintDefaultOpacity - 0.1,
+      });
 
       const mesh = new THREE.Mesh(geometry, material);
       mesh.position.set(...xy, altitude);

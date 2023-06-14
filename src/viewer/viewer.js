@@ -1074,6 +1074,19 @@ export class Viewer extends EventDispatcher {
     }
   }
 
+  zoomInOut(direction = 1) {
+    if (this.controls.zoomInOut && typeof this.controls.zoomInOut === 'function') {
+      this.controls.zoomInOut(direction);
+    } else {
+      let camera = this.scene.getActiveCamera();
+      const dir = camera.getWorldDirection();
+      let move = dir.multiplyScalar(direction * this.zoomSpeed);
+      const newCamPos = this.scene.view.position.clone().add(move);
+      this.scene.view.setView(newCamPos, null, 500);
+      this.controls.dispatchEvent({ type: 'end' });
+    }
+  }
+
   setTopView() {
     this.scene.view.yaw = 0;
     this.scene.view.pitch = -Math.PI / 2;
