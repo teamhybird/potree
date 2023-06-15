@@ -361,6 +361,11 @@ export class MeasuringTool extends EventDispatcher {
         let label = measure.coordinateLabels[j];
         let sphere = measure.spheres[j];
 
+        const frustum = new THREE.Frustum();
+        const matrix = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+        frustum.setFromMatrix(matrix);
+        label.visible = measure.showCoordinates && frustum.containsPoint(sphere.position);
+
         let distance = camera.position.distanceTo(sphere.getWorldPosition(new THREE.Vector3()));
 
         let screenPos = sphere.getWorldPosition(new THREE.Vector3()).clone().project(camera);
@@ -385,6 +390,11 @@ export class MeasuringTool extends EventDispatcher {
       for (let j = 0; j < measure.measureLabels.length; j++) {
         let label = measure.measureLabels[j];
         let sphere = measure.spheres[j];
+
+        const frustum = new THREE.Frustum();
+        const matrix = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+        frustum.setFromMatrix(matrix);
+        label.visible = measure.showMeasureText && frustum.containsPoint(sphere.position);
 
         let distance = camera.position.distanceTo(sphere.getWorldPosition(new THREE.Vector3()));
 
