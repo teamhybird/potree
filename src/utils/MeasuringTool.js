@@ -363,7 +363,7 @@ export class MeasuringTool extends EventDispatcher {
 
         const frustum = new THREE.Frustum();
         const matrix = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-        frustum.setFromMatrix(matrix);
+        frustum.setFromProjectionMatrix(matrix);
         label.visible = measure.showCoordinates && frustum.containsPoint(sphere.position);
 
         let distance = camera.position.distanceTo(sphere.getWorldPosition(new THREE.Vector3()));
@@ -393,7 +393,7 @@ export class MeasuringTool extends EventDispatcher {
 
         const frustum = new THREE.Frustum();
         const matrix = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-        frustum.setFromMatrix(matrix);
+        frustum.setFromProjectionMatrix(matrix);
         label.visible = measure.showMeasureText && frustum.containsPoint(sphere.position);
 
         let distance = camera.position.distanceTo(sphere.getWorldPosition(new THREE.Vector3()));

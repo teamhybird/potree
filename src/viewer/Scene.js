@@ -5,6 +5,11 @@ import { View } from './View.js';
 import { Utils } from '../utils.js';
 import { EventDispatcher } from '../EventDispatcher.js';
 
+let measurementsAddedQueue = [];
+let measurementsDeletedQueue = [];
+let measurementsAddedQueueLoading = false;
+let measurementsDeletedQueueLoading = false;
+
 export class Scene extends EventDispatcher {
   constructor() {
     super();
@@ -289,17 +294,53 @@ export class Scene extends EventDispatcher {
   }
 
   addMeasurement(measurement) {
-    measurement.lengthUnit = this.lengthUnit;
-    measurement.lengthUnitDisplay = this.lengthUnitDisplay;
+    // this.measurements.push(measurement);
+    measurementsAddedQueue.push({ measurement, event: 'added' });
+    if (!measurementsAddedQueueLoading) {
+      this.loadMeasurementsFromQueue();
+    }
+    // this.dispatchEvent({
+    //   type: 'measurement_added',
+    //   scene: this,
+    //   measurement: measurement,
+    // });
+  }
+
+  removeMeasurement(measurement) {
+    measurementsDeletedQueue.push({ measurement, event: 'deleted' });
+    if (!measurementsDeletedQueueLoading) {
+      this.deleteMeasurementsFromQueue();
+    }
+  }
+
+  loadMeasurementsFromQueue() {
+    if (measurementsAddedQueue.length === 0) {
+      measurementsAddedQueueLoading = false;
+      return;
+    }
+    measurementsAddedQueueLoading = true;
+    var { measurement } = measurementsAddedQueue.shift();
     this.measurements.push(measurement);
     this.dispatchEvent({
       type: 'measurement_added',
       scene: this,
       measurement: measurement,
     });
+    measurement.lengthUnit = this.lengthUnit;
+    measurement.lengthUnitDisplay = this.lengthUnitDisplay;
+
+    setTimeout(() => {
+      this.loadMeasurementsFromQueue();
+    }, 100);
   }
 
-  removeMeasurement(measurement) {
+  deleteMeasurementsFromQueue() {
+    if (measurementsDeletedQueue.length === 0) {
+      measurementsDeletedQueueLoading = false;
+      return;
+    }
+    measurementsDeletedQueueLoading = true;
+    var { measurement } = measurementsDeletedQueue.shift();
     let index = this.measurements.indexOf(measurement);
     if (index > -1) {
       this.measurements.splice(index, 1);
@@ -309,6 +350,9 @@ export class Scene extends EventDispatcher {
         measurement: measurement,
       });
     }
+    setTimeout(() => {
+      this.deleteMeasurementsFromQueue();
+    }, 100);
   }
 
   addCameraHelper(camera) {
