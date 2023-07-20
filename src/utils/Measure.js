@@ -6,6 +6,18 @@ import { LineGeometry } from '../../libs/three.js/lines/LineGeometry.js';
 import { LineMaterial } from '../../libs/three.js/lines/LineMaterial.js';
 import { SystemType } from '../defines.js';
 
+const allMeasureVariants = [
+  { systemType: SystemType.cluster, colorNames: ['green'] },
+  { systemType: SystemType.component, colorNames: ['yellow', 'lightOrange', 'orange', 'green', 'lightBlue', 'blue', 'purple', 'red'] },
+  {
+    systemType: SystemType.defect,
+    colorNames: ['yellow', 'lightOrange', 'orange', 'green', 'lightBlue', 'blue', 'purple', 'red'],
+    subSystemType: ['ACCIDENT', 'CONCERN', 'DAMAGE', 'DEFECT', 'HAZARD', 'NEAR-MISS'],
+  },
+  { systemType: SystemType.inspect, colorNames: ['green'] },
+  { systemType: SystemType.measurement, colorNames: ['yellow', 'lightOrange', 'orange', 'green', 'lightBlue', 'blue', 'purple', 'red'] },
+];
+
 function createHeightLine() {
   let lineGeometry = new LineGeometry();
 
@@ -19,7 +31,7 @@ function createHeightLine() {
     resolution: new THREE.Vector2(1000, 1000),
   });
 
-  lineMaterial.depthTest = false;
+  // lineMaterial.depthTest = false;
   const heightEdge = new Line2(lineGeometry, lineMaterial);
   heightEdge.visible = false;
 
@@ -35,7 +47,7 @@ function createHeightLabel() {
   heightLabel.setBorderColor({ r: 0, g: 0, b: 0, a: 1.0 });
   heightLabel.setBackgroundColor({ r: 0, g: 0, b: 0, a: 1.0 });
   heightLabel.fontsize = 16;
-  heightLabel.material.depthTest = false;
+  // heightLabel.material.depthTest = false;
   heightLabel.material.opacity = 1;
   heightLabel.visible = false;
 
@@ -49,7 +61,7 @@ function createAreaLabel() {
   areaLabel.setBorderColor({ r: 0, g: 0, b: 0, a: 1.0 });
   areaLabel.setBackgroundColor({ r: 0, g: 0, b: 0, a: 1.0 });
   areaLabel.fontsize = 16;
-  areaLabel.material.depthTest = false;
+  // areaLabel.material.depthTest = false;
   areaLabel.material.opacity = 1;
   areaLabel.visible = false;
 
@@ -74,7 +86,7 @@ function createCircleRadiusLabel() {
   circleRadiusLabel.setBorderColor({ r: 0, g: 0, b: 0, a: 1.0 });
   circleRadiusLabel.setBackgroundColor({ r: 0, g: 0, b: 0, a: 1.0 });
   circleRadiusLabel.fontsize = 16;
-  circleRadiusLabel.material.depthTest = false;
+  // circleRadiusLabel.material.depthTest = false;
   circleRadiusLabel.material.opacity = 1;
   circleRadiusLabel.visible = false;
 
@@ -94,7 +106,7 @@ function createCircleRadiusLine() {
     dashed: true,
   });
 
-  lineMaterial.depthTest = false;
+  // lineMaterial.depthTest = false;
 
   const circleRadiusLine = new Line2(lineGeometry, lineMaterial);
   circleRadiusLine.visible = false;
@@ -128,7 +140,7 @@ function createCircleLine() {
     resolution: new THREE.Vector2(1000, 1000),
   });
 
-  material.depthTest = false;
+  // material.depthTest = false;
 
   const circleLine = new Line2(geometry, material);
   circleLine.visible = false;
@@ -160,7 +172,7 @@ function createLine(color) {
     dashed: true,
   });
 
-  material.depthTest = false;
+  // material.depthTest = false;
 
   const line = new Line2(geometry, material);
 
@@ -193,7 +205,7 @@ function createCircle(color) {
     resolution: new THREE.Vector2(1000, 1000),
   });
 
-  material.depthTest = false;
+  // material.depthTest = false;
 
   const line = new Line2(geometry, material);
   line.computeLineDistances();
@@ -226,7 +238,7 @@ function createAzimuth(color) {
     label.setBorderColor({ r: 0, g: 0, b: 0, a: 1.0 });
     label.setBackgroundColor({ r: 0, g: 0, b: 0, a: 1.0 });
     label.fontsize = 16;
-    label.material.depthTest = false;
+    // label.material.depthTest = false;
     label.material.opacity = 1;
 
     azimuth.label = label;
@@ -327,12 +339,12 @@ export class Measure extends THREE.Object3D {
     this.color = new THREE.Color(Utils.getColorFromString(colorName));
   }
 
-  getTexturePath() {
+  getTexturePath(systemType, colorName, subSystemType) {
     let path = Potree.resourcePath + '/textures/';
     // Determine which path to use
-    let subFolder = this.subSystemType ? `${this.subSystemType}/` : '';
+    let subFolder = subSystemType ? `${subSystemType}/` : '';
 
-    switch (this.systemType) {
+    switch (systemType) {
       case SystemType.measurement:
         path += `measurement-icons/${subFolder}`;
         break;
@@ -353,7 +365,7 @@ export class Measure extends THREE.Object3D {
         break;
     }
     // Determine which variant to use
-    switch (this.colorName) {
+    switch (colorName) {
       case 'yellow':
         path += 'point-yellow.svg';
         break;
@@ -386,12 +398,42 @@ export class Measure extends THREE.Object3D {
   }
 
   createSphereMaterial() {
-    const map = new THREE.TextureLoader().load(this.getTexturePath());
+    const map = new THREE.TextureLoader().load(this.getTexturePath(this.systemType, this.colorName, this.subSystemType));
     map.minFilter = THREE.LinearFilter;
     map.magFilter = THREE.LinearFilter;
-    const material = new THREE.SpriteMaterial({ map, depthWrite: true, depthTest: false });
+    const material = new THREE.SpriteMaterial({ map });
 
     return material;
+  }
+
+  getSphereInstancedMesh() {
+    const path = this.getTexturePath(this.systemType, this.colorName, this.subSystemType);
+    return this.instancedMeshes[path];
+  }
+
+  createMeasureInstancedMesh(path) {
+    const geometry = new THREE.PlaneBufferGeometry(1, 1, 1);
+    const map = new THREE.TextureLoader().load(path);
+    map.minFilter = THREE.LinearFilter;
+    map.magFilter = THREE.LinearFilter;
+
+    const material = new THREE.MeshBasicMaterial({ map, transparent: true, depthTest: true, depthWrite: true });
+
+    return new THREE.Mesh(geometry, material);
+  }
+  createSphereInstancedMeshes() {
+    let meshes = {};
+    for (let measureVariant of allMeasureVariants) {
+      for (let colorName of measureVariant.colorNames) {
+        const path = this.getTexturePath(measureVariant.systemType, colorName);
+        meshes[path] = this.createMeasureInstancedMesh(path);
+        for (let subSystemType of measureVariant.subSystemType) {
+          const path = this.getTexturePath(measureVariant.systemType, colorName, subSystemType);
+          meshes[path] = this.createMeasureInstancedMesh(path);
+        }
+      }
+    }
+    return meshes;
   }
 
   addMarker(point) {
@@ -403,7 +445,7 @@ export class Measure extends THREE.Object3D {
     this.points.push(point);
 
     // sphere
-    let sphere = new THREE.Sprite(this.createSphereMaterial());
+    let sphere = this.createMeasureInstancedMesh(this.getTexturePath(this.systemType, this.colorName, this.subSystemType));
 
     this.add(sphere);
     this.spheres.push(sphere);
@@ -421,7 +463,7 @@ export class Measure extends THREE.Object3D {
         resolution: new THREE.Vector2(1000, 1000),
       });
 
-      lineMaterial.depthTest = false;
+      // lineMaterial.depthTest = false;
 
       let edge = new Line2(lineGeometry, lineMaterial);
       edge.visible = true;
@@ -449,7 +491,7 @@ export class Measure extends THREE.Object3D {
         edgeLabel.setBackgroundColor({ r: rgbColor.r, g: rgbColor.g, b: rgbColor.b, a: 0.8 });
         edgeLabel.setTextColor({ r: 255, g: 255, b: 255, a: 1.0 });
       }
-      edgeLabel.material.depthTest = false;
+      // edgeLabel.material.depthTest = false;
       edgeLabel.visible = false;
       edgeLabel.fontsize = 16;
       this.edgeLabels.push(edgeLabel);
@@ -465,7 +507,7 @@ export class Measure extends THREE.Object3D {
         angleLabel.setTextColor({ r: 255, g: 255, b: 255, a: 1.0 });
       }
       angleLabel.fontsize = 16;
-      angleLabel.material.depthTest = false;
+      // angleLabel.material.depthTest = false;
       angleLabel.material.opacity = 1;
       angleLabel.visible = false;
       this.angleLabels.push(angleLabel);
@@ -481,7 +523,7 @@ export class Measure extends THREE.Object3D {
         coordinateLabel.setTextColor({ r: 255, g: 255, b: 255, a: 1.0 });
       }
       coordinateLabel.fontsize = 16;
-      coordinateLabel.material.depthTest = false;
+      // coordinateLabel.material.depthTest = false;
       coordinateLabel.material.opacity = 1;
       coordinateLabel.visible = false;
       this.coordinateLabels.push(coordinateLabel);
@@ -497,7 +539,7 @@ export class Measure extends THREE.Object3D {
         measureLabel.setTextColor({ r: 255, g: 255, b: 255, a: 1.0 });
       }
       measureLabel.fontsize = 16;
-      measureLabel.material.depthTest = false;
+      // measureLabel.material.depthTest = false;
       measureLabel.material.opacity = 1;
       measureLabel.visible = false;
       this.measureLabels.push(measureLabel);

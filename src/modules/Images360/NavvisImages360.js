@@ -4,7 +4,7 @@ import { Utils } from '../../utils.js';
 
 let sgHigh = new THREE.SphereGeometry(1, 128, 128);
 
-let sm = new THREE.MeshBasicMaterial({ side: THREE.BackSide, depthTest: false });
+let sm = new THREE.MeshBasicMaterial({ side: THREE.BackSide, depthTest: false, depthWrite: false, transparent: true });
 let footprintDefaultOpacity = 0.2,
   footprintHoveredOpacity = 1;
 
@@ -73,7 +73,7 @@ export class NavvisImages360 extends EventDispatcher {
     this.viewer.addEventListener('update', () => {
       this.update(this.viewer);
     });
-    this.viewer.addEventListener('render.pass.perspective_overlay', this.render.bind(this));
+    this.viewer.addEventListener('render.pass.scene', (e) => this.render(e));
     this.viewer.addEventListener('scene_changed', this.onSceneChange.bind(this));
 
     this.viewer.inputHandler.addInputListener(this);
@@ -167,7 +167,7 @@ export class NavvisImages360 extends EventDispatcher {
       }
       this.view360Enabled = view360Enabled;
       for (const pointcloud of this.viewer.scene.pointclouds) {
-        pointcloud.visible = false;
+        pointcloud.material.opacity = 0;
       }
       previousView = {
         controls: this.viewer.controls,
@@ -182,7 +182,7 @@ export class NavvisImages360 extends EventDispatcher {
       this.view360Enabled = view360Enabled;
 
       for (const pointcloud of this.viewer.scene.pointclouds) {
-        pointcloud.visible = true;
+        pointcloud.material.opacity = 1;
       }
       if (previousView.controls) this.viewer.setControls(previousView.controls);
       this.unfocus(false);
@@ -225,6 +225,8 @@ export class NavvisImages360 extends EventDispatcher {
             }
             this.sphere.visible = true;
             this.sphere.material.map = image360.texture;
+            this.sphere.material.depthTest = false;
+            this.sphere.material.depthWrite = false;
             this.sphere.material.needsUpdate = true;
             for (const footprint of this.footprints) {
               footprint.visible = true;
@@ -413,8 +415,16 @@ export class NavvisImages360 extends EventDispatcher {
     this.handleHovering();
   }
 
-  render() {
-    this.viewer.renderer.render(this.scene, this.viewer.scene.getActiveCamera());
+  render(params) {
+    const renderer = this.viewer.renderer;
+
+    const oldTarget = renderer.getRenderTarget();
+
+    if (params.renderTarget) {
+      renderer.setRenderTarget(params.renderTarget);
+    }
+    renderer.render(this.scene, this.viewer.scene.getActiveCamera());
+    renderer.setRenderTarget(oldTarget);
   }
 }
 
@@ -463,6 +473,7 @@ export class NavvisImages360Loader {
       const material = new THREE.MeshBasicMaterial({
         map: texture,
         transparent: true,
+        depthTest: false,
         depthWrite: false,
         opacity: images360.showFootprints ? footprintDefaultOpacity : 0,
         color: 0xffffff,

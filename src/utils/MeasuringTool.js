@@ -319,6 +319,7 @@ export class MeasuringTool extends EventDispatcher {
   update() {
     let camera = this.viewer.scene.getActiveCamera();
     let measurements = this.viewer.scene.measurements;
+    let images360 = this.viewer.scene.images360;
 
     const renderAreaSize = this.renderer.getSize(new THREE.Vector2());
     let clientWidth = renderAreaSize.width;
@@ -340,6 +341,7 @@ export class MeasuringTool extends EventDispatcher {
         let pr = Utils.projectedRadius(1, camera, distance, clientWidth, clientHeight);
         let scale = this.getMeasurePointSize(measure.systemType) / pr;
         sphere.scale.set(scale, scale, scale);
+        sphere.quaternion.copy(camera.quaternion);
       }
 
       // labels
@@ -361,11 +363,6 @@ export class MeasuringTool extends EventDispatcher {
         let label = measure.coordinateLabels[j];
         let sphere = measure.spheres[j];
 
-        const frustum = new THREE.Frustum();
-        const matrix = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-        frustum.setFromProjectionMatrix(matrix);
-        label.visible = measure.showCoordinates && frustum.containsPoint(sphere.position);
-
         let distance = camera.position.distanceTo(sphere.getWorldPosition(new THREE.Vector3()));
 
         let screenPos = sphere.getWorldPosition(new THREE.Vector3()).clone().project(camera);
@@ -373,6 +370,18 @@ export class MeasuringTool extends EventDispatcher {
         screenPos.y = Math.round(((-screenPos.y + 1) * clientHeight) / 2);
         screenPos.z = 0;
         screenPos.y += 40;
+        const frustum = new THREE.Frustum();
+        const matrix = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+        frustum.setFromProjectionMatrix(matrix);
+        label.visible = measure.showCoordinates && frustum.containsPoint(sphere.position);
+        // if (images360 && images360[0] && images360[0].view360Enabled) {
+        //   const I = Utils.getMousePointCloudIntersection(screenPos, camera, this.viewer, this.viewer.scene.pointclouds, { pickClipped: true });
+        //   if (I) {
+        //     const d = sphere.getWorldPosition(new THREE.Vector3()).clone().distanceTo(I.location);
+        //     sphere.visible = d < 1;
+        //     label.visible = label.visible && d < 1;
+        //   }
+        // }
 
         let labelPos = new THREE.Vector3((screenPos.x / clientWidth) * 2 - 1, -(screenPos.y / clientHeight) * 2 + 1, 0.5);
         labelPos.unproject(camera);
