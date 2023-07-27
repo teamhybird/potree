@@ -10,7 +10,9 @@ let footprintDefaultOpacity = 0.2,
 
 let raycaster = new THREE.Raycaster();
 let currentlyHovered = null;
-let previousFOV = null;
+let previousFOV = null,
+  previousPointBudget = null,
+  previousUseHQ = null;
 
 let previousView = {
   controls: null,
@@ -178,6 +180,11 @@ export class NavvisImages360 extends EventDispatcher {
       this.focus(previousImage360 || this.images[0], false);
       // remember FOV
       previousFOV = this.viewer.getFOV();
+      previousPointBudget = this.viewer.getPointBudget();
+      previousUseHQ = this.viewer.useHQ;
+      // set to medium quality
+      this.viewer.setPointBudget(3 * 1000 * 1000);
+      this.viewer.useHQ = false;
     } else {
       this.view360Enabled = view360Enabled;
 
@@ -189,6 +196,12 @@ export class NavvisImages360 extends EventDispatcher {
       // restart FOV
       if (previousFOV) {
         this.viewer.setFOV(previousFOV);
+      }
+      if (previousPointBudget) {
+        this.viewer.setPointBudget(previousPointBudget);
+      }
+      if (previousUseHQ !== null) {
+        this.viewer.useHQ = previousUseHQ;
       }
       this.viewer.showLoadingScreen(false);
     }
@@ -230,6 +243,10 @@ export class NavvisImages360 extends EventDispatcher {
             this.sphere.material.needsUpdate = true;
             for (const footprint of this.footprints) {
               footprint.visible = true;
+            }
+            // reset fov whenever in 360 view and 360 image is loaded
+            if (previousFOV) {
+              this.viewer.setFOV(previousFOV);
             }
             this.viewer.showLoadingScreen(false);
           })
@@ -469,9 +486,8 @@ export class NavvisImages360Loader {
 
       const footprintImagePath = `${Potree.resourcePath}/textures/footprint360.png`;
       const texture = new THREE.TextureLoader().load(footprintImagePath);
-      const geometry = new THREE.PlaneGeometry(1, 1);
+      const geometry = new THREE.CircleBufferGeometry(0.5, 32);
       const material = new THREE.MeshBasicMaterial({
-        map: texture,
         transparent: true,
         depthTest: false,
         depthWrite: false,
