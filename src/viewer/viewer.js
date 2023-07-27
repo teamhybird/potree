@@ -687,10 +687,30 @@ export class Viewer extends EventDispatcher {
     return this.edlOpacity;
   }
 
-  setFOV(value) {
+  setFOV(value, animationDuration = 0) {
     if (this.fov !== value) {
-      this.fov = value;
-      this.dispatchEvent({ type: 'fov_changed', viewer: this });
+      if (animationDuration > 0) {
+        let easing = TWEEN.Easing.Quartic.Out;
+        {
+          // animate camera FOV
+          let currentFOV = { fov: this.fov };
+          let tween = new TWEEN.Tween(currentFOV).to({ fov: value }, animationDuration);
+          tween.easing(easing);
+
+          tween.onUpdate(() => {
+            this.fov = currentFOV.fov;
+          });
+
+          tween.onComplete(() => {
+            this.dispatchEvent({ type: 'fov_changed', viewer: this });
+          });
+
+          tween.start();
+        }
+      } else {
+        this.fov = value;
+        this.dispatchEvent({ type: 'fov_changed', viewer: this });
+      }
     }
   }
 

@@ -94,9 +94,9 @@ export class PanoControls extends EventDispatcher {
   // Overrides default zoomInOut behaviour
   zoomInOut(direction = 1) {
     let fov = this.viewer.getFOV();
-    fov = fov - direction;
+    fov = fov - direction * 10;
     fov = Math.min(Math.max(fov, 10), 100);
-    this.viewer.setFOV(fov);
+    this.viewer.setFOV(fov, 500);
     this.viewer.controls.dispatchEvent({ type: 'end' });
   }
 
