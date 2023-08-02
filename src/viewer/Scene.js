@@ -307,14 +307,21 @@ export class Scene extends EventDispatcher {
   }
 
   removeMeasurement(measurement) {
-    measurementsDeletedQueue.push({ measurement, event: 'deleted' });
+    var foundIndex = measurementsAddedQueue.findIndex(({ measurement: m }) => m === measurement);
+    if (foundIndex > -1) {
+      // no need to add to queue becuase it was not rendered at all previously
+      measurementsAddedQueue.splice(foundIndex, 1);
+    } else {
+      measurementsDeletedQueue.push({ measurement, event: 'deleted' });
+    }
     if (!measurementsDeletedQueueLoading) {
       this.deleteMeasurementsFromQueue();
     }
   }
 
   loadMeasurementsFromQueue() {
-    if (measurementsAddedQueue.length === 0) {
+    if (measurementsAddedQueue.length === 0 || measurementsDeletedQueueLoading) {
+      // No measurements in the queue or deleting measurements in progress because delete has higher priority
       measurementsAddedQueueLoading = false;
       return;
     }
@@ -331,12 +338,16 @@ export class Scene extends EventDispatcher {
 
     setTimeout(() => {
       this.loadMeasurementsFromQueue();
-    }, 100);
+    }, 20);
   }
 
   deleteMeasurementsFromQueue() {
     if (measurementsDeletedQueue.length === 0) {
       measurementsDeletedQueueLoading = false;
+      if (measurementsAddedQueue.length > 0) {
+        // if measurements still in the queue after removing continue with adding them
+        this.loadMeasurementsFromQueue();
+      }
       return;
     }
     measurementsDeletedQueueLoading = true;
@@ -352,7 +363,7 @@ export class Scene extends EventDispatcher {
     }
     setTimeout(() => {
       this.deleteMeasurementsFromQueue();
-    }, 100);
+    }, 70);
   }
 
   addCameraHelper(camera) {

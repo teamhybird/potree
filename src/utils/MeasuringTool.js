@@ -128,6 +128,20 @@ export class MeasuringTool extends EventDispatcher {
 
     this.onRemove = (e) => {
       this.scene.remove(e.measurement);
+      // Dispose
+      if (e.measurement.geometry) {
+        e.measurement.geometry.dispose();
+      }
+
+      if (e.measurement.material) {
+        if (e.measurement.material.length) {
+          for (let i = 0; i < e.measurement.material.length; ++i) {
+            e.measurement.material[i].dispose();
+          }
+        } else {
+          e.measurement.material.dispose();
+        }
+      }
     };
     this.onAdd = (e) => {
       this.scene.add(e.measurement);

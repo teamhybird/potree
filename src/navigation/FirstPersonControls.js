@@ -28,7 +28,7 @@ export class FirstPersonControls extends EventDispatcher {
     this.scene = null;
     this.sceneControls = new THREE.Scene();
 
-    this.rotationSpeed = 200;
+    this.rotationSpeed = 10;
     this.moveSpeed = 10;
     this.lockElevation = false;
 
@@ -51,9 +51,10 @@ export class FirstPersonControls extends EventDispatcher {
     this.tweens = [];
 
     let drag = (e) => {
-      if (e.drag.object !== null) {
-        return;
-      }
+      // if (e.drag.object !== null) {
+      //   return;
+      // }
+      let view = this.scene.view;
 
       if (e.drag.startHandled === undefined) {
         e.drag.startHandled = true;
@@ -69,8 +70,19 @@ export class FirstPersonControls extends EventDispatcher {
       };
 
       if (e.drag.mouse === MOUSE.LEFT) {
-        this.yawDelta += ndrag.x * this.rotationSpeed;
-        this.pitchDelta += ndrag.y * this.rotationSpeed;
+        let yawDelta = ndrag.x * this.rotationSpeed * 0.5;
+        let pitchDelta = ndrag.y * this.rotationSpeed * 0.2;
+        {
+          // apply rotation
+          let yaw = view.yaw;
+          let pitch = view.pitch;
+
+          yaw -= yawDelta;
+          pitch -= pitchDelta;
+
+          view.yaw = yaw;
+          view.pitch = pitch;
+        }
       } else if (e.drag.mouse === MOUSE.RIGHT) {
         this.translationDelta.x -= ndrag.x * moveSpeed * 100;
         this.translationDelta.z += ndrag.y * moveSpeed * 100;
@@ -256,18 +268,6 @@ export class FirstPersonControls extends EventDispatcher {
       } else if (moveDown) {
         this.translationWorldDelta.z = -this.viewer.getMoveSpeed();
       }
-    }
-
-    {
-      // apply rotation
-      let yaw = view.yaw;
-      let pitch = view.pitch;
-
-      yaw -= this.yawDelta * delta;
-      pitch -= this.pitchDelta * delta;
-
-      view.yaw = yaw;
-      view.pitch = pitch;
     }
 
     {
