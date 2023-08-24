@@ -363,7 +363,7 @@ export class Scene extends EventDispatcher {
     }
     setTimeout(() => {
       this.deleteMeasurementsFromQueue();
-    }, 70);
+    }, 20);
   }
 
   addCameraHelper(camera) {
