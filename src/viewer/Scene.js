@@ -307,22 +307,25 @@ export class Scene extends EventDispatcher {
   }
 
   removeMeasurement(measurement) {
-    var foundIndex = measurementsAddedQueue.findIndex(({ measurement: m }) => m === measurement);
-    if (foundIndex > -1) {
-      // no need to add to queue becuase it was not rendered at all previously
-      measurementsAddedQueue.splice(foundIndex, 1);
-    } else {
-      measurementsDeletedQueue.push({ measurement, event: 'deleted' });
-    }
+    // var foundIndex = measurementsAddedQueue.findIndex(({ measurement: m }) => m === measurement);
+    // if (foundIndex > -1) {
+    //   // no need to add to queue becuase it was not rendered at all previously
+    //   measurementsAddedQueue.splice(foundIndex, 1);
+    // } else {
+    measurementsDeletedQueue.push({ measurement, event: 'deleted' });
+    // }
     if (!measurementsDeletedQueueLoading) {
       this.deleteMeasurementsFromQueue();
     }
   }
 
   loadMeasurementsFromQueue() {
-    if (measurementsAddedQueue.length === 0 || measurementsDeletedQueueLoading) {
-      // No measurements in the queue or deleting measurements in progress because delete has higher priority
+    if (measurementsAddedQueue.length === 0) {
       measurementsAddedQueueLoading = false;
+      if (measurementsDeletedQueue.length > 0) {
+        // if measurements still in the queue after adding continue with removing them because add has higher priority over remove
+        this.deleteMeasurementsFromQueue();
+      }
       return;
     }
     measurementsAddedQueueLoading = true;
@@ -342,12 +345,9 @@ export class Scene extends EventDispatcher {
   }
 
   deleteMeasurementsFromQueue() {
-    if (measurementsDeletedQueue.length === 0) {
+    if (measurementsDeletedQueue.length === 0 || measurementsAddedQueueLoading) {
+      // No measurements in the queue or adding measurements in progress because add has higher priority
       measurementsDeletedQueueLoading = false;
-      if (measurementsAddedQueue.length > 0) {
-        // if measurements still in the queue after removing continue with adding them
-        this.loadMeasurementsFromQueue();
-      }
       return;
     }
     measurementsDeletedQueueLoading = true;
