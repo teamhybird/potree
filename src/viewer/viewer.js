@@ -1007,6 +1007,7 @@ export class Viewer extends EventDispatcher {
       });
       tween.onComplete(() => {
         view.lookAt(target);
+        this.controls.dispatchEvent({ type: 'end' });
         this.dispatchEvent({ type: 'focusing_finished', target: this });
       });
 
