@@ -283,10 +283,12 @@ export class MeasuringTool extends EventDispatcher {
       domElement.removeEventListener('mousedown', mouseDown, true);
       domElement.removeEventListener('dblclick', doubleClick, true);
       this.viewer.removeEventListener('cancel_insertions', cancel.callback);
+      this.viewer.removeEventListener('cancel_all_insertions', (e) => cancel.callback(e, true));
     };
 
     if (measure.maxMarkers > 1) {
       this.viewer.addEventListener('cancel_insertions', cancel.callback);
+      this.viewer.addEventListener('cancel_all_insertions', (e) => cancel.callback(e, true));
       domElement.addEventListener('mouseup', insertionCallback, false);
       document.addEventListener('keyup', insertionCallback, true);
       domElement.addEventListener('mousedown', mouseDown, true);
@@ -295,6 +297,7 @@ export class MeasuringTool extends EventDispatcher {
       domElement.addEventListener('mouseup', insertionCallback, false);
       document.addEventListener('keyup', insertionCallback, true);
       domElement.addEventListener('mousedown', mouseDown, true);
+      this.viewer.addEventListener('cancel_all_insertions', (e) => cancel.callback(e, true));
     }
 
     measure.addMarker(new THREE.Vector3(0, 0, 0));
