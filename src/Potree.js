@@ -150,14 +150,16 @@ export function loadPointCloud(path, name, callback) {
     callback(e);
   };
 
-  let promise = new Promise((resolve) => {
+  let promise = new Promise((resolve, reject) => {
     // load pointcloud
     if (!path) {
       // TODO: callback? comment? Hello? Bueller? Anyone?
     } else if (path.indexOf('ept.json') > 0) {
       EptLoader.load(path, function (geometry) {
         if (!geometry) {
-          console.error(new Error(`failed to load point cloud from URL: ${path}`));
+          const err = new Error(`failed to load point cloud from URL: ${path}`);
+          console.error(err);
+          reject(err);
         } else {
           let pointcloud = new PointCloudOctree(geometry);
           //loaded(pointcloud);
@@ -168,7 +170,9 @@ export function loadPointCloud(path, name, callback) {
       POCLoader.load(path, function (geometry) {
         if (!geometry) {
           //callback({type: 'loading_failed'});
-          console.error(new Error(`failed to load point cloud from URL: ${path}`));
+          const err = new Error(`failed to load point cloud from URL: ${path}`);
+          console.error(err);
+          reject(err);
         } else {
           let pointcloud = new PointCloudOctree(geometry);
           // loaded(pointcloud);
@@ -176,28 +180,38 @@ export function loadPointCloud(path, name, callback) {
         }
       });
     } else if (path.indexOf('metadata.json') > 0) {
-      Potree.OctreeLoader.load(path).then((e) => {
-        let geometry = e.geometry;
+      Potree.OctreeLoader.load(path)
+        .then((e) => {
+          let geometry = e.geometry;
 
-        if (!geometry) {
-          console.error(new Error(`failed to load point cloud from URL: ${path}`));
-        } else {
-          let pointcloud = new PointCloudOctree(geometry);
+          if (!geometry) {
+            const err = new Error(`failed to load point cloud from URL: ${path}`);
+            console.error(err);
+            reject(err);
+          } else {
+            let pointcloud = new PointCloudOctree(geometry);
 
-          let aPosition = pointcloud.getAttribute('position');
+            let aPosition = pointcloud.getAttribute('position');
 
-          let material = pointcloud.material;
-          material.elevationRange = [aPosition.range[0][2], aPosition.range[1][2]];
+            let material = pointcloud.material;
+            material.elevationRange = [aPosition.range[0][2], aPosition.range[1][2]];
 
-          // loaded(pointcloud);
-          resolve({ type: 'pointcloud_loaded', pointcloud: pointcloud });
-        }
-      });
+            // loaded(pointcloud);
+            resolve({ type: 'pointcloud_loaded', pointcloud: pointcloud });
+          }
+        })
+        .catch((e) => {
+          const err = new Error(`failed to load point cloud from URL: ${path}`);
+          console.error(err);
+          reject(err);
+        });
 
       OctreeLoader.load(path, function (geometry) {
         if (!geometry) {
           //callback({type: 'loading_failed'});
-          console.error(new Error(`failed to load point cloud from URL: ${path}`));
+          const err = new Error(`failed to load point cloud from URL: ${path}`);
+          console.error(err);
+          reject(err);
         } else {
           let pointcloud = new PointCloudOctree(geometry);
           // loaded(pointcloud);
@@ -208,7 +222,9 @@ export function loadPointCloud(path, name, callback) {
       PointCloudArena4DGeometry.load(path, function (geometry) {
         if (!geometry) {
           //callback({type: 'loading_failed'});
-          console.error(new Error(`failed to load point cloud from URL: ${path}`));
+          const err = new Error(`failed to load point cloud from URL: ${path}`);
+          console.error(err);
+          reject(err);
         } else {
           let pointcloud = new PointCloudArena4D(geometry);
           // loaded(pointcloud);
@@ -217,7 +233,9 @@ export function loadPointCloud(path, name, callback) {
       });
     } else {
       //callback({'type': 'loading_failed'});
-      console.error(new Error(`failed to load point cloud from URL: ${path}`));
+      const err = new Error(`failed to load point cloud from URL: ${path}`);
+      console.error(err);
+      reject(err);
     }
   });
 

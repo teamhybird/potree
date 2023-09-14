@@ -214,6 +214,8 @@ export class POCLoader {
           pco.nodes = nodes;
 
           callback(pco);
+        } else if (xhr.readyState === 4) {
+          callback(null);
         }
       };
 
