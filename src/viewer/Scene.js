@@ -9,6 +9,7 @@ let measurementsAddedQueue = [];
 let measurementsDeletedQueue = [];
 let measurementsAddedQueueLoading = false;
 let measurementsDeletedQueueLoading = false;
+const batchNumber = 5;
 
 export class Scene extends EventDispatcher {
   constructor() {
@@ -329,15 +330,19 @@ export class Scene extends EventDispatcher {
       return;
     }
     measurementsAddedQueueLoading = true;
-    var { measurement } = measurementsAddedQueue.shift();
-    this.measurements.push(measurement);
-    this.dispatchEvent({
-      type: 'measurement_added',
-      scene: this,
-      measurement: measurement,
-    });
-    measurement.lengthUnit = this.lengthUnit;
-    measurement.lengthUnitDisplay = this.lengthUnitDisplay;
+    let counter = 0;
+    while (measurementsAddedQueue.length > 0 && batchNumber > counter) {
+      var { measurement } = measurementsAddedQueue.shift();
+      this.measurements.push(measurement);
+      this.dispatchEvent({
+        type: 'measurement_added',
+        scene: this,
+        measurement: measurement,
+      });
+      measurement.lengthUnit = this.lengthUnit;
+      measurement.lengthUnitDisplay = this.lengthUnitDisplay;
+      counter++;
+    }
 
     setTimeout(() => {
       this.loadMeasurementsFromQueue();
@@ -351,15 +356,19 @@ export class Scene extends EventDispatcher {
       return;
     }
     measurementsDeletedQueueLoading = true;
-    var { measurement } = measurementsDeletedQueue.shift();
-    let index = this.measurements.indexOf(measurement);
-    if (index > -1) {
-      this.measurements.splice(index, 1);
-      this.dispatchEvent({
-        type: 'measurement_removed',
-        scene: this,
-        measurement: measurement,
-      });
+    let counter = 0;
+    while (measurementsDeletedQueue.length > 0 && batchNumber > counter) {
+      var { measurement } = measurementsDeletedQueue.shift();
+      let index = this.measurements.indexOf(measurement);
+      if (index > -1) {
+        this.measurements.splice(index, 1);
+        this.dispatchEvent({
+          type: 'measurement_removed',
+          scene: this,
+          measurement: measurement,
+        });
+      }
+      counter++;
     }
     setTimeout(() => {
       this.deleteMeasurementsFromQueue();
