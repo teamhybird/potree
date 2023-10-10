@@ -55,6 +55,7 @@ export class NavvisImages360 extends EventDispatcher {
     this.node = new THREE.Object3D();
     this.footprints = [];
     this._showFootprints = false;
+    this._footprintsVisible = true;
     this._view360Enabled = false;
 
     this.sphere = new THREE.Mesh(sgHigh, sm);
@@ -157,6 +158,17 @@ export class NavvisImages360 extends EventDispatcher {
 
   get showFootprints() {
     return this._showFootprints;
+  }
+
+  set footprintsVisible(footprintsVisible) {
+    this._footprintsVisible = footprintsVisible;
+    for (const footprint of this.footprints) {
+      footprint.visible = footprintsVisible;
+    }
+  }
+
+  get footprintsVisible() {
+    return this._footprintsVisible;
   }
 
   setView360Enabled(view360Enabled) {
@@ -499,6 +511,7 @@ export class NavvisImages360Loader {
       const mesh = new THREE.Mesh(geometry, material);
       mesh.position.set(...xy, altitude);
       mesh.scale.set(1, 1, 1);
+      mesh.visible = images360.footprintsVisible;
       mesh.image360 = image360;
 
       {
