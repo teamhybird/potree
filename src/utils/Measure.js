@@ -360,6 +360,9 @@ export class Measure extends THREE.Object3D {
       case SystemType.cluster:
         path += `cluster-icons/${subFolder}`;
         break;
+			case SystemType.notification:
+        path += `notification-icons/${subFolder}`;
+        break;
       default:
         path += '';
         break;

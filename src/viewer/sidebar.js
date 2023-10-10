@@ -357,6 +357,30 @@ export class Sidebar {
       })
     );
 
+  // NOTIFICATION
+    elToolbar.append(
+      this.createToolIcon(Potree.resourcePath + '/icons/notification.svg', '[title]tt.point_notification', () => {
+        $('#menu_measurements').next().slideDown();
+        let measurement = this.measuringTool.startInsertion({
+          showDistances: false,
+          showAngles: false,
+          showCoordinates: true,
+          showArea: false,
+          closed: true,
+          showEdges: false,
+          maxMarkers: 1,
+          coordinatesText: 'New notification',
+          systemType: SystemType.notification,
+          name: 'Notification',
+        });
+
+        let measurementsRoot = $('#jstree_scene').jstree().get_json('measurements');
+        let jsonNode = measurementsRoot.children.find((child) => child.data.uuid === measurement.uuid);
+        $.jstree.reference(jsonNode.id).deselect_all();
+        $.jstree.reference(jsonNode.id).select_node(jsonNode.id);
+      })
+    );
+
     // PROFILE
     elToolbar.append(
       this.createToolIcon(Potree.resourcePath + '/icons/profile.svg', '[title]tt.height_profile', () => {

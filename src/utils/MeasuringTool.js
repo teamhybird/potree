@@ -326,6 +326,9 @@ export class MeasuringTool extends EventDispatcher {
       case SystemType.inspect:
         size = 20;
         break;
+      case SystemType.notification:
+        size = 20;
+        break;
       default:
         size = 15;
         break;
