@@ -1,5 +1,3 @@
-import { Enum } from './Enum.js';
-
 export const CameraMode = {
   ORTHOGRAPHIC: 0,
   PERSPECTIVE: 1,
@@ -68,4 +66,5 @@ export const SystemType = {
   component: 'Component',
   inspect: 'INSPECT',
   none: 'None',
+  notification:'NOTIFICATION'
 };
