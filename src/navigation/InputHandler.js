@@ -61,6 +61,16 @@ export class InputHandler extends EventDispatcher {
     this.domElement.addEventListener('touchstart', this.onTouchStart.bind(this));
     this.domElement.addEventListener('touchend', this.onTouchEnd.bind(this));
     this.domElement.addEventListener('touchmove', this.onTouchMove.bind(this));
+    document.addEventListener('click', this.onWindowMouseClick.bind(this), false);
+  }
+
+  onWindowMouseClick(e) {
+    if (!this.domElement.contains(e.target)) {
+      // Clicked outside render area, remove all pressed keys
+      (Object.keys(this.pressedKeys) || []).forEach((key) => {
+        delete this.pressedKeys[key];
+      });
+    }
   }
 
   addInputListener(listener) {

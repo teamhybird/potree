@@ -28,7 +28,7 @@ export class FirstPersonControls extends EventDispatcher {
     this.scene = null;
     this.sceneControls = new THREE.Scene();
 
-    this.rotationSpeed = 200;
+    this.rotationSpeed = 10;
     this.moveSpeed = 10;
     this.lockElevation = false;
 
@@ -37,8 +37,8 @@ export class FirstPersonControls extends EventDispatcher {
       BACKWARD: ['S'.charCodeAt(0), 40],
       LEFT: ['A'.charCodeAt(0), 37],
       RIGHT: ['D'.charCodeAt(0), 39],
-      UP: ['R'.charCodeAt(0), 33],
-      DOWN: ['F'.charCodeAt(0), 34],
+      UP: ['R'.charCodeAt(0), 188],
+      DOWN: ['F'.charCodeAt(0), 190],
     };
 
     this.fadeFactor = 50;
@@ -51,9 +51,10 @@ export class FirstPersonControls extends EventDispatcher {
     this.tweens = [];
 
     let drag = (e) => {
-      if (e.drag.object !== null) {
-        return;
-      }
+      // if (e.drag.object !== null) {
+      //   return;
+      // }
+      let view = this.scene.view;
 
       if (e.drag.startHandled === undefined) {
         e.drag.startHandled = true;
@@ -69,8 +70,19 @@ export class FirstPersonControls extends EventDispatcher {
       };
 
       if (e.drag.mouse === MOUSE.LEFT) {
-        this.yawDelta += ndrag.x * this.rotationSpeed;
-        this.pitchDelta += ndrag.y * this.rotationSpeed;
+        let yawDelta = ndrag.x * this.rotationSpeed * 0.5;
+        let pitchDelta = ndrag.y * this.rotationSpeed * 0.2;
+        {
+          // apply rotation
+          let yaw = view.yaw;
+          let pitch = view.pitch;
+
+          yaw -= yawDelta;
+          pitch -= pitchDelta;
+
+          view.yaw = yaw;
+          view.pitch = pitch;
+        }
       } else if (e.drag.mouse === MOUSE.RIGHT) {
         this.translationDelta.x -= ndrag.x * moveSpeed * 100;
         this.translationDelta.z += ndrag.y * moveSpeed * 100;
@@ -171,7 +183,7 @@ export class FirstPersonControls extends EventDispatcher {
         this.scene.view.position.z = (1 - t) * startPos.z + t * targetPos.z;
 
         this.scene.view.radius = (1 - t) * startRadius + t * targetRadius;
-        this.viewer.setMoveSpeed(this.scene.view.radius / 2.5);
+        // this.viewer.setMoveSpeed(this.scene.view.radius / 2.5);
       });
 
       tween.onComplete(() => {
@@ -180,6 +192,19 @@ export class FirstPersonControls extends EventDispatcher {
 
       tween.start();
     }
+  }
+
+  // Overrides default zoomInOut behaviour
+  zoomInOut(direction = 1) {
+    let moveSpeed = this.viewer.getMoveSpeed();
+
+    let camera = this.scene.getActiveCamera();
+    const dir = camera.getWorldDirection();
+    let move = dir.multiplyScalar((direction * moveSpeed) / 5);
+    const newCamPos = this.scene.view.position.clone().add(move);
+
+    this.scene.view.setView(newCamPos, null, 500);
+    this.viewer.controls.dispatchEvent({ type: 'end' });
   }
 
   update(delta) {
@@ -243,18 +268,6 @@ export class FirstPersonControls extends EventDispatcher {
       } else if (moveDown) {
         this.translationWorldDelta.z = -this.viewer.getMoveSpeed();
       }
-    }
-
-    {
-      // apply rotation
-      let yaw = view.yaw;
-      let pitch = view.pitch;
-
-      yaw -= this.yawDelta * delta;
-      pitch -= this.pitchDelta * delta;
-
-      view.yaw = yaw;
-      view.pitch = pitch;
     }
 
     {

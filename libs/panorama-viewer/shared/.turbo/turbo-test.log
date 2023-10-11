@@ -1,0 +1,9 @@
+$ mocha -r ts-node/register "*.spec.ts"
+
+
+  UMD
+    √ should correctly wrap iife to umd (1031ms)
+
+
+  1 passing (1s)
+

@@ -1,0 +1,69 @@
+$ mocha -r ts-node/register "src/**/*.spec.ts"
+
+
+  utils:misc:deepmerge
+    √ should merge basic plain objects
+    √ should merge arrays by replace
+    √ should clone object
+    √ should clone array
+    √ should accept primitives
+    √ should stop on recursion
+
+  utils:misc:dasherize
+    √ should dasherize from camelCase
+    √ should not change existing dash-case
+
+  utils:misc:deepEqual
+    √ should compare simple objects
+    √ should compare nested objects
+    √ should compare arrays
+    √ should compare standard types
+
+  utils:PressHandler
+    √ should wait at least X ms before exec (117ms)
+    √ should exec immediately if X ms already elapsed (205ms)
+
+  utils:psv:parseAngle
+    √ should normalize number
+    √ should parse radians angles
+    √ should parse degrees angles
+    √ should normalize angles between 0 and 2Pi
+    √ should normalize angles between -Pi/2 and Pi/2
+    √ should normalize angles between -Pi and Pi
+    √ should throw exception on invalid values
+
+  utils:psv:parsePosition
+    √ should parse 2 keywords
+    √ should parse 1 keyword
+    √ should parse 2 percentages
+    √ should parse 1 percentage
+    √ should parse mixed keyword & percentage
+    √ should fallback on parse fail
+    √ should ignore extra tokens
+    √ should ignore case
+
+  utils:psv:parseSpeed
+    √ should parse all units
+    √ should allow various forms
+    √ should throw exception on invalid unit
+PhotoSphereViewer: Invalid position center center
+    √ should passthrough when number
+
+  utils:psv:getXMPValue
+PhotoSphereViewer: Invalid position center center
+PhotoSphereViewer: Unparsable position foo,bar
+PhotoSphereViewer: Unparsable position TOP,CENTER
+    √ should parse XMP data with children
+    √ should parse XMP data with attributes
+
+  utils:psv:cleanPosition
+    √ should clean various formats
+    √ should add missing center
+    √ should dissallow all center
+    √ should return null on unparsable values
+    √ should allow XY order
+    √ should always order with center
+
+
+  41 passing (341ms)
+

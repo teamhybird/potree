@@ -622,7 +622,10 @@ export class MapView {
   }
 
   addImages360(images) {
-    let transform = this.toMap.forward;
+    let toMap = this.toMap || {
+      forward: (a) => a,
+    };
+    let transform = toMap.forward;
     let layer = this.getImages360Layer();
 
     for (let image of images.images) {

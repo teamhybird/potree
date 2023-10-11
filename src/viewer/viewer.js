@@ -27,6 +27,7 @@ import { NavigationCube } from './NavigationCube.js';
 import { Compass } from '../utils/Compass.js';
 import { OrbitControls } from '../navigation/OrbitControls.js';
 import { FirstPersonControls } from '../navigation/FirstPersonControls.js';
+import { PanoControls } from '../navigation/PanoControls.js';
 import { EarthControls } from '../navigation/EarthControls.js';
 import { DeviceOrientationControls } from '../navigation/DeviceOrientationControls.js';
 import { VRControls } from '../navigation/VRControls.js';
@@ -178,6 +179,9 @@ export class Viewer extends EventDispatcher {
 
       this.skybox = null;
       this.clock = new THREE.Clock();
+      this.delta = 0;
+      // 60 fps
+      this.interval = 1 / 60;
       this.progressBar = new ProgressBar(args.progressBaseId || 'pc-progress');
       this.background = null;
 
@@ -264,11 +268,11 @@ export class Viewer extends EventDispatcher {
         this.clippingTool.setScene(this.scene);
 
         let onPointcloudAdded = (e) => {
-          if (this.scene.pointclouds.length === 1) {
-            let speed = e.pointcloud.boundingBox.getSize(new THREE.Vector3()).length();
-            speed = speed / 5;
-            this.setMoveSpeed(speed);
-          }
+          // if (this.scene.pointclouds.length === 1) {
+          //   let speed = e.pointcloud.boundingBox.getSize(new THREE.Vector3()).length();
+          //   speed = speed / 5;
+          //   this.setMoveSpeed(speed);
+          // }
         };
 
         let onVolumeRemoved = (e) => {
@@ -382,6 +386,31 @@ export class Viewer extends EventDispatcher {
     }
 
     throw error;
+  }
+
+  showLoadingScreen(show = true) {
+    let renderArea = $('#potree_render_area');
+
+    let loadingPage = renderArea.find('#potree_loadingpage');
+    if (loadingPage.length === 0) {
+      let elLoadingPage = $(`
+			<div id="potree_loadingpage" class="potree_loadingpage"> 
+
+			</div>`);
+
+      let loadingGIF = document.createElement('img');
+      loadingGIF.src = new URL(Potree.resourcePath + '/loader.gif').href;
+      loadingGIF.classList.add('potree_loading_image');
+      elLoadingPage.append(loadingGIF);
+      $(this.renderArea).append(elLoadingPage);
+      loadingPage = elLoadingPage;
+    }
+
+    if (show) {
+      loadingPage.css('display', 'block');
+    } else {
+      loadingPage.css('display', 'none');
+    }
   }
 
   // ------------------------------------------------------------------------------------
@@ -658,10 +687,30 @@ export class Viewer extends EventDispatcher {
     return this.edlOpacity;
   }
 
-  setFOV(value) {
+  setFOV(value, animationDuration = 0) {
     if (this.fov !== value) {
-      this.fov = value;
-      this.dispatchEvent({ type: 'fov_changed', viewer: this });
+      if (animationDuration > 0) {
+        let easing = TWEEN.Easing.Quartic.Out;
+        {
+          // animate camera FOV
+          let currentFOV = { fov: this.fov };
+          let tween = new TWEEN.Tween(currentFOV).to({ fov: value }, animationDuration);
+          tween.easing(easing);
+
+          tween.onUpdate(() => {
+            this.fov = currentFOV.fov;
+          });
+
+          tween.onComplete(() => {
+            this.dispatchEvent({ type: 'fov_changed', viewer: this });
+          });
+
+          tween.start();
+        }
+      } else {
+        this.fov = value;
+        this.dispatchEvent({ type: 'fov_changed', viewer: this });
+      }
     }
   }
 
@@ -958,6 +1007,7 @@ export class Viewer extends EventDispatcher {
       });
       tween.onComplete(() => {
         view.lookAt(target);
+        this.controls.dispatchEvent({ type: 'end' });
         this.dispatchEvent({ type: 'focusing_finished', target: this });
       });
 
@@ -1042,6 +1092,19 @@ export class Viewer extends EventDispatcher {
       case 'D':
         this.setBottomView();
         break;
+    }
+  }
+
+  zoomInOut(direction = 1) {
+    if (this.controls.zoomInOut && typeof this.controls.zoomInOut === 'function') {
+      this.controls.zoomInOut(direction);
+    } else {
+      let camera = this.scene.getActiveCamera();
+      const dir = camera.getWorldDirection();
+      let move = dir.multiplyScalar(direction * this.zoomSpeed);
+      const newCamPos = this.scene.view.position.clone().add(move);
+      this.scene.view.setView(newCamPos, null, 500);
+      this.controls.dispatchEvent({ type: 'end' });
     }
   }
 
@@ -1276,6 +1339,14 @@ export class Viewer extends EventDispatcher {
       this.vrControls.enabled = false;
       this.vrControls.addEventListener('start', this.disableAnnotations.bind(this));
       this.vrControls.addEventListener('end', this.enableAnnotations.bind(this));
+    }
+
+    {
+      // create FIRST PERSON CONTROLS
+      this.panoControls = new PanoControls(this);
+      this.panoControls.enabled = false;
+      this.panoControls.addEventListener('start', this.disableAnnotations.bind(this));
+      this.panoControls.addEventListener('end', this.enableAnnotations.bind(this));
     }
   }
 
@@ -2368,7 +2439,6 @@ export class Viewer extends EventDispatcher {
 
     this.update(this.clock.getDelta(), timestamp);
     this.render();
-
     // let vrActive = viewer.renderer.xr.isPresenting;
     // if(vrActive){
     // 	this.update(this.clock.getDelta(), timestamp);
@@ -2387,7 +2457,6 @@ export class Viewer extends EventDispatcher {
     this.resolveTimings(timestamp);
 
     Potree.framenumber++;
-
     if (this.stats) {
       this.stats.end();
     }

@@ -115,8 +115,8 @@ export class EarthControls extends EventDispatcher {
           {
             let distance = newCamPos.distanceTo(this.pivot);
             view.radius = distance;
-            let speed = view.radius / 2.5;
-            this.viewer.setMoveSpeed(speed);
+            // let speed = view.radius / 2.5;
+            // this.viewer.setMoveSpeed(speed);
           }
         }
       }
@@ -323,7 +323,7 @@ export class EarthControls extends EventDispatcher {
         this.scene.view.position.z = (1 - t) * startPos.z + t * targetPos.z;
 
         this.scene.view.radius = (1 - t) * startRadius + t * targetRadius;
-        this.viewer.setMoveSpeed(this.scene.view.radius / 2.5);
+        // this.viewer.setMoveSpeed(this.scene.view.radius / 2.5);
       });
 
       tween.onComplete(() => {
@@ -332,10 +332,6 @@ export class EarthControls extends EventDispatcher {
 
       tween.start();
     }
-  }
-
-  zoomInOut(direction = 1, jumpDistance = 20) {
-    this.wheelDelta = direction * jumpDistance;
   }
 
   update(delta) {
@@ -358,8 +354,8 @@ export class EarthControls extends EventDispatcher {
         this.zoomDelta.subVectors(resolvedPos, view.position);
 
         {
-          let speed = 4;
-          this.viewer.setMoveSpeed(speed);
+          // let speed = 4;
+          // this.viewer.setMoveSpeed(speed);
         }
       } else {
         let resolvedPos = new THREE.Vector3().addVectors(view.position, this.zoomDelta);
@@ -372,8 +368,8 @@ export class EarthControls extends EventDispatcher {
         this.zoomDelta.subVectors(resolvedPos, view.position);
 
         {
-          let speed = 4;
-          this.viewer.setMoveSpeed(speed);
+          // let speed = 4;
+          // this.viewer.setMoveSpeed(speed);
         }
       }
     }

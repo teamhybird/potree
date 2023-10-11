@@ -1,106 +1,1145 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-	<meta charset="utf-8">
-	<meta name="description" content="">
-	<meta name="author" content="">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-	<title>Potree Viewer</title>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="description" content="" />
+    <meta name="author" content="" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Potree Viewer</title>
 
-	<link rel="stylesheet" type="text/css" href="../../build/potree/potree.css">
-	<link rel="stylesheet" type="text/css" href="../../libs/jquery-ui/jquery-ui.min.css">
-	<link rel="stylesheet" type="text/css" href="../../libs/openlayers3/ol.css">
-	<link rel="stylesheet" type="text/css" href="../../libs/spectrum/spectrum.css">
-	<link rel="stylesheet" type="text/css" href="../../libs/jstree/themes/mixed/style.css">
-</head>
+    <link rel="stylesheet" type="text/css" href="../../build/potree/potree.css" />
+    <link rel="stylesheet" type="text/css" href="../../libs/jquery-ui/jquery-ui.min.css" />
+    <link rel="stylesheet" type="text/css" href="../../libs/openlayers3/ol.css" />
+    <link rel="stylesheet" type="text/css" href="../../libs/spectrum/spectrum.css" />
+    <link rel="stylesheet" type="text/css" href="../../libs/jstree/themes/mixed/style.css" />
+  </head>
 
-<body>
-	<script src="../../libs/jquery/jquery-3.1.1.min.js"></script>
-	<script src="../../libs/spectrum/spectrum.js"></script>
-	<script src="../../libs/jquery-ui/jquery-ui.min.js"></script>
-	<script src="../../libs/other/BinaryHeap.js"></script>
-	<script src="../../libs/tween/tween.min.js"></script>
-	<script src="../../libs/d3/d3.js"></script>
-	<script src="../../libs/proj4/proj4.js"></script>
-	<script src="../../libs/openlayers3/ol.js"></script>
-	<script src="../../libs/i18next/i18next.js"></script>
-	<script src="../../libs/jstree/jstree.js"></script>
-	<script src="../../build/potree/potree.js"></script>
-	<script src="../../libs/plasio/js/laslaz.js"></script>
-	
-	
-	<div class="potree_container" style="position: absolute; width: 100%; height: 100%; left: 0px; top: 0px; ">
-		<div id="potree_render_area" style="background-image: url('../../build/potree/resources/images/background.jpg');">
-		
-		</div>
-		<div id="potree_sidebar_container"> </div>
-	</div>
-	
-	<script type="module">
+  <body>
+    <script src="../../libs/jquery/jquery-3.1.1.min.js"></script>
+    <script src="../../libs/spectrum/spectrum.js"></script>
+    <script src="../../libs/jquery-ui/jquery-ui.min.js"></script>
+    <script src="../../libs/other/BinaryHeap.js"></script>
+    <script src="../../libs/tween/tween.min.js"></script>
+    <script src="../../libs/d3/d3.js"></script>
+    <script src="../../libs/proj4/proj4.js"></script>
+    <script src="../../libs/openlayers3/ol.js"></script>
+    <script src="../../libs/i18next/i18next.js"></script>
+    <script src="../../libs/jstree/jstree.js"></script>
+    <script src="../../build/potree/potree.js"></script>
+    <script src="../../libs/plasio/js/laslaz.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three/build/three.min.js"></script>
+    <script src="../libs/panorama-viewer/core/dist/index.js"></script>
+    <script src="../libs/panorama-viewer/equirectangular-tiles-adapter/dist/index.js"></script>
+    <script src="../libs/panorama-viewer/gyroscope-plugin/dist/index.js"></script>
 
-	import * as THREE from "../libs/three.js/build/three.module.js";
-	
-		window.viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
-		
-		viewer.setEDLEnabled(true);
-		viewer.setFOV(60);
-		viewer.setPointBudget(2_000_000);
-		viewer.loadSettingsFromURL();
-		viewer.setDescription(`Mobile LIDAR with 360 degree image overlays. 
-		Click on a sphere to enter 360 view. Click "unfocus" to leave 360 view. <br>
-		Point cloud courtesy of <a href="http://www.helimap.com/">Helimap System SA</a>. Images were downsized for this online demo; Original size is 8000x400.`);
-		
-		viewer.loadGUI(() => {
-			viewer.setLanguage('en');
-			$("#menu_appearance").next().show();
-			viewer.toggleSidebar();
-		});
-		
-		// Load and add point cloud to scene
-		Potree.loadPointCloud("http://5.9.65.151/mschuetz/potree/resources/pointclouds/helimap/360/MLS_drive1/cloud.js", "MLS", e => {
-			let scene = viewer.scene;
-			let pointcloud = e.pointcloud;
-			
-			let material = pointcloud.material;
-			material.size = 0.5;
-			material.minSize = 2.0;
-			material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
-			material.shape = Potree.PointShape.SQUARE;
-			material.activeAttributeName = "rgba";
-			
-			scene.addPointCloud(pointcloud);
+    <div class="potree_container" style="position: absolute; width: 100%; height: 100%; left: 0px; top: 0px">
+      <div id="potree_render_area" style="background-image: url('../../build/potree/resources/images/background.jpg')"></div>
+      <div id="potree_sidebar_container"></div>
+      <div id="photosphere" style="z-index: 1000000000"></div>
+    </div>
 
-			viewer.scene.view.setView(
-				[2652381.103, 1249049.447, 411.636],
-				[2652364.407, 1249077.205, 399.696],
-			);
+    <script type="module">
+      import * as THREE from '../libs/three.js/build/three.module.js';
 
-			run();
-		});
+      window.viewer = new Potree.Viewer(document.getElementById('potree_render_area'));
 
-		async function run(){
+      viewer.setEDLEnabled(true);
+      viewer.setFOV(60);
+      viewer.setPointBudget(2_000_000);
+      viewer.loadSettingsFromURL();
+      viewer.setDescription(`Mobile LIDAR with 360 degree image overlays.
+      		Click on a sphere to enter 360 view. Click "unfocus" to leave 360 view. <br>
+      		Point cloud courtesy of <a href="http://www.helimap.com/">Helimap System SA</a>. Images were downsized for this online demo; Original size is 8000x400.`);
 
-			proj4.defs("WGS84", "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs");
-			proj4.defs("pointcloud", viewer.getProjection());
-			let transform = proj4("WGS84", "pointcloud");
+      viewer.loadGUI(() => {
+        viewer.setLanguage('en');
+        $('#menu_appearance').next().show();
+        viewer.toggleSidebar();
+      });
 
-			let params = {
-				transform: transform
-			};
+      // Load and add point cloud to scene
+      Potree.loadPointCloud(
+        'https://hybird-dev-public.s3.eu-west-2.amazonaws.com/952631d830534101b47cad437dda3251b52b5638da8b49d6aafd8bed6d19ec68541b0d20bbb34133a7bf7533fddbe847462b2ca2219b43419ea52fe04563bb4f/86/cloud.js',
+        'MLS',
+        (e) => {
+          let scene = viewer.scene;
+          let pointcloud = e.pointcloud;
 
-			// this file contains coordinates, orientation and filenames of the images:
-			// http://5.9.65.151/mschuetz/potree/resources/pointclouds/helimap/360/Drive2_selection/coordinates.txt
-			Potree.Images360Loader.load("http://5.9.65.151/mschuetz/potree/resources/pointclouds/helimap/360/Drive2_selection", viewer, params).then( images => {
-				viewer.scene.add360Images(images);
-			});
+          let material = pointcloud.material;
+          material.size = 0.5;
+          material.minSize = 2.0;
+          material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
+          material.shape = Potree.PointShape.SQUARE;
+          material.activeAttributeName = 'rgba';
 
-			viewer.mapView.showSources(false);
-		}
+          scene.addPointCloud(pointcloud);
 
+          viewer.fitToScreen();
 
-		
-	</script>
-	
-	
+          run();
+        }
+      );
+
+      async function run() {
+        // proj4.defs('WGS84', '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs');
+        // proj4.defs('pointcloud', viewer.getProjection());
+        // let transform = proj4('WGS84', 'pointcloud');
+
+        let params = {
+          transform: null,
+        };
+
+        let images = null;
+        viewer.setControls(viewer.fpControls);
+        viewer.fpControls.lockElevation = true;
+
+        const dataset = {
+          DatasetID: '2023-02-16_08.48.10',
+          DatasetName: '16feb23_dustyroomtest',
+          NumberOfImages: '27',
+          MappedAreaMeterSquare: 2199.09,
+          DatasetDurationSecs: 109.81206583976746,
+          TrajectoryLengthMeters: 49.07934827441365,
+          DatasetStartTime: 1676533697.053422,
+          DatasetEndTime: 1676533806.865488,
+          ImageInfos: [
+            {
+              ID: 82,
+              ImageName: '00000-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00000-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=8f50565d4ac80baac83d1fe10c71176bbf08e3ac031baeb566a6db0d9723665c',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00000-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: -1.021666646003723,
+                  Y: 1.114739656448364,
+                  Z: 0.989703118801117,
+                },
+                Orientation: {
+                  W: 0.470108956098557,
+                  X: 0.013143526390195,
+                  Y: 0.000971435860265,
+                  Z: 0.882510006427765,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: -1.021666646003723,
+                  Y: 1.114739656448364,
+                  Z: -0.895968019962311,
+                },
+                Orientation: {
+                  W: 0.470322161912918,
+                  X: 0.011923803947866,
+                  Y: -0.020492777228355,
+                  Z: 0.882176280021668,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 83,
+              ImageName: '00001-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00001-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=130fda761827aca465ec37a2d312ccfefda0d90a2b6aa598a2537958c95d1555',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00001-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: -1.783557891845703,
+                  Y: 2.037998914718628,
+                  Z: 1.01391065120697,
+                },
+                Orientation: {
+                  W: 0.433537811040878,
+                  X: 0.044204045087099,
+                  Y: -0.007190224248916,
+                  Z: 0.90002179145813,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: -1.783557891845703,
+                  Y: 2.037998914718628,
+                  Z: -0.864515066146851,
+                },
+                Orientation: {
+                  W: 0.43411511182785,
+                  X: 0.003827465930954,
+                  Y: 0.00780585873872,
+                  Z: 0.900815486907959,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 84,
+              ImageName: '00002-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00002-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=31e78c1940a2287b4eb04567b052aa11e87998199de29b8a2e742bf001d6df0b',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00002-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: -2.677586555480957,
+                  Y: 3.163525104522705,
+                  Z: 1.013461709022522,
+                },
+                Orientation: {
+                  W: 0.534494698047638,
+                  X: 0.017651490867138,
+                  Y: -0.00041482585948,
+                  Z: 0.844987392425537,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: -2.677586555480957,
+                  Y: 3.163525104522705,
+                  Z: -0.872055888175964,
+                },
+                Orientation: {
+                  W: 0.535084843635559,
+                  X: -0.019760860130191,
+                  Y: 0.014593321830034,
+                  Z: 0.844441115856171,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 85,
+              ImageName: '00003-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00003-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=fa44e3a39ec23708cf8cfe72c510ae014e9ab18640a65f0f3ffcd63b77bee496',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00003-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: -3.342139720916748,
+                  Y: 4.403622627258301,
+                  Z: 0.943467140197754,
+                },
+                Orientation: {
+                  W: 0.631956338882446,
+                  X: 0.025698544457555,
+                  Y: -0.019106948748231,
+                  Z: 0.774342119693756,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: -3.342139720916748,
+                  Y: 4.403622627258301,
+                  Z: -0.919973373413086,
+                },
+                Orientation: {
+                  W: 0.632531046867371,
+                  X: -0.007049870211631,
+                  Y: 0.005531227216125,
+                  Z: 0.774483144283295,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 86,
+              ImageName: '00004-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00004-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=f0526cacdcf7d6b897acdf39b162852bf6c4309afabbe66df657dbcf6a0491eb',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00004-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: -3.668086051940918,
+                  Y: 5.635425090789795,
+                  Z: 0.927511394023895,
+                },
+                Orientation: {
+                  W: 0.653628885746002,
+                  X: 0.049011785537004,
+                  Y: -0.022935725748539,
+                  Z: 0.754878163337708,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: -3.668086051940918,
+                  Y: 5.635425090789795,
+                  Z: -0.949007093906403,
+                },
+                Orientation: {
+                  W: 0.655821084976196,
+                  X: -0.012390233576298,
+                  Y: -0.005965260788798,
+                  Z: 0.754791140556335,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 87,
+              ImageName: '00005-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00005-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=9ba20a33edcb2d4aaf961e6eebaa85610d2aba6ce6d48039820c020c9696f4c4',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00005-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: -4.105624198913574,
+                  Y: 7.115924835205078,
+                  Z: 0.902956545352936,
+                },
+                Orientation: {
+                  W: 0.619990408420563,
+                  X: 0.038808457553387,
+                  Y: -0.012079577893019,
+                  Z: 0.783555924892426,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: -4.105624198913574,
+                  Y: 7.115924835205078,
+                  Z: -0.955800116062164,
+                },
+                Orientation: {
+                  W: 0.621702969074249,
+                  X: -0.021663937717676,
+                  Y: -0.018365722149611,
+                  Z: 0.782738029956818,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 88,
+              ImageName: '00006-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00006-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=4bbc0591846b32eec29865a15875d18df82e93efdeab1d3da428ec9dd5d72696',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00006-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: -4.211970329284668,
+                  Y: 8.674616813659668,
+                  Z: 0.930335104465485,
+                },
+                Orientation: {
+                  W: 0.579941928386688,
+                  X: 0.033040385693312,
+                  Y: -0.016141375526786,
+                  Z: 0.813827455043793,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: -4.211970329284668,
+                  Y: 8.674616813659668,
+                  Z: -0.955784022808075,
+                },
+                Orientation: {
+                  W: 0.580821633338928,
+                  X: -0.016291223466396,
+                  Y: 0.043447956442833,
+                  Z: 0.812707245349884,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 89,
+              ImageName: '00007-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00007-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=d25c2f5143a6cb5521f7298dcbc1b1101d18196de9215f004cda232642159d44',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00007-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: -4.500617504119873,
+                  Y: 9.82744312286377,
+                  Z: 0.819711148738861,
+                },
+                Orientation: {
+                  W: 0.596857488155365,
+                  X: 0.038318164646626,
+                  Y: -0.022134855389595,
+                  Z: 0.801126062870026,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: -4.500617504119873,
+                  Y: 9.82744312286377,
+                  Z: -1.04000449180603,
+                },
+                Orientation: {
+                  W: 0.601253628730774,
+                  X: -0.05507455393672,
+                  Y: 0.049310829490423,
+                  Z: 0.795631408691406,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 90,
+              ImageName: '00008-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00008-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=fd5c5111831c320c343422392d23960b22f638b282871201d343113c381d1c9b',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00008-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: -5.134549617767334,
+                  Y: 11.07419204711914,
+                  Z: 0.731464982032776,
+                },
+                Orientation: {
+                  W: 0.66195011138916,
+                  X: 0.029821144416928,
+                  Y: -0.020519942045212,
+                  Z: 0.748673260211945,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: -5.134549617767334,
+                  Y: 11.07419204711914,
+                  Z: -1.15047812461853,
+                },
+                Orientation: {
+                  W: 0.664269804954529,
+                  X: -0.048695005476475,
+                  Y: -0.005890857893974,
+                  Z: 0.745881795883179,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 91,
+              ImageName: '00009-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00009-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=c11df6efea4874bb3bd00330feb32516195ede06573a73f30cd2fab9f331becf',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00009-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: -5.339542388916016,
+                  Y: 12.320844650268555,
+                  Z: 0.617004632949829,
+                },
+                Orientation: {
+                  W: 0.906644701957703,
+                  X: 0.017047055065632,
+                  Y: -0.007372075691819,
+                  Z: 0.421485930681229,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: -5.339542388916016,
+                  Y: 12.320844650268555,
+                  Z: -1.226670265197754,
+                },
+                Orientation: {
+                  W: 0.905650973320007,
+                  X: -0.032462611794472,
+                  Y: -0.034917168319225,
+                  Z: 0.421335190534592,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 92,
+              ImageName: '00010-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00010-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=77c9bec9c023a7cc9be0e012fb9a8e21d95177b817d5635ea9da029bb95462dc',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00010-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: -4.945055961608887,
+                  Y: 13.478687286376953,
+                  Z: 0.453565984964371,
+                },
+                Orientation: {
+                  W: 0.945122420787811,
+                  X: 0.013160133734345,
+                  Y: -0.032284788787365,
+                  Z: 0.32485094666481,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: -4.945055961608887,
+                  Y: 13.478687286376953,
+                  Z: -1.402935862541199,
+                },
+                Orientation: {
+                  W: 0.946051597595215,
+                  X: -0.008315824903548,
+                  Y: 0.00708958460018,
+                  Z: 0.323831737041473,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 93,
+              ImageName: '00011-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00011-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=10a2ee0d0fcb4ca19edc1ceb8a89cc220cb4725cc425b3e7a941679a8d430760',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00011-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: -4.334380626678467,
+                  Y: 14.744985580444336,
+                  Z: 0.420058846473694,
+                },
+                Orientation: {
+                  W: 0.958789110183716,
+                  X: -0.007298022508621,
+                  Y: -0.01456331834197,
+                  Z: 0.283651292324066,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: -4.334380626678467,
+                  Y: 14.744985580444336,
+                  Z: -1.45420777797699,
+                },
+                Orientation: {
+                  W: 0.959077060222626,
+                  X: -0.004199052695185,
+                  Y: 0.011897397227585,
+                  Z: 0.282863944768906,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 94,
+              ImageName: '00012-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00012-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=f08dec77946dc8b409d2a875360d281214088e813e5f56b6507f633eda464c7e',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00012-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: -3.99694037437439,
+                  Y: 15.807140350341797,
+                  Z: 0.364868760108948,
+                },
+                Orientation: {
+                  W: 0.999987065792084,
+                  X: -0.001846713712439,
+                  Y: -0.004715294577181,
+                  Z: 0.000413922127336,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: -3.99694037437439,
+                  Y: 15.807140350341797,
+                  Z: -1.518866777420044,
+                },
+                Orientation: {
+                  W: 0.999980509281158,
+                  X: -0.000077969270933,
+                  Y: 0.000529264041688,
+                  Z: 0.006220549810678,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 95,
+              ImageName: '00013-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00013-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=0383f0a02128045115b97f55b8df3947860e25b99645fe3f4902f9848f545447',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00013-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: -3.249794960021973,
+                  Y: 16.0333251953125,
+                  Z: 0.355639725923538,
+                },
+                Orientation: {
+                  W: 0.982003688812256,
+                  X: -0.003742819651961,
+                  Y: -0.033384408801794,
+                  Z: 0.185850009322166,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: -3.249794960021973,
+                  Y: 16.0333251953125,
+                  Z: -1.52069902420044,
+                },
+                Orientation: {
+                  W: 0.98293262720108,
+                  X: -0.003693095641211,
+                  Y: 0.011986804194748,
+                  Z: 0.183537676930428,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 96,
+              ImageName: '00014-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00014-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=97e4aa564a428bbfdd6960d053e254d60ac0885791ea2fa786b7f7cd631e66ac',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00014-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: -2.031951427459717,
+                  Y: 16.19325828552246,
+                  Z: 0.38612100481987,
+                },
+                Orientation: {
+                  W: 0.996948719024658,
+                  X: -0.018925286829472,
+                  Y: -0.037975016981363,
+                  Z: 0.065521225333214,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: -2.031951427459717,
+                  Y: 16.19325828552246,
+                  Z: -1.488704562187195,
+                },
+                Orientation: {
+                  W: 0.995108664035797,
+                  X: -0.014383700676262,
+                  Y: -0.001481849118136,
+                  Z: 0.097722642123699,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 97,
+              ImageName: '00015-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00015-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=c562144e27bd8bcb4090d6bd0373045229f96bcade49319ee78b348beea61bb9',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00015-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: -0.454945176839829,
+                  Y: 16.175870895385742,
+                  Z: 0.417819797992706,
+                },
+                Orientation: {
+                  W: 0.985838174819946,
+                  X: 0.00307220662944,
+                  Y: -0.042669229209423,
+                  Z: -0.162151098251343,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: -0.454945176839829,
+                  Y: 16.175870895385742,
+                  Z: -1.447030305862427,
+                },
+                Orientation: {
+                  W: 0.986352741718292,
+                  X: -0.002582418499514,
+                  Y: 0.009008455090225,
+                  Z: 0.164378836750984,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 98,
+              ImageName: '00016-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00016-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=60ec12a68ef360444763e8c0a2ff094005d37bf39bd84161d153fe88c330da23',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00016-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: 0.562038898468018,
+                  Y: 15.485193252563477,
+                  Z: 0.478257149457932,
+                },
+                Orientation: {
+                  W: 0.86199814081192,
+                  X: -0.011244652792811,
+                  Y: -0.030833564698696,
+                  Z: -0.505847811698914,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: 0.562038898468018,
+                  Y: 15.485193252563477,
+                  Z: -1.401432514190674,
+                },
+                Orientation: {
+                  W: 0.862393140792847,
+                  X: -0.010838768444955,
+                  Y: 0.010178370401263,
+                  Z: 0.506020784378052,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 99,
+              ImageName: '00017-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00017-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=31cd4bac57463a0b9e63c18bbadc87bbb8f6119daf90f8bffc6ca44210573d10',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00017-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: 1.613311409950256,
+                  Y: 12.07508373260498,
+                  Z: 0.746767520904541,
+                },
+                Orientation: {
+                  W: 0.816948592662811,
+                  X: -0.003950165584683,
+                  Y: -0.018715959042311,
+                  Z: -0.576393187046051,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: 1.613311409950256,
+                  Y: 12.07508373260498,
+                  Z: -1.117672801017761,
+                },
+                Orientation: {
+                  W: 0.816545844078064,
+                  X: -0.02993025444448,
+                  Y: 0.028383512049913,
+                  Z: 0.575805068016052,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 100,
+              ImageName: '00018-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00018-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=14ad8ad38a826990af12f17ddd00e2706f4a10ecd84351e925c6886264015edc',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00018-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: 2.357990264892578,
+                  Y: 10.676009178161621,
+                  Z: 0.813115119934082,
+                },
+                Orientation: {
+                  W: 0.904010117053986,
+                  X: -0.030615022405982,
+                  Y: -0.005746232811362,
+                  Z: -0.426374733448029,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: 2.357990264892578,
+                  Y: 10.676009178161621,
+                  Z: -1.018487691879273,
+                },
+                Orientation: {
+                  W: 0.90428352355957,
+                  X: -0.019905293360353,
+                  Y: 0.016169000416994,
+                  Z: 0.426161497831345,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 101,
+              ImageName: '00019-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00019-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=f82960a5b0508997ebaedb5679f6a6265d6797e75ca565c6e725ad22004e74d1',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00019-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: 3.067319393157959,
+                  Y: 9.420364379882812,
+                  Z: 0.986685395240784,
+                },
+                Orientation: {
+                  W: 0.884731411933899,
+                  X: 0.014654835686088,
+                  Y: -0.007873153313994,
+                  Z: -0.465804189443588,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: 3.067319393157959,
+                  Y: 9.420364379882812,
+                  Z: -0.867767810821533,
+                },
+                Orientation: {
+                  W: 0.885080635547638,
+                  X: 0.006040300708264,
+                  Y: 0.024150669574738,
+                  Z: 0.464771449565887,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 102,
+              ImageName: '00020-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00020-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=259b407fe410f102d6a91b6e52c5fceba5db7dace4a4cd3d93578d26ddc7567d',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00020-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: 4.704717636108398,
+                  Y: 8.130608558654785,
+                  Z: 1.110275626182556,
+                },
+                Orientation: {
+                  W: 0.997409045696259,
+                  X: 0.007737274747342,
+                  Y: 0.007952659390867,
+                  Z: -0.07107762247324,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: 4.704717636108398,
+                  Y: 8.130608558654785,
+                  Z: -0.747506260871887,
+                },
+                Orientation: {
+                  W: 0.997477114200592,
+                  X: 0.000683555728756,
+                  Y: 0.001440263469703,
+                  Z: 0.07097078114748,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 103,
+              ImageName: '00021-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00021-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=e1edde2995973c18b891333e6a2f84fcfe6aea621eeb1fb74797a83308fe2144',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00021-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: 4.489550113677979,
+                  Y: 6.365606307983398,
+                  Z: 1.16235613822937,
+                },
+                Orientation: {
+                  W: 0.575293362140656,
+                  X: -0.034599587321281,
+                  Y: -0.031727064400911,
+                  Z: -0.816598951816559,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: 4.489550113677979,
+                  Y: 6.365606307983398,
+                  Z: -0.664930582046509,
+                },
+                Orientation: {
+                  W: 0.579097807407379,
+                  X: -0.062148936092854,
+                  Y: 0.007193871773779,
+                  Z: 0.812853932380676,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 104,
+              ImageName: '00022-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00022-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=e5479e2e214f49295aa650be78d6b300ed3e4462206d92e6ee424cb7f9e326db',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00022-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: 4.160218715667725,
+                  Y: 4.653956890106201,
+                  Z: 0.980519235134125,
+                },
+                Orientation: {
+                  W: 0.668569684028626,
+                  X: -0.043240536004305,
+                  Y: -0.019247252494097,
+                  Z: -0.742141723632813,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: 4.160218715667725,
+                  Y: 4.653956890106201,
+                  Z: -0.879612505435944,
+                },
+                Orientation: {
+                  W: 0.670847177505493,
+                  X: -0.016869140788913,
+                  Y: -0.051971383392811,
+                  Z: 0.739579916000366,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 105,
+              ImageName: '00023-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00023-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=81a55573cd7fa098eb9bf5af1ead26a081516ad6284d04ff682dd745c4cd4c3f',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00023-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: 4.148687362670898,
+                  Y: 3.358639240264893,
+                  Z: 0.990931928157806,
+                },
+                Orientation: {
+                  W: 0.641430079936981,
+                  X: -0.019248005002737,
+                  Y: -0.019200660288334,
+                  Z: -0.766699612140656,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: 4.148687362670898,
+                  Y: 3.358639240264893,
+                  Z: -0.891316950321198,
+                },
+                Orientation: {
+                  W: 0.64168643951416,
+                  X: -0.002607657574117,
+                  Y: -0.000562213361263,
+                  Z: 0.766962468624115,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 106,
+              ImageName: '00024-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00024-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=56360cc22b2476277e78e866ed6b6769a34215228cdf07eef9c773acd322907d',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00024-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: 3.648706197738648,
+                  Y: 1.815843462944031,
+                  Z: 0.943466067314148,
+                },
+                Orientation: {
+                  W: -0.498946815729141,
+                  X: 0.041354693472385,
+                  Y: 0.038939397782087,
+                  Z: 0.864769101142883,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: 3.648706197738648,
+                  Y: 1.815843462944031,
+                  Z: -0.920478582382202,
+                },
+                Orientation: {
+                  W: 0.497691661119461,
+                  X: 0.011960592120886,
+                  Y: -0.024848306551576,
+                  Z: 0.86691552400589,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 107,
+              ImageName: '00025-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00025-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=9696b6bc06bb902c28960fa9a8bfda248e7af637f92e5000539bd55e3acedfde',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00025-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: 2.820778608322144,
+                  Y: 0.653133988380432,
+                  Z: 0.95147716999054,
+                },
+                Orientation: {
+                  W: -0.261439979076386,
+                  X: 0.037730913609266,
+                  Y: 0.013262736611068,
+                  Z: 0.964390814304352,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: 2.820778608322144,
+                  Y: 0.653133988380432,
+                  Z: -0.924827694892883,
+                },
+                Orientation: {
+                  W: 0.261925786733627,
+                  X: -0.016261106356978,
+                  Y: -0.002626416971907,
+                  Z: 0.964947462081909,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+            {
+              ID: 108,
+              ImageName: '00026-pano.jpg',
+              ImageURL:
+                'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00026-pano.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20230519%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20230519T025152Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=d700fd365a6865f65e154f2e4983d7690f159ca2121187e3274778a74a4b4566',
+              S3Path: '1/19/86/inspection/undistorted_images/360/VLX/2023-02-16_08.48.10/00026-pano.jpg',
+              TimeStamp: 0,
+              CamHead: {
+                Position: {
+                  X: 1.598835945129395,
+                  Y: 0.01462591253221,
+                  Z: 0.950699627399445,
+                },
+                Orientation: {
+                  W: -0.129656448960304,
+                  X: 0.033810887485743,
+                  Y: 0.003565207822248,
+                  Z: 0.990975916385651,
+                },
+              },
+              FootPrint: {
+                Position: {
+                  X: 1.598835945129395,
+                  Y: 0.01462591253221,
+                  Z: -0.920966327190399,
+                },
+                Orientation: {
+                  W: 0.130079463124275,
+                  X: 0.005114333704114,
+                  Y: 0.010425040498376,
+                  Z: 0.991435587406158,
+                },
+              },
+              Valid: false,
+              Tiles: null,
+              TilesRootPath: '',
+              TilesResolution: null,
+            },
+          ],
+        };
+        // this file contains coordinates, orientation and filenames of the images:
+        Potree.NavvisImages360Loader.load(dataset, viewer, params).then((images) => {
+          images = images;
+          images.view360Enabled = true;
+          viewer.scene.add360Images(images);
+        });
+
+        // viewer.mapView.showSources(false);
+      }
+    </script>
   </body>
 </html>

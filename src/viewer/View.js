@@ -118,7 +118,7 @@ export class View {
     this.position.z += z;
   }
 
-  setView(position, target, duration = 0, callback = null) {
+  setView(position, target = null, duration = 0, callback = null) {
     let endPosition = null;
     if (position instanceof Array) {
       endPosition = new THREE.Vector3(...position);
@@ -127,9 +127,9 @@ export class View {
     }
 
     let endTarget = null;
-    if (target instanceof Array) {
+    if (target && target instanceof Array) {
       endTarget = new THREE.Vector3(...target);
-    } else if (target.x != null) {
+    } else if (target && target.x != null) {
       endTarget = target.clone();
     }
 
@@ -141,7 +141,7 @@ export class View {
 
     let easing = TWEEN.Easing.Quartic.Out;
 
-    if (duration === 0) {
+    if (duration === 0 && endTarget) {
       this.position.copy(endPosition);
       this.lookAt(endTarget);
     } else {
@@ -157,10 +157,12 @@ export class View {
 
         const pos = new THREE.Vector3((1 - t) * startPosition.x + t * endPosition.x, (1 - t) * startPosition.y + t * endPosition.y, (1 - t) * startPosition.z + t * endPosition.z);
 
-        const target = new THREE.Vector3((1 - t) * startTarget.x + t * endTarget.x, (1 - t) * startTarget.y + t * endTarget.y, (1 - t) * startTarget.z + t * endTarget.z);
+        if (endTarget) {
+          const target = new THREE.Vector3((1 - t) * startTarget.x + t * endTarget.x, (1 - t) * startTarget.y + t * endTarget.y, (1 - t) * startTarget.z + t * endTarget.z);
+          this.lookAt(target);
+        }
 
         this.position.copy(pos);
-        this.lookAt(target);
       });
 
       tween.start();

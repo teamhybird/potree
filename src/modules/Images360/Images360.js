@@ -28,6 +28,7 @@ class Image360 {
     this.course = course;
     this.pitch = pitch;
     this.roll = roll;
+
     this.mesh = null;
   }
 }
@@ -45,7 +46,7 @@ export class Images360 extends EventDispatcher {
 
     this.sphere = new THREE.Mesh(sgHigh, sm);
     this.sphere.visible = false;
-    this.sphere.scale.set(1000, 1000, 1000);
+    this.sphere.scale.set(1, 1, 1);
     this.node.add(this.sphere);
     this._visible = true;
     // this.node.add(label);
