@@ -12,16 +12,16 @@ ASSET dist/LICENSE
 ASSET dist/.npmrc
 ASSET dist/README.md
 ASSET dist/package.json
+[32mIIFE[39m [1mdist\index.js     [22m[32m9.83 KB[39m
+[32mIIFE[39m [1mdist\index.js.map [22m[32m15.54 KB[39m
+[32mIIFE[39m ⚡️ Build success in 55ms
 ASSET dist/LICENSE
 ASSET dist/.npmrc
 ASSET dist/README.md
 ASSET dist/package.json
-[32mIIFE[39m [1mdist\index.js     [22m[32m9.83 KB[39m
-[32mIIFE[39m [1mdist\index.js.map [22m[32m15.54 KB[39m
-[32mIIFE[39m ⚡️ Build success in 46ms
 [32mESM[39m [1mdist\index.module.js     [22m[32m7.54 KB[39m
 [32mESM[39m [1mdist\index.module.js.map [22m[32m15.18 KB[39m
-[32mESM[39m ⚡️ Build success in 45ms
+[32mESM[39m ⚡️ Build success in 74ms
 [34mDTS[39m Build start
-[32mDTS[39m ⚡️ Build success in 5060ms
+[32mDTS[39m ⚡️ Build success in 5645ms
 [32mDTS[39m [1mdist\index.d.ts [22m[32m2.01 KB[39m

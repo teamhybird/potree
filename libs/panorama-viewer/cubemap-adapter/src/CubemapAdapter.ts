@@ -90,15 +90,11 @@ export class CubemapAdapter extends AbstractAdapter<CubemapPanorama, Texture[]> 
 
     private loadTexturesSeparate(paths: string[]): Promise<Texture[]> {
         const promises: Promise<Texture>[] = [];
-        const progress = [0, 0, 0, 0, 0, 0];
 
         for (let i = 0; i < 6; i++) {
             promises.push(
                 this.viewer.textureLoader
-                    .loadImage(paths[i], (p) => {
-                        progress[i] = p;
-                        this.viewer.loader.setProgress(utils.sum(progress) / 6);
-                    })
+                    .loadImage(paths[i])
                     .then((img) => this.createCubemapTexture(img))
             );
         }
@@ -137,7 +133,7 @@ export class CubemapAdapter extends AbstractAdapter<CubemapPanorama, Texture[]> 
         path: string,
         order: CubemapStripe['order'] = ['left', 'front', 'right', 'back', 'top', 'bottom']
     ): Promise<Texture[]> {
-        const img = await this.viewer.textureLoader.loadImage(path, (p) => this.viewer.loader.setProgress(p));
+        const img = await this.viewer.textureLoader.loadImage(path);
 
         if (img.width !== img.height * 6) {
             utils.logWarn('Invalid cubemap image, the width should be six times the height');
@@ -174,7 +170,7 @@ export class CubemapAdapter extends AbstractAdapter<CubemapPanorama, Texture[]> 
     }
 
     private async loadTexturesNet(path: string): Promise<Texture[]> {
-        const img = await this.viewer.textureLoader.loadImage(path, (p) => this.viewer.loader.setProgress(p));
+        const img = await this.viewer.textureLoader.loadImage(path);
 
         if (img.width / 4 !== img.height / 3) {
             utils.logWarn('Invalid cubemap image, the width should be 4/3rd of the height');

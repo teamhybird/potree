@@ -58,12 +58,8 @@ export class NavvisImages360 extends EventDispatcher {
     this._footprintsVisible = true;
     this._view360Enabled = false;
 
-    this.sphere = new THREE.Mesh(sgHigh, sm);
-    this.sphere.visible = false;
-    this.sphere.scale.set(5, 5, 5);
-    this.node.add(this.sphere);
+    this.sphere = new THREE.Group();
     this._visible = true;
-    // this.node.add(label);
     this.focusedImage = null;
 
     this.scene = new THREE.Scene();
@@ -242,31 +238,47 @@ export class NavvisImages360 extends EventDispatcher {
       this.sphere.visible = false;
 
       if (this.view360Enabled) {
+        console.log('360 image activee!!!');
         this.viewer.showLoadingScreen(true);
-        this.load(image360)
-          .then(() => {
-            if (!this.view360Enabled) {
-              throw new Error("ABORTED: Image loaded but couldn't be renderered because the view was switched in the meantime while the image was loading");
-            }
-            this.sphere.visible = true;
-            this.sphere.material.map = image360.texture;
-            this.sphere.material.depthTest = false;
-            this.sphere.material.depthWrite = false;
-            this.sphere.material.needsUpdate = true;
-            for (const footprint of this.footprints) {
-              footprint.visible = true;
-            }
-            // reset fov whenever in 360 view and 360 image is loaded
-            if (previousFOV) {
-              this.viewer.setFOV(previousFOV);
-            }
-            this.viewer.showLoadingScreen(false);
-          })
-          .catch((e) => {
-            console.log(e);
-            this.view360Enabled = false;
-            this.viewer.showLoadingScreen(false);
-          });
+        this.node.remove(this.sphere);
+        const viewer = this.load(image360);
+        previousImage360 = image360;
+        this.sphere.visible = true;
+        this.viewer.showLoadingScreen(false);
+
+        // this.sphere.visible = true;
+        // console.log(viewer.renderer.mesh);
+        // this.sphere = viewer.renderer.mesh;
+        // this.sphere.scale.set(1, 1, 1);
+        this.sphere.add(new THREE.AxesHelper(3));
+        this.node.add(this.sphere);
+        // viewer.renderer.mesh.add(new THREE.AxesHelper(3));
+        // this.node.add(viewer.renderer.mesh);
+
+        // this.load(image360)
+        //   .then(() => {
+        //     if (!this.view360Enabled) {
+        //       throw new Error("ABORTED: Image loaded but couldn't be renderered because the view was switched in the meantime while the image was loading");
+        //     }
+        //     this.sphere.visible = true;
+        //     this.sphere.material.map = image360.texture;
+        //     this.sphere.material.depthTest = false;
+        //     this.sphere.material.depthWrite = false;
+        //     this.sphere.material.needsUpdate = true;
+        //     for (const footprint of this.footprints) {
+        //       footprint.visible = true;
+        //     }
+        //     // reset fov whenever in 360 view and 360 image is loaded
+        //     if (previousFOV) {
+        //       this.viewer.setFOV(previousFOV);
+        //     }
+        //     this.viewer.showLoadingScreen(false);
+        //   })
+        //   .catch((e) => {
+        //     console.log(e);
+        //     this.view360Enabled = false;
+        //     this.viewer.showLoadingScreen(false);
+        //   });
       } else {
         for (const footprint of this.footprints) {
           footprint.visible = true;
@@ -279,6 +291,7 @@ export class NavvisImages360 extends EventDispatcher {
 
         this.sphere.setRotationFromQuaternion(new THREE.Quaternion(panoX, panoY, panoZ, panoW));
         this.sphere.rotateX(THREE.Math.degToRad(90));
+        this.sphere.rotateY(THREE.Math.degToRad(90)); // Texture is rotated by 90 degrees on Y axis
       }
       let { panoLongitude, panoLatitude, panoAltitude } = image360;
 
@@ -338,6 +351,74 @@ export class NavvisImages360 extends EventDispatcher {
   }
 
   load(image360) {
+    console.log(image360);
+    const pano = {
+      minFov: 30,
+      options: {
+        yaw: 0,
+        pitch: 0,
+        zoom: 2,
+        caption: 'Parc national du Mercantour <b>&copy; Damien Sorel</b>',
+      },
+      config: {
+        width: 8192,
+        cols: 8,
+        rows: 4,
+        levels: [
+          {
+            width: 4096, // 128
+            cols: 8,
+            rows: 4,
+            zoomRange: [0, 1],
+          },
+          {
+            width: 8192, // 256
+            cols: 8,
+            rows: 4,
+            zoomRange: [1, 30],
+          },
+          {
+            width: 16384, // 512
+            cols: 8,
+            rows: 4,
+            zoomRange: [30, 70],
+          },
+          {
+            width: 32768, // 1024
+            cols: 8,
+            rows: 4,
+            zoomRange: [70, 100],
+          },
+        ],
+        tileUrl: (col, row, level) => {
+          const imageNum = 25;
+          const num = row * 8 + (7 - col);
+          console.log(row, col);
+          return `${Potree.resourcePath}/assets/tiles/r${level}/0/${String(imageNum).padStart(5, '0')}-pano-tex-r${level}-${String(num).padStart(2, '0')}.jpg`;
+        },
+      },
+    };
+    const viewer = new PhotoSphereViewer.Viewer({
+      container: 'potree_render_area',
+      camera: this.viewer.scene.cameraP,
+      meshContainer: this.sphere,
+      adapter: [
+        PhotoSphereViewer.EquirectangularTilesAdapter,
+        {
+          // showErrorTile: true,
+          baseBlur: true,
+          // resolution: 216,
+          // debug: true,
+        },
+      ],
+      // plugins: [PhotoSphereViewer.GyroscopePlugin],
+      loadingImg: 'https://photo-sphere-viewer-data.netlify.app/assets/loader.gif',
+    });
+    viewer.setOption('minFov', pano.minFov);
+    viewer.setPanorama(pano.config, pano.options);
+    console.log('HELLOOO', viewer.renderer);
+    return viewer;
+
     return new Promise((resolve, reject) => {
       let texture = new THREE.TextureLoader().load(image360.file, resolve, undefined, (err) => {
         reject(err);

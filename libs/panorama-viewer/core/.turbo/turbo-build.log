@@ -1,3 +1,4 @@
+yarn run v1.22.5
 $ tsup
 [34mCLI[39m Building entry: src/index.ts
 [34mCLI[39m Using tsconfig: tsconfig.json
@@ -13,21 +14,41 @@ ASSET dist/LICENSE
 ASSET dist/.npmrc
 ASSET dist/README.md
 ASSET dist/package.json
-[32mIIFE[39m [1mdist\index.css     [22m[32m11.20 KB[39m
-[32mIIFE[39m [1mdist\index.js      [22m[32m185.07 KB[39m
-[32mIIFE[39m [1mdist\index.css.map [22m[32m21.13 KB[39m
-[32mIIFE[39m [1mdist\index.js.map  [22m[32m352.93 KB[39m
-[32mIIFE[39m ⚡️ Build success in 271ms
 SCSS dist/index.scss
+[32mIIFE[39m [1mdist\index.css     [22m[32m11.20 KB[39m
+[32mIIFE[39m [1mdist\index.js      [22m[32m129.35 KB[39m
+[32mIIFE[39m [1mdist\index.css.map [22m[32m21.13 KB[39m
+[32mIIFE[39m [1mdist\index.js.map  [22m[32m241.70 KB[39m
+[32mIIFE[39m ⚡️ Build success in 267ms
 ASSET dist/LICENSE
 ASSET dist/.npmrc
 ASSET dist/README.md
 ASSET dist/package.json
-[32mESM[39m [1mdist\index.module.js     [22m[32m172.22 KB[39m
 [32mESM[39m [1mdist\index.css           [22m[32m11.20 KB[39m
+[32mESM[39m [1mdist\index.module.js     [22m[32m120.13 KB[39m
 [32mESM[39m [1mdist\index.css.map       [22m[32m21.13 KB[39m
-[32mESM[39m [1mdist\index.module.js.map [22m[32m350.21 KB[39m
-[32mESM[39m ⚡️ Build success in 285ms
+[32mESM[39m [1mdist\index.module.js.map [22m[32m239.95 KB[39m
+[32mESM[39m ⚡️ Build success in 277ms
 [34mDTS[39m Build start
-[32mDTS[39m ⚡️ Build success in 2949ms
-[32mDTS[39m [1mdist\index.d.ts [22m[32m72.15 KB[39m
+src/model.ts(1,55): error TS6133: 'WebGLRenderer' is declared but its value is never read.
+
+[31mError: error occured in dts build
+    at Worker.<anonymous> (C:\Users\tarik\Desktop\main\work\Photo-Sphere-Viewer\node_modules\tsup\dist\index.js:2281:26)
+    at Worker.emit (node:events:390:28)
+    at MessagePort.<anonymous> (node:internal/worker:232:53)
+    at MessagePort.[nodejs.internal.kHybridDispatch] (node:internal/event_target:562:20)
+    at MessagePort.exports.emitMessage (node:internal/per_context/messageport:23:28)[39m
+[31mDTS[39m [31mBuild error[39m
+[31mRollupError: Failed to compile. Check the logs above.
+    at error (C:\Users\tarik\Desktop\main\work\Photo-Sphere-Viewer\node_modules\rollup\dist\shared\rollup.js:206:30)
+    at Object.error (C:\Users\tarik\Desktop\main\work\Photo-Sphere-Viewer\node_modules\rollup\dist\shared\rollup.js:23607:20)
+    at Object.error (C:\Users\tarik\Desktop\main\work\Photo-Sphere-Viewer\node_modules\rollup\dist\shared\rollup.js:22872:42)
+    at generateDtsFromTs (C:\Users\tarik\Desktop\main\work\Photo-Sphere-Viewer\node_modules\tsup\dist\rollup.js:7484:22)
+    at C:\Users\tarik\Desktop\main\work\Photo-Sphere-Viewer\node_modules\tsup\dist\rollup.js:7491:59
+    at _nullishCoalesce (C:\Users\tarik\Desktop\main\work\Photo-Sphere-Viewer\node_modules\tsup\dist\rollup.js:1:198)
+    at Object.transform (C:\Users\tarik\Desktop\main\work\Photo-Sphere-Viewer\node_modules\tsup\dist\rollup.js:7491:18)
+    at C:\Users\tarik\Desktop\main\work\Photo-Sphere-Viewer\node_modules\rollup\dist\shared\rollup.js:23808:40[39m
+src/Viewer.ts(52,36): error TS6133: 'WebGLRenderer' is declared but its value is never read.
+
+error Command failed with exit code 1.
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.

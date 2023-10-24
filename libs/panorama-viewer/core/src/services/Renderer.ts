@@ -66,12 +66,12 @@ export class Renderer extends AbstractService {
 
         this.scene = new Scene();
 
-        this.camera = new PerspectiveCamera(50, 16 / 9, 0.1, 2 * SPHERE_RADIUS);
+        this.camera = this.viewer.camera || new PerspectiveCamera(50, 16 / 9, 0.1, 2 * SPHERE_RADIUS);
 
         this.mesh = this.viewer.adapter.createMesh();
         this.mesh.userData = { [VIEWER_DATA]: true };
 
-        this.meshContainer = new Group();
+        this.meshContainer = this.viewer.meshContainer || new Group();
         this.meshContainer.add(this.mesh);
         this.scene.add(this.meshContainer);
 
@@ -81,7 +81,7 @@ export class Renderer extends AbstractService {
         this.container.className = 'psv-canvas-container';
         this.container.style.background = this.config.canvasBackground;
         this.container.appendChild(this.renderer.domElement);
-        this.viewer.container.appendChild(this.container);
+        // this.viewer.container.appendChild(this.container);
 
         this.viewer.addEventListener(SizeUpdatedEvent.type, this);
         this.viewer.addEventListener(ZoomUpdatedEvent.type, this);
@@ -177,8 +177,8 @@ export class Renderer extends AbstractService {
      */
     private __onSizeUpdated() {
         this.renderer.setSize(this.state.size.width, this.state.size.height);
-        this.camera.aspect = this.state.aspect;
-        this.camera.updateProjectionMatrix();
+        // this.camera.aspect = this.state.aspect;
+        // this.camera.updateProjectionMatrix();
         this.viewer.needsUpdate();
     }
 
@@ -186,8 +186,8 @@ export class Renderer extends AbstractService {
      * Updates the fov of the camera
      */
     private __onZoomUpdated() {
-        this.camera.fov = this.state.vFov;
-        this.camera.updateProjectionMatrix();
+        // this.camera.fov = this.state.vFov;
+        // this.camera.updateProjectionMatrix();
         this.viewer.needsUpdate();
     }
 
@@ -195,14 +195,14 @@ export class Renderer extends AbstractService {
      * Updates the position of the camera
      */
     private __onPositionUpdated() {
-        this.camera.position.set(0, 0, 0);
-        this.camera.lookAt(this.state.direction);
-        if (this.config.fisheye) {
-            this.camera.position
-                .copy(this.state.direction)
-                .multiplyScalar(this.config.fisheye / 2)
-                .negate();
-        }
+        // this.camera.position.set(0, 0, 0);
+        // this.camera.lookAt(this.state.direction);
+        // if (this.config.fisheye) {
+        //     this.camera.position
+        //         .copy(this.state.direction)
+        //         .multiplyScalar(this.config.fisheye / 2)
+        //         .negate();
+        // }
         this.viewer.needsUpdate();
     }
 
@@ -248,22 +248,24 @@ export class Renderer extends AbstractService {
      * Applies a panorama data pose to a Mesh
      * @internal
      */
-    setPanoramaPose(panoData: PanoData, mesh: Mesh = this.mesh) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    setPanoramaPose(_panoData: PanoData, _mesh: Mesh = this.mesh) {
         // By Google documentation the angles are applied on the camera in order : heading, pitch, roll
         // here we apply the reverse transformation on the sphere
-        const cleanCorrection = this.viewer.dataHelper.cleanPanoramaPose(panoData);
+        // const cleanCorrection = this.viewer.dataHelper.cleanPanoramaPose(panoData);
 
-        mesh.rotation.set(-cleanCorrection.tilt, -cleanCorrection.pan, -cleanCorrection.roll, 'ZXY');
+        // mesh.rotation.set(-cleanCorrection.tilt, -cleanCorrection.pan, -cleanCorrection.roll, 'ZXY');
     }
 
     /**
      * Applies a SphereCorrection to a Group
      * @internal
      */
-    setSphereCorrection(sphereCorrection: SphereCorrection, group: Object3D = this.meshContainer) {
-        const cleanCorrection = this.viewer.dataHelper.cleanSphereCorrection(sphereCorrection);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    setSphereCorrection(_sphereCorrection: SphereCorrection, _group: Object3D = this.meshContainer) {
+        // const cleanCorrection = this.viewer.dataHelper.cleanSphereCorrection(sphereCorrection);
 
-        group.rotation.set(cleanCorrection.tilt, cleanCorrection.pan, cleanCorrection.roll, 'ZXY');
+        // group.rotation.set(cleanCorrection.tilt, cleanCorrection.pan, cleanCorrection.roll, 'ZXY');
     }
 
     /**

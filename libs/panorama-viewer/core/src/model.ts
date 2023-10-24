@@ -1,4 +1,4 @@
-import { Object3D, Texture } from 'three';
+import { Group, Object3D, PerspectiveCamera, Texture, WebGLRenderer } from 'three';
 import { AdapterConstructor } from './adapters/AbstractAdapter';
 import { ACTIONS } from './data/constants';
 import { PluginConstructor } from './plugins/AbstractPlugin';
@@ -264,6 +264,8 @@ export type NavbarCustomButton = {
  */
 export type ViewerConfig = {
     container: HTMLElement | string;
+    camera?: PerspectiveCamera;
+    meshContainer?: Group;
     panorama?: any;
     overlay?: any;
     /** @default 1 */
@@ -355,7 +357,6 @@ export type ParsedViewerConfig = Omit<
     | 'defaultPitch'
     | 'fisheye'
     | 'requestHeaders'
-    | 'navbar'
     | 'keyboard'
 > & {
     adapter?: [AdapterConstructor, any];
@@ -364,7 +365,6 @@ export type ParsedViewerConfig = Omit<
     defaultPitch?: number;
     fisheye?: number;
     requestHeaders?: (url: string) => Record<string, string>;
-    navbar?: Array<string | NavbarCustomButton>;
     keyboard?: false | 'always' | 'fullscreen';
 };
 

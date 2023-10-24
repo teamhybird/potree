@@ -1163,7 +1163,6 @@ __export(events_exports, {
   HideNotificationEvent: () => HideNotificationEvent,
   HideOverlayEvent: () => HideOverlayEvent,
   HidePanelEvent: () => HidePanelEvent,
-  HideTooltipEvent: () => HideTooltipEvent,
   KeypressEvent: () => KeypressEvent,
   LoadProgressEvent: () => LoadProgressEvent,
   ObjectEnterEvent: () => ObjectEnterEvent,
@@ -1177,7 +1176,6 @@ __export(events_exports, {
   ShowNotificationEvent: () => ShowNotificationEvent,
   ShowOverlayEvent: () => ShowOverlayEvent,
   ShowPanelEvent: () => ShowPanelEvent,
-  ShowTooltipEvent: () => ShowTooltipEvent,
   SizeUpdatedEvent: () => SizeUpdatedEvent,
   StopAllEvent: () => StopAllEvent,
   ViewerEvent: () => ViewerEvent,
@@ -1311,15 +1309,6 @@ var _HidePanelEvent = class extends ViewerEvent {
 };
 var HidePanelEvent = _HidePanelEvent;
 HidePanelEvent.type = "hide-panel";
-var _HideTooltipEvent = class extends ViewerEvent {
-  /** @internal */
-  constructor(tooltipData) {
-    super(_HideTooltipEvent.type);
-    this.tooltipData = tooltipData;
-  }
-};
-var HideTooltipEvent = _HideTooltipEvent;
-HideTooltipEvent.type = "hide-tooltip";
 var _KeypressEvent = class extends ViewerEvent {
   /** @internal */
   constructor(key) {
@@ -1399,16 +1388,6 @@ var _ShowPanelEvent = class extends ViewerEvent {
 };
 var ShowPanelEvent = _ShowPanelEvent;
 ShowPanelEvent.type = "show-panel";
-var _ShowTooltipEvent = class extends ViewerEvent {
-  /** @internal */
-  constructor(tooltip, tooltipData) {
-    super(_ShowTooltipEvent.type);
-    this.tooltip = tooltip;
-    this.tooltipData = tooltipData;
-  }
-};
-var ShowTooltipEvent = _ShowTooltipEvent;
-ShowTooltipEvent.type = "show-tooltip";
 var _SizeUpdatedEvent = class extends ViewerEvent {
   /** @internal */
   constructor(size) {
@@ -1749,10 +1728,10 @@ var EquirectangularAdapter = class extends AbstractAdapter {
     let img;
     let xmpPanoData;
     if (useXmpPanoData) {
-      xmpPanoData = await this.loadXMP(panorama, (p) => this.viewer.loader.setProgress(p));
+      xmpPanoData = await this.loadXMP(panorama);
       img = await this.viewer.textureLoader.loadImage(panorama);
     } else {
-      img = await this.viewer.textureLoader.loadImage(panorama, (p) => this.viewer.loader.setProgress(p));
+      img = await this.viewer.textureLoader.loadImage(panorama);
     }
     if (typeof newPanoData === "function") {
       newPanoData = newPanoData(img);
@@ -1885,812 +1864,6 @@ EquirectangularAdapter.id = "equirectangular";
 EquirectangularAdapter.supportsDownload = true;
 EquirectangularAdapter.supportsOverlay = true;
 
-// src/components/AbstractComponent.ts
-var AbstractComponent = class {
-  constructor(parent, config) {
-    this.parent = parent;
-    /**
-     * All child components
-     * @internal
-     */
-    this.children = [];
-    /**
-     * Container element
-     */
-    this.container = document.createElement("div");
-    /**
-     * Internal properties
-     * @internal
-     */
-    this.state = {
-      visible: true
-    };
-    this.viewer = parent instanceof AbstractComponent ? parent.viewer : parent;
-    this.container.className = config.className || "";
-    this.parent.children.push(this);
-    this.parent.container.appendChild(this.container);
-  }
-  /**
-   * Destroys the component
-   */
-  destroy() {
-    this.parent.container.removeChild(this.container);
-    const childIdx = this.parent.children.indexOf(this);
-    if (childIdx !== -1) {
-      this.parent.children.splice(childIdx, 1);
-    }
-    this.children.slice().forEach((child) => child.destroy());
-    this.children.length = 0;
-  }
-  /**
-   * Displays or hides the component
-   */
-  toggle(visible = !this.isVisible()) {
-    if (!visible) {
-      this.hide();
-    } else {
-      this.show();
-    }
-  }
-  /**
-   * Hides the component
-   */
-  // @ts-ignore unused parameter
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  hide(options) {
-    this.container.style.display = "none";
-    this.state.visible = false;
-  }
-  /**
-   * Displays the component
-   */
-  // @ts-ignore unused parameter
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  show(options) {
-    this.container.style.display = "";
-    this.state.visible = true;
-  }
-  /**
-   * Checks if the component is visible
-   */
-  isVisible() {
-    return this.state.visible;
-  }
-};
-
-// src/buttons/AbstractButton.ts
-var getConfig2 = getConfigParser({
-  id: null,
-  className: null,
-  title: null,
-  hoverScale: false,
-  collapsable: false,
-  tabbable: true,
-  icon: null,
-  iconActive: null
-});
-var AbstractButton = class extends AbstractComponent {
-  constructor(navbar, config) {
-    super(navbar, {
-      className: `psv-button ${config.hoverScale ? "psv-button--hover-scale" : ""} ${config.className || ""}`
-    });
-    /**
-     * Internal properties
-     */
-    this.state = {
-      visible: true,
-      enabled: true,
-      supported: true,
-      collapsed: false,
-      active: false,
-      width: 0
-    };
-    this.config = getConfig2(config);
-    this.config.id = this.constructor.id;
-    if (config.icon) {
-      this.__setIcon(config.icon);
-    }
-    this.state.width = this.container.offsetWidth;
-    if (this.config.title) {
-      this.container.title = this.config.title;
-    } else if (this.id && this.id in this.viewer.config.lang) {
-      this.container.title = this.viewer.config.lang[this.id];
-    }
-    if (config.tabbable) {
-      this.container.tabIndex = 0;
-    }
-    this.container.addEventListener("click", (e) => {
-      if (this.state.enabled) {
-        this.onClick();
-      }
-      e.stopPropagation();
-    });
-    this.container.addEventListener("keydown", (e) => {
-      if (e.key === KEY_CODES.Enter && this.state.enabled) {
-        this.onClick();
-        e.stopPropagation();
-      }
-    });
-  }
-  get id() {
-    return this.config.id;
-  }
-  get title() {
-    return this.container.title;
-  }
-  get content() {
-    return this.container.innerHTML;
-  }
-  get width() {
-    return this.state.width;
-  }
-  get collapsable() {
-    return this.config.collapsable;
-  }
-  show(refresh = true) {
-    if (!this.isVisible()) {
-      this.state.visible = true;
-      if (!this.state.collapsed) {
-        this.container.style.display = "";
-      }
-      if (refresh) {
-        this.viewer.navbar.autoSize();
-      }
-    }
-  }
-  hide(refresh = true) {
-    if (this.isVisible()) {
-      this.state.visible = false;
-      this.container.style.display = "none";
-      if (refresh) {
-        this.viewer.navbar.autoSize();
-      }
-    }
-  }
-  /**
-   * Hides/shows the button depending of the result of {@link isSupported}
-   * @internal
-   */
-  checkSupported() {
-    resolveBoolean(this.isSupported(), (supported, init) => {
-      if (!this.state) {
-        return;
-      }
-      this.state.supported = supported;
-      if (!init) {
-        this.toggle(supported);
-      } else if (!supported) {
-        this.hide();
-      }
-    });
-  }
-  /**
-   * Perform action when the navbar size/content changes
-   * @internal
-   */
-  autoSize() {
-  }
-  /**
-   * Checks if the button can be displayed
-   */
-  isSupported() {
-    return true;
-  }
-  /**
-   * Changes the active state of the button
-   */
-  toggleActive(active = !this.state.active) {
-    if (active !== this.state.active) {
-      this.state.active = active;
-      toggleClass(this.container, "psv-button--active", this.state.active);
-      if (this.config.iconActive) {
-        this.__setIcon(this.state.active ? this.config.iconActive : this.config.icon);
-      }
-    }
-  }
-  /**
-   * Disables the button
-   */
-  disable() {
-    this.container.classList.add("psv-button--disabled");
-    this.state.enabled = false;
-  }
-  /**
-   * Enables the button
-   */
-  enable() {
-    this.container.classList.remove("psv-button--disabled");
-    this.state.enabled = true;
-  }
-  /**
-   * Collapses the button in the navbar menu
-   */
-  collapse() {
-    this.state.collapsed = true;
-    this.container.style.display = "none";
-  }
-  /**
-   * Uncollapses the button from the navbar menu
-   */
-  uncollapse() {
-    this.state.collapsed = false;
-    if (this.state.visible) {
-      this.container.style.display = "";
-    }
-  }
-  __setIcon(icon) {
-    this.container.innerHTML = icon;
-    addClasses(this.container.querySelector("svg"), "psv-button-svg");
-  }
-};
-
-// src/buttons/CustomButton.ts
-var CustomButton = class extends AbstractButton {
-  constructor(navbar, config) {
-    super(navbar, {
-      className: `psv-custom-button ${config.className || ""}`,
-      hoverScale: false,
-      collapsable: config.collapsable !== false,
-      tabbable: config.tabbable !== false,
-      title: config.title
-    });
-    this.customOnClick = config.onClick;
-    if (config.id) {
-      this.config.id = config.id;
-    } else {
-      this.config.id = "psvButton-" + Math.random().toString(36).substring(2);
-    }
-    if (config.content) {
-      this.container.innerHTML = config.content;
-    }
-    this.state.width = this.container.offsetWidth;
-    if (config.disabled) {
-      this.disable();
-    }
-    if (config.visible === false) {
-      this.hide();
-    }
-  }
-  onClick() {
-    this.customOnClick?.(this.viewer);
-  }
-};
-
-// src/buttons/DescriptionButton.ts
-var DescriptionButton = class extends AbstractButton {
-  constructor(navbar) {
-    super(navbar, {
-      className: "psv-description-button",
-      hoverScale: true,
-      collapsable: false,
-      tabbable: true,
-      icon: ICONS.info
-    });
-    this.mode = 0 /* NONE */;
-    this.viewer.addEventListener(HideNotificationEvent.type, this);
-    this.viewer.addEventListener(ShowNotificationEvent.type, this);
-    this.viewer.addEventListener(HidePanelEvent.type, this);
-    this.viewer.addEventListener(ShowPanelEvent.type, this);
-    this.viewer.addEventListener(ConfigChangedEvent.type, this);
-  }
-  destroy() {
-    this.viewer.removeEventListener(HideNotificationEvent.type, this);
-    this.viewer.removeEventListener(ShowNotificationEvent.type, this);
-    this.viewer.removeEventListener(HidePanelEvent.type, this);
-    this.viewer.removeEventListener(ShowPanelEvent.type, this);
-    this.viewer.removeEventListener(ConfigChangedEvent.type, this);
-    super.destroy();
-  }
-  handleEvent(e) {
-    if (e instanceof ConfigChangedEvent) {
-      e.containsOptions("description") && this.autoSize(true);
-      return;
-    }
-    if (!this.mode) {
-      return;
-    }
-    let closed = false;
-    if (e instanceof HideNotificationEvent) {
-      closed = this.mode === 1 /* NOTIF */;
-    } else if (e instanceof ShowNotificationEvent) {
-      closed = this.mode === 1 /* NOTIF */ && e.notificationId !== IDS.DESCRIPTION;
-    } else if (e instanceof HidePanelEvent) {
-      closed = this.mode === 2 /* PANEL */;
-    } else if (e instanceof ShowPanelEvent) {
-      closed = this.mode === 2 /* PANEL */ && e.panelId !== IDS.DESCRIPTION;
-    }
-    if (closed) {
-      this.toggleActive(false);
-      this.mode = 0 /* NONE */;
-    }
-  }
-  onClick() {
-    if (this.mode) {
-      this.__close();
-    } else {
-      this.__open();
-    }
-  }
-  hide(refresh) {
-    super.hide(refresh);
-    if (this.mode) {
-      this.__close();
-    }
-  }
-  /**
-   * This button can only be refreshed from NavbarCaption
-   * @internal
-   */
-  autoSize(refresh = false) {
-    if (refresh) {
-      const caption = this.viewer.navbar.getButton("caption", false);
-      const captionHidden = caption && !caption.isVisible();
-      const hasDescription = !!this.viewer.config.description;
-      if (captionHidden || hasDescription) {
-        this.show(false);
-      } else {
-        this.hide(false);
-      }
-    }
-  }
-  __close() {
-    switch (this.mode) {
-      case 1 /* NOTIF */:
-        this.viewer.notification.hide(IDS.DESCRIPTION);
-        break;
-      case 2 /* PANEL */:
-        this.viewer.panel.hide(IDS.DESCRIPTION);
-        break;
-      default:
-    }
-  }
-  __open() {
-    this.toggleActive(true);
-    if (this.viewer.config.description) {
-      this.mode = 2 /* PANEL */;
-      this.viewer.panel.show({
-        id: IDS.DESCRIPTION,
-        content: (this.viewer.config.caption ? `<p>${this.viewer.config.caption}</p>` : "") + this.viewer.config.description
-      });
-    } else {
-      this.mode = 1 /* NOTIF */;
-      this.viewer.notification.show({
-        id: IDS.DESCRIPTION,
-        content: this.viewer.config.caption
-      });
-    }
-  }
-};
-DescriptionButton.id = "description";
-
-// src/buttons/DownloadButton.ts
-var DownloadButton = class extends AbstractButton {
-  constructor(navbar) {
-    super(navbar, {
-      className: "psv-download-butto",
-      hoverScale: true,
-      collapsable: true,
-      tabbable: true,
-      icon: ICONS.download
-    });
-    this.viewer.addEventListener(ConfigChangedEvent.type, this);
-  }
-  destroy() {
-    this.viewer.removeEventListener(ConfigChangedEvent.type, this);
-    super.destroy();
-  }
-  handleEvent(e) {
-    if (e instanceof ConfigChangedEvent) {
-      e.containsOptions("downloadUrl") && this.checkSupported();
-    }
-  }
-  onClick() {
-    const link = document.createElement("a");
-    link.href = this.viewer.config.downloadUrl || this.viewer.config.panorama;
-    if (link.href.startsWith("data:") && !this.viewer.config.downloadName) {
-      link.download = "panorama." + link.href.substring(0, link.href.indexOf(";")).split("/").pop();
-    } else {
-      link.download = this.viewer.config.downloadName || link.href.split("/").pop();
-    }
-    this.viewer.container.appendChild(link);
-    link.click();
-    setTimeout(() => {
-      this.viewer.container.removeChild(link);
-    }, 100);
-  }
-  checkSupported() {
-    const supported = this.viewer.adapter.constructor.supportsDownload || this.viewer.config.downloadUrl;
-    if (supported) {
-      this.show();
-    } else {
-      this.hide();
-    }
-  }
-};
-DownloadButton.id = "download";
-
-// src/buttons/FullscreenButton.ts
-var FullscreenButton = class extends AbstractButton {
-  constructor(navbar) {
-    super(navbar, {
-      className: "psv-fullscreen-button",
-      hoverScale: true,
-      collapsable: false,
-      tabbable: true,
-      icon: ICONS.fullscreenIn,
-      iconActive: ICONS.fullscreenOut
-    });
-    this.viewer.addEventListener(FullscreenEvent.type, this);
-  }
-  destroy() {
-    this.viewer.removeEventListener(FullscreenEvent.type, this);
-    super.destroy();
-  }
-  handleEvent(e) {
-    if (e instanceof FullscreenEvent) {
-      this.toggleActive(e.fullscreenEnabled);
-    }
-  }
-  onClick() {
-    this.viewer.toggleFullscreen();
-  }
-};
-FullscreenButton.id = "fullscreen";
-
-// src/buttons/MenuButton.ts
-var BUTTON_DATA = "psvButton";
-var MENU_TEMPLATE = (buttons, title) => `
-<div class="psv-panel-menu psv-panel-menu--stripped">
-  <h1 class="psv-panel-menu-title">${ICONS.menu} ${title}</h1>
-  <ul class="psv-panel-menu-list">
-    ${buttons.map((button) => `
-    <li data-psv-button="${button.id}" class="psv-panel-menu-item" tabindex="0">
-      <span class="psv-panel-menu-item-icon">${button.content}</span>
-      <span class="psv-panel-menu-item-label">${button.title}</span>
-    </li>
-    `).join("")}
-  </ul>
-</div>
-`;
-var MenuButton = class extends AbstractButton {
-  constructor(navbar) {
-    super(navbar, {
-      className: "psv-menu-button",
-      hoverScale: true,
-      collapsable: false,
-      tabbable: true,
-      icon: ICONS.menu
-    });
-    this.viewer.addEventListener(ShowPanelEvent.type, this);
-    this.viewer.addEventListener(HidePanelEvent.type, this);
-    super.hide();
-  }
-  destroy() {
-    this.viewer.removeEventListener(ShowPanelEvent.type, this);
-    this.viewer.removeEventListener(HidePanelEvent.type, this);
-    super.destroy();
-  }
-  handleEvent(e) {
-    if (e instanceof ShowPanelEvent) {
-      this.toggleActive(e.panelId === IDS.MENU);
-    } else if (e instanceof HidePanelEvent) {
-      this.toggleActive(false);
-    }
-  }
-  onClick() {
-    if (this.state.active) {
-      this.__hideMenu();
-    } else {
-      this.__showMenu();
-    }
-  }
-  hide(refresh) {
-    super.hide(refresh);
-    this.__hideMenu();
-  }
-  show(refresh) {
-    super.show(refresh);
-    if (this.state.active) {
-      this.__showMenu();
-    }
-  }
-  __showMenu() {
-    this.viewer.panel.show({
-      id: IDS.MENU,
-      content: MENU_TEMPLATE(this.viewer.navbar.collapsed, this.viewer.config.lang.menu),
-      noMargin: true,
-      clickHandler: (target) => {
-        const li = target ? getClosest(target, "li") : void 0;
-        const buttonId = li ? li.dataset[BUTTON_DATA] : void 0;
-        if (buttonId) {
-          this.viewer.navbar.getButton(buttonId).onClick();
-          this.__hideMenu();
-        }
-      }
-    });
-  }
-  __hideMenu() {
-    this.viewer.panel.hide(IDS.MENU);
-  }
-};
-MenuButton.id = "menu";
-
-// src/buttons/AbstractMoveButton.ts
-function getIcon(value) {
-  let angle2 = 0;
-  switch (value) {
-    case 0 /* UP */:
-      angle2 = 90;
-      break;
-    case 1 /* DOWN */:
-      angle2 = -90;
-      break;
-    case 3 /* RIGHT */:
-      angle2 = 180;
-      break;
-    default:
-      angle2 = 0;
-      break;
-  }
-  return ICONS.arrow.replace("rotate(0", `rotate(${angle2}`);
-}
-var AbstractMoveButton = class extends AbstractButton {
-  constructor(navbar, direction) {
-    super(navbar, {
-      className: "psv-move-button",
-      hoverScale: true,
-      collapsable: false,
-      tabbable: true,
-      icon: getIcon(direction)
-    });
-    this.direction = direction;
-    this.handler = new PressHandler();
-    this.container.addEventListener("mousedown", this);
-    this.container.addEventListener("keydown", this);
-    this.container.addEventListener("keyup", this);
-    this.viewer.container.addEventListener("mouseup", this);
-    this.viewer.container.addEventListener("touchend", this);
-  }
-  destroy() {
-    this.__onMouseUp();
-    this.viewer.container.removeEventListener("mouseup", this);
-    this.viewer.container.removeEventListener("touchend", this);
-    super.destroy();
-  }
-  handleEvent(e) {
-    switch (e.type) {
-      case "mousedown":
-        this.__onMouseDown();
-        break;
-      case "mouseup":
-        this.__onMouseUp();
-        break;
-      case "touchend":
-        this.__onMouseUp();
-        break;
-      case "keydown":
-        e.key === KEY_CODES.Enter && this.__onMouseDown();
-        break;
-      case "keyup":
-        e.key === KEY_CODES.Enter && this.__onMouseUp();
-        break;
-    }
-  }
-  onClick() {
-  }
-  isSupported() {
-    return invertResolvableBoolean(SYSTEM.isTouchEnabled);
-  }
-  __onMouseDown() {
-    if (!this.state.enabled) {
-      return;
-    }
-    const dynamicRoll = {};
-    switch (this.direction) {
-      case 0 /* UP */:
-        dynamicRoll.pitch = false;
-        break;
-      case 1 /* DOWN */:
-        dynamicRoll.pitch = true;
-        break;
-      case 3 /* RIGHT */:
-        dynamicRoll.yaw = false;
-        break;
-      default:
-        dynamicRoll.yaw = true;
-        break;
-    }
-    this.viewer.stopAll();
-    this.viewer.dynamics.position.roll(dynamicRoll);
-    this.handler.down();
-  }
-  __onMouseUp() {
-    if (!this.state.enabled) {
-      return;
-    }
-    this.handler.up(() => {
-      this.viewer.dynamics.position.stop();
-      this.viewer.resetIdleTimer();
-    });
-  }
-};
-AbstractMoveButton.groupId = "move";
-
-// src/buttons/MoveDownButton.ts
-var MoveDownButton = class extends AbstractMoveButton {
-  constructor(navbar) {
-    super(navbar, 1 /* DOWN */);
-  }
-};
-MoveDownButton.id = "moveDown";
-
-// src/buttons/MoveLeftButton.ts
-var MoveLeftButton = class extends AbstractMoveButton {
-  constructor(navbar) {
-    super(navbar, 2 /* LEFT */);
-  }
-};
-MoveLeftButton.id = "moveLeft";
-
-// src/buttons/MoveRightButton.ts
-var MoveRightButton = class extends AbstractMoveButton {
-  constructor(navbar) {
-    super(navbar, 3 /* RIGHT */);
-  }
-};
-MoveRightButton.id = "moveRight";
-
-// src/buttons/MoveUpButton.ts
-var MoveUpButton = class extends AbstractMoveButton {
-  constructor(navbar) {
-    super(navbar, 0 /* UP */);
-  }
-};
-MoveUpButton.id = "moveUp";
-
-// src/buttons/AbstractZoomButton.ts
-var AbstractZoomButton = class extends AbstractButton {
-  constructor(navbar, direction, icon) {
-    super(navbar, {
-      className: "psv-zoom-button",
-      hoverScale: true,
-      collapsable: false,
-      tabbable: true,
-      icon
-    });
-    this.direction = direction;
-    this.handler = new PressHandler();
-    this.container.addEventListener("mousedown", this);
-    this.container.addEventListener("keydown", this);
-    this.container.addEventListener("keyup", this);
-    this.viewer.container.addEventListener("mouseup", this);
-    this.viewer.container.addEventListener("touchend", this);
-  }
-  destroy() {
-    this.__onMouseUp();
-    this.viewer.container.removeEventListener("mouseup", this);
-    this.viewer.container.removeEventListener("touchend", this);
-    super.destroy();
-  }
-  handleEvent(e) {
-    switch (e.type) {
-      case "mousedown":
-        this.__onMouseDown();
-        break;
-      case "mouseup":
-        this.__onMouseUp();
-        break;
-      case "touchend":
-        this.__onMouseUp();
-        break;
-      case "keydown":
-        e.key === KEY_CODES.Enter && this.__onMouseDown();
-        break;
-      case "keyup":
-        e.key === KEY_CODES.Enter && this.__onMouseUp();
-        break;
-    }
-  }
-  onClick() {
-  }
-  isSupported() {
-    return invertResolvableBoolean(SYSTEM.isTouchEnabled);
-  }
-  __onMouseDown() {
-    if (!this.state.enabled) {
-      return;
-    }
-    this.viewer.dynamics.zoom.roll(this.direction === 1 /* OUT */);
-    this.handler.down();
-  }
-  __onMouseUp() {
-    if (!this.state.enabled) {
-      return;
-    }
-    this.handler.up(() => this.viewer.dynamics.zoom.stop());
-  }
-};
-AbstractZoomButton.groupId = "zoom";
-
-// src/buttons/ZoomInButton.ts
-var ZoomInButton = class extends AbstractZoomButton {
-  constructor(navbar) {
-    super(navbar, 0 /* IN */, ICONS.zoomIn);
-  }
-};
-ZoomInButton.id = "zoomIn";
-
-// src/buttons/ZoomOutButton.ts
-var ZoomOutButton = class extends AbstractZoomButton {
-  constructor(navbar) {
-    super(navbar, 1 /* OUT */, ICONS.zoomOut);
-  }
-};
-ZoomOutButton.id = "zoomOut";
-
-// src/buttons/ZoomRangeButton.ts
-var ZoomRangeButton = class extends AbstractButton {
-  constructor(navbar) {
-    super(navbar, {
-      className: "psv-zoom-range",
-      hoverScale: false,
-      collapsable: false,
-      tabbable: false
-    });
-    this.zoomRange = document.createElement("div");
-    this.zoomRange.className = "psv-zoom-range-line";
-    this.container.appendChild(this.zoomRange);
-    this.zoomValue = document.createElement("div");
-    this.zoomValue.className = "psv-zoom-range-handle";
-    this.zoomRange.appendChild(this.zoomValue);
-    this.slider = new Slider(this.container, "HORIZONTAL" /* HORIZONTAL */, (data) => this.__onSliderUpdate(data));
-    this.mediaMinWidth = parseInt(getStyle(this.container, "maxWidth"), 10);
-    this.viewer.addEventListener(ZoomUpdatedEvent.type, this);
-    if (this.viewer.state.ready) {
-      this.__moveZoomValue(this.viewer.getZoomLevel());
-    } else {
-      this.viewer.addEventListener(ReadyEvent.type, this);
-    }
-  }
-  destroy() {
-    this.slider.destroy();
-    this.viewer.removeEventListener(ZoomUpdatedEvent.type, this);
-    this.viewer.removeEventListener(ReadyEvent.type, this);
-    super.destroy();
-  }
-  handleEvent(e) {
-    if (e instanceof ZoomUpdatedEvent) {
-      this.__moveZoomValue(e.zoomLevel);
-    } else if (e instanceof ReadyEvent) {
-      this.__moveZoomValue(this.viewer.getZoomLevel());
-    }
-  }
-  onClick() {
-  }
-  isSupported() {
-    return invertResolvableBoolean(SYSTEM.isTouchEnabled);
-  }
-  autoSize() {
-    if (this.state.supported) {
-      if (this.viewer.state.size.width <= this.mediaMinWidth && this.state.visible) {
-        this.hide(false);
-      } else if (this.viewer.state.size.width > this.mediaMinWidth && !this.state.visible) {
-        this.show(false);
-      }
-    }
-  }
-  __moveZoomValue(level) {
-    this.zoomValue.style.left = level / 100 * this.zoomRange.offsetWidth - this.zoomValue.offsetWidth / 2 + "px";
-  }
-  __onSliderUpdate(data) {
-    if (data.mousedown) {
-      this.viewer.zoom(data.value * 100);
-    }
-  }
-};
-ZoomRangeButton.id = "zoomRange";
-ZoomRangeButton.groupId = "zoom";
-
 // src/data/config.ts
 import { MathUtils as MathUtils4 } from "three";
 
@@ -2773,6 +1946,8 @@ var DEFAULTS = {
   overlay: null,
   overlayOpacity: 1,
   container: null,
+  camera: null,
+  meshContainer: null,
   adapter: [EquirectangularAdapter, null],
   plugins: [],
   caption: null,
@@ -2968,986 +2143,6 @@ var CONFIG_PARSERS = {
   }
 };
 var getViewerConfig = getConfigParser(DEFAULTS, CONFIG_PARSERS);
-
-// src/components/NavbarCaption.ts
-var NavbarCaption = class extends AbstractButton {
-  constructor(navbar) {
-    super(navbar, {
-      className: "psv-caption",
-      hoverScale: false,
-      collapsable: false,
-      tabbable: true
-    });
-    this.contentWidth = 0;
-    this.state.width = 0;
-    this.contentElt = document.createElement("div");
-    this.contentElt.className = "psv-caption-content";
-    this.container.appendChild(this.contentElt);
-    this.setCaption(this.viewer.config.caption);
-  }
-  hide() {
-    this.contentElt.style.display = "none";
-    this.state.visible = false;
-  }
-  show() {
-    this.contentElt.style.display = "";
-    this.state.visible = true;
-  }
-  onClick() {
-  }
-  /**
-   * Changes the caption
-   */
-  setCaption(html) {
-    this.show();
-    this.contentElt.innerHTML = html ?? "";
-    if (this.contentElt.innerHTML) {
-      this.contentWidth = this.contentElt.offsetWidth;
-    } else {
-      this.contentWidth = 0;
-    }
-    this.autoSize();
-  }
-  /**
-   * Toggles content and icon depending on available space
-   */
-  autoSize() {
-    this.toggle(this.container.offsetWidth >= this.contentWidth);
-    this.__refreshButton();
-  }
-  __refreshButton() {
-    this.viewer.navbar.getButton(DescriptionButton.id, false)?.autoSize(true);
-  }
-};
-NavbarCaption.id = "caption";
-
-// src/components/Navbar.ts
-var AVAILABLE_BUTTONS = {};
-var AVAILABLE_GROUPS = {};
-function registerButton(button, defaultPosition) {
-  if (!button.id) {
-    throw new PSVError("Button id is required");
-  }
-  AVAILABLE_BUTTONS[button.id] = button;
-  if (button.groupId) {
-    (AVAILABLE_GROUPS[button.groupId] = AVAILABLE_GROUPS[button.groupId] || []).push(button);
-  }
-  if (defaultPosition) {
-    const navbar = DEFAULTS.navbar;
-    switch (defaultPosition) {
-      case "start":
-        navbar.unshift(button.id);
-        break;
-      case "end":
-        navbar.push(button.id);
-        break;
-      default: {
-        const [id, pos] = defaultPosition.split(":");
-        const idx = navbar.indexOf(id);
-        if (!id || !pos || idx === -1) {
-          throw new PSVError(`Invalid defaultPosition ${defaultPosition}`);
-        }
-        navbar.splice(idx + (pos === "right" ? 1 : 0), 0, button.id);
-      }
-    }
-  }
-}
-[
-  ZoomOutButton,
-  ZoomRangeButton,
-  ZoomInButton,
-  DescriptionButton,
-  NavbarCaption,
-  DownloadButton,
-  FullscreenButton,
-  MoveLeftButton,
-  MoveRightButton,
-  MoveUpButton,
-  MoveDownButton
-].forEach((btn) => registerButton(btn));
-var Navbar = class extends AbstractComponent {
-  /**
-   * @internal
-   */
-  constructor(viewer) {
-    super(viewer, {
-      className: "psv-navbar psv--capture-event"
-    });
-    /**
-     * @internal
-     */
-    this.collapsed = [];
-    this.state.visible = false;
-  }
-  /**
-   * Shows the navbar
-   */
-  show() {
-    this.container.classList.add("psv-navbar--open");
-    this.state.visible = true;
-  }
-  /**
-   * Hides the navbar
-   */
-  hide() {
-    this.container.classList.remove("psv-navbar--open");
-    this.state.visible = false;
-  }
-  /**
-   * Change the buttons visible on the navbar
-   */
-  setButtons(buttons) {
-    this.children.slice().forEach((item) => item.destroy());
-    this.children.length = 0;
-    if (buttons.indexOf(NavbarCaption.id) !== -1 && buttons.indexOf(DescriptionButton.id) === -1) {
-      buttons.splice(buttons.indexOf(NavbarCaption.id), 0, DescriptionButton.id);
-    }
-    buttons.forEach((button) => {
-      if (typeof button === "object") {
-        new CustomButton(this, button);
-      } else if (AVAILABLE_BUTTONS[button]) {
-        new AVAILABLE_BUTTONS[button](this);
-      } else if (AVAILABLE_GROUPS[button]) {
-        AVAILABLE_GROUPS[button].forEach((buttonCtor) => {
-          new buttonCtor(this);
-        });
-      } else {
-        logWarn(`Unknown button ${button}`);
-      }
-    });
-    new MenuButton(this);
-    this.children.forEach((item) => {
-      if (item instanceof AbstractButton) {
-        item.checkSupported();
-      }
-    });
-    this.autoSize();
-  }
-  /**
-   * Changes the navbar caption
-   */
-  setCaption(html) {
-    this.children.some((item) => {
-      if (item instanceof NavbarCaption) {
-        item.setCaption(html);
-        return true;
-      } else {
-        return false;
-      }
-    });
-  }
-  /**
-   * Returns a button by its identifier
-   */
-  getButton(id, warnNotFound = true) {
-    const button = this.children.find((item) => {
-      return item instanceof AbstractButton && item.id === id;
-    });
-    if (!button && warnNotFound) {
-      logWarn(`button "${id}" not found in the navbar`);
-    }
-    return button;
-  }
-  /**
-   * Automatically collapses buttons
-   * @internal
-   */
-  autoSize() {
-    this.children.forEach((child) => {
-      if (child instanceof AbstractButton) {
-        child.autoSize();
-      }
-    });
-    const availableWidth = this.container.offsetWidth;
-    let totalWidth = 0;
-    const collapsableButtons = [];
-    this.children.forEach((item) => {
-      if (item.isVisible() && item instanceof AbstractButton) {
-        totalWidth += item.width;
-        if (item.collapsable) {
-          collapsableButtons.push(item);
-        }
-      }
-    });
-    if (totalWidth === 0) {
-      return;
-    }
-    if (availableWidth < totalWidth && collapsableButtons.length > 0) {
-      collapsableButtons.forEach((item) => item.collapse());
-      this.collapsed = collapsableButtons;
-      this.getButton(MenuButton.id).show(false);
-    } else if (availableWidth >= totalWidth && this.collapsed.length > 0) {
-      this.collapsed.forEach((item) => item.uncollapse());
-      this.collapsed = [];
-      this.getButton(MenuButton.id).hide(false);
-    }
-    this.getButton(NavbarCaption.id, false)?.autoSize();
-  }
-};
-
-// src/components/Loader.ts
-var Loader = class extends AbstractComponent {
-  /**
-   * @internal
-   */
-  constructor(viewer) {
-    super(viewer, { className: "psv-loader-container" });
-    this.loader = document.createElement("div");
-    this.loader.className = "psv-loader";
-    this.container.appendChild(this.loader);
-    this.size = this.loader.offsetWidth;
-    this.canvas = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    this.canvas.setAttribute("class", "psv-loader-canvas");
-    this.canvas.setAttribute("viewBox", `0 0 ${this.size} ${this.size}`);
-    this.loader.appendChild(this.canvas);
-    this.textColor = getStyle(this.loader, "color");
-    this.color = getStyle(this.canvas, "color");
-    this.border = parseInt(getStyle(this.loader, "outlineWidth"), 10);
-    this.thickness = parseInt(getStyle(this.canvas, "outlineWidth"), 10);
-    this.viewer.addEventListener(ConfigChangedEvent.type, this);
-    this.__updateContent();
-    this.hide();
-  }
-  /**
-   * @internal
-   */
-  destroy() {
-    this.viewer.removeEventListener(ConfigChangedEvent.type, this);
-    super.destroy();
-  }
-  /**
-   * @internal
-   */
-  handleEvent(e) {
-    if (e instanceof ConfigChangedEvent) {
-      e.containsOptions("loadingImg", "loadingTxt") && this.__updateContent();
-    }
-  }
-  /**
-   * Sets the loader progression
-   */
-  setProgress(value) {
-    const angle2 = Math.min(value, 99.999) / 100 * Math.PI * 2;
-    const halfSize = this.size / 2;
-    const startX = halfSize;
-    const startY = this.thickness / 2 + this.border;
-    const radius = (this.size - this.thickness) / 2 - this.border;
-    const endX = Math.sin(angle2) * radius + halfSize;
-    const endY = -Math.cos(angle2) * radius + halfSize;
-    const largeArc = value > 50 ? "1" : "0";
-    this.canvas.innerHTML = `
-            <circle cx="${halfSize}" cy="${halfSize}" r="${halfSize}" fill="${this.color}"/>
-            <path d="M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArc} 1 ${endX} ${endY}" 
-                  fill="none" stroke="${this.textColor}" stroke-width="${this.thickness}" stroke-linecap="round"/>
-        `;
-    this.viewer.dispatchEvent(new LoadProgressEvent(Math.round(value)));
-  }
-  __updateContent() {
-    const current = this.loader.querySelector(".psv-loader-image, .psv-loader-text");
-    if (current) {
-      this.loader.removeChild(current);
-    }
-    let inner;
-    if (this.viewer.config.loadingImg) {
-      inner = document.createElement("img");
-      inner.className = "psv-loader-image";
-      inner.src = this.viewer.config.loadingImg;
-    } else if (this.viewer.config.loadingTxt) {
-      inner = document.createElement("div");
-      inner.className = "psv-loader-text";
-      inner.innerHTML = this.viewer.config.loadingTxt;
-    }
-    if (inner) {
-      const size = Math.round(Math.sqrt(2 * Math.pow(this.size / 2 - this.thickness / 2 - this.border, 2)));
-      inner.style.maxWidth = size + "px";
-      inner.style.maxHeight = size + "px";
-      this.loader.appendChild(inner);
-    }
-  }
-};
-
-// src/components/Notification.ts
-var Notification = class extends AbstractComponent {
-  /**
-   * @internal
-   */
-  constructor(viewer) {
-    super(viewer, {
-      className: "psv-notification"
-    });
-    /**
-     * @internal
-     */
-    this.state = {
-      visible: false,
-      contentId: null,
-      timeout: null
-    };
-    this.content = document.createElement("div");
-    this.content.className = "psv-notification-content";
-    this.container.appendChild(this.content);
-    this.content.addEventListener("click", () => this.hide());
-  }
-  /**
-   * Checks if the notification is visible
-   */
-  isVisible(id) {
-    return this.state.visible && (!id || !this.state.contentId || this.state.contentId === id);
-  }
-  /**
-   * @throws {@link PSVError} always
-   * @internal
-   */
-  toggle() {
-    throw new PSVError("Notification cannot be toggled");
-  }
-  /**
-   * Displays a notification on the viewer
-   *
-   * @example
-   * viewer.showNotification({ content: 'Hello world', timeout: 5000 })
-   * @example
-   * viewer.showNotification('Hello world')
-   */
-  show(config) {
-    if (this.state.timeout) {
-      clearTimeout(this.state.timeout);
-      this.state.timeout = null;
-    }
-    if (typeof config === "string") {
-      config = { content: config };
-    }
-    this.state.contentId = config.id || null;
-    this.content.innerHTML = config.content;
-    this.container.classList.add("psv-notification--visible");
-    this.state.visible = true;
-    this.viewer.dispatchEvent(new ShowNotificationEvent(config.id));
-    if (config.timeout) {
-      this.state.timeout = setTimeout(() => this.hide(this.state.contentId), config.timeout);
-    }
-  }
-  /**
-   * Hides the notification
-   */
-  hide(id) {
-    if (this.isVisible(id)) {
-      const contentId = this.state.contentId;
-      this.container.classList.remove("psv-notification--visible");
-      this.state.visible = false;
-      this.state.contentId = null;
-      this.viewer.dispatchEvent(new HideNotificationEvent(contentId));
-    }
-  }
-};
-
-// src/components/Overlay.ts
-var Overlay = class extends AbstractComponent {
-  /**
-   * @internal
-   */
-  constructor(viewer) {
-    super(viewer, {
-      className: "psv-overlay"
-    });
-    /**
-     * @internal
-     */
-    this.state = {
-      visible: false,
-      contentId: null,
-      dissmisable: true
-    };
-    this.image = document.createElement("div");
-    this.image.className = "psv-overlay-image";
-    this.container.appendChild(this.image);
-    this.title = document.createElement("div");
-    this.title.className = "psv-overlay-title";
-    this.container.appendChild(this.title);
-    this.text = document.createElement("div");
-    this.text.className = "psv-overlay-text";
-    this.container.appendChild(this.text);
-    this.viewer.addEventListener(ClickEvent.type, this);
-    this.viewer.addEventListener(KeypressEvent.type, this);
-    super.hide();
-  }
-  /**
-   * @internal
-   */
-  destroy() {
-    this.viewer.removeEventListener(ClickEvent.type, this);
-    this.viewer.removeEventListener(KeypressEvent.type, this);
-    super.destroy();
-  }
-  /**
-   * @internal
-   */
-  handleEvent(e) {
-    if (e instanceof ClickEvent) {
-      if (this.isVisible() && this.state.dissmisable) {
-        this.hide();
-        e.stopPropagation();
-      }
-    } else if (e instanceof KeypressEvent) {
-      if (this.isVisible() && this.state.dissmisable && e.key === KEY_CODES.Escape) {
-        this.hide();
-        e.preventDefault();
-      }
-    }
-  }
-  /**
-   * Checks if the overlay is visible
-   */
-  isVisible(id) {
-    return this.state.visible && (!id || !this.state.contentId || this.state.contentId === id);
-  }
-  /**
-   * @throws {@link PSVError} always
-   * @internal
-   */
-  toggle() {
-    throw new PSVError("Overlay cannot be toggled");
-  }
-  /**
-   * Displays an overlay on the viewer
-   */
-  show(config) {
-    if (typeof config === "string") {
-      config = { title: config };
-    }
-    this.state.contentId = config.id || null;
-    this.state.dissmisable = config.dissmisable !== false;
-    this.image.innerHTML = config.image || "";
-    this.title.innerHTML = config.title || "";
-    this.text.innerHTML = config.text || "";
-    super.show();
-    this.viewer.dispatchEvent(new ShowOverlayEvent(config.id));
-  }
-  /**
-   * Hides the overlay
-   */
-  hide(id) {
-    if (this.isVisible(id)) {
-      const contentId = this.state.contentId;
-      super.hide();
-      this.state.contentId = null;
-      this.viewer.dispatchEvent(new HideOverlayEvent(contentId));
-    }
-  }
-};
-
-// src/components/Panel.ts
-var PANEL_MIN_WIDTH = 200;
-var PANEL_CLASS_NO_INTERACTION = "psv-panel-content--no-interaction";
-var Panel = class extends AbstractComponent {
-  /**
-   * @internal
-   */
-  constructor(viewer) {
-    super(viewer, {
-      className: "psv-panel psv--capture-event"
-    });
-    /**
-     * @internal
-     */
-    this.state = {
-      visible: false,
-      contentId: null,
-      mouseX: 0,
-      mouseY: 0,
-      mousedown: false,
-      clickHandler: null,
-      keyHandler: null,
-      width: {}
-    };
-    const resizer = document.createElement("div");
-    resizer.className = "psv-panel-resizer";
-    this.container.appendChild(resizer);
-    const closeBtn = document.createElement("div");
-    closeBtn.className = "psv-panel-close-button";
-    closeBtn.innerHTML = ICONS.close;
-    closeBtn.title = viewer.config.lang.close;
-    this.container.appendChild(closeBtn);
-    this.content = document.createElement("div");
-    this.content.className = "psv-panel-content";
-    this.container.appendChild(this.content);
-    this.container.addEventListener("wheel", (e) => e.stopPropagation());
-    closeBtn.addEventListener("click", () => this.hide());
-    resizer.addEventListener("mousedown", this);
-    resizer.addEventListener("touchstart", this);
-    this.viewer.container.addEventListener("mouseup", this);
-    this.viewer.container.addEventListener("touchend", this);
-    this.viewer.container.addEventListener("mousemove", this);
-    this.viewer.container.addEventListener("touchmove", this);
-    this.viewer.addEventListener(KeypressEvent.type, this);
-  }
-  /**
-   * @internal
-   */
-  destroy() {
-    this.viewer.removeEventListener(KeypressEvent.type, this);
-    this.viewer.container.removeEventListener("mousemove", this);
-    this.viewer.container.removeEventListener("touchmove", this);
-    this.viewer.container.removeEventListener("mouseup", this);
-    this.viewer.container.removeEventListener("touchend", this);
-    super.destroy();
-  }
-  /**
-   * @internal
-   */
-  handleEvent(e) {
-    switch (e.type) {
-      case "mousedown":
-        this.__onMouseDown(e);
-        break;
-      case "touchstart":
-        this.__onTouchStart(e);
-        break;
-      case "mousemove":
-        this.__onMouseMove(e);
-        break;
-      case "touchmove":
-        this.__onTouchMove(e);
-        break;
-      case "mouseup":
-        this.__onMouseUp(e);
-        break;
-      case "touchend":
-        this.__onTouchEnd(e);
-        break;
-      case KeypressEvent.type:
-        this.__onKeyPress(e);
-        break;
-    }
-  }
-  /**
-   * Checks if the panel is visible
-   */
-  isVisible(id) {
-    return this.state.visible && (!id || !this.state.contentId || this.state.contentId === id);
-  }
-  /**
-   * @throws {@link PSVError} always
-   * @internal
-   */
-  toggle() {
-    throw new PSVError("Panel cannot be toggled");
-  }
-  /**
-   * Shows the panel
-   */
-  show(config) {
-    if (typeof config === "string") {
-      config = { content: config };
-    }
-    const wasVisible = this.isVisible(config.id);
-    this.state.contentId = config.id || null;
-    this.state.visible = true;
-    if (this.state.clickHandler) {
-      this.content.removeEventListener("click", this.state.clickHandler);
-      this.content.removeEventListener("keydown", this.state.keyHandler);
-      this.state.clickHandler = null;
-      this.state.keyHandler = null;
-    }
-    if (config.id && this.state.width[config.id]) {
-      this.container.style.width = this.state.width[config.id];
-    } else if (config.width) {
-      this.container.style.width = config.width;
-    } else {
-      this.container.style.width = null;
-    }
-    this.content.innerHTML = config.content;
-    this.content.scrollTop = 0;
-    this.container.classList.add("psv-panel--open");
-    toggleClass(this.content, "psv-panel-content--no-margin", config.noMargin === true);
-    if (config.clickHandler) {
-      this.state.clickHandler = (e) => {
-        config.clickHandler(e.target);
-      };
-      this.state.keyHandler = (e) => {
-        if (e.key === KEY_CODES.Enter) {
-          config.clickHandler(e.target);
-        }
-      };
-      this.content.addEventListener("click", this.state.clickHandler);
-      this.content.addEventListener("keydown", this.state.keyHandler);
-      if (!wasVisible) {
-        setTimeout(() => {
-          this.content.querySelector("a,button,[tabindex]")?.focus();
-        }, 300);
-      }
-    }
-    this.viewer.dispatchEvent(new ShowPanelEvent(config.id));
-  }
-  /**
-   * Hides the panel
-   */
-  hide(id) {
-    if (this.isVisible(id)) {
-      const contentId = this.state.contentId;
-      this.state.visible = false;
-      this.state.contentId = null;
-      this.content.innerHTML = null;
-      this.container.classList.remove("psv-panel--open");
-      if (this.state.clickHandler) {
-        this.content.removeEventListener("click", this.state.clickHandler);
-        this.state.clickHandler = null;
-      }
-      this.viewer.dispatchEvent(new HidePanelEvent(contentId));
-    }
-  }
-  __onMouseDown(evt) {
-    evt.stopPropagation();
-    this.__startResize(evt.clientX, evt.clientY);
-  }
-  __onTouchStart(evt) {
-    evt.stopPropagation();
-    if (evt.touches.length === 1) {
-      const touch = evt.touches[0];
-      this.__startResize(touch.clientX, touch.clientY);
-    }
-  }
-  __onMouseUp(evt) {
-    if (this.state.mousedown) {
-      evt.stopPropagation();
-      this.state.mousedown = false;
-      this.content.classList.remove(PANEL_CLASS_NO_INTERACTION);
-    }
-  }
-  __onTouchEnd(evt) {
-    if (this.state.mousedown) {
-      evt.stopPropagation();
-      if (evt.touches.length === 0) {
-        this.state.mousedown = false;
-        this.content.classList.remove(PANEL_CLASS_NO_INTERACTION);
-      }
-    }
-  }
-  __onMouseMove(evt) {
-    if (this.state.mousedown) {
-      evt.stopPropagation();
-      this.__resize(evt.clientX, evt.clientY);
-    }
-  }
-  __onTouchMove(evt) {
-    if (this.state.mousedown) {
-      const touch = evt.touches[0];
-      this.__resize(touch.clientX, touch.clientY);
-    }
-  }
-  __onKeyPress(evt) {
-    if (this.isVisible() && evt.key === KEY_CODES.Escape) {
-      this.hide();
-      evt.preventDefault();
-    }
-  }
-  __startResize(clientX, clientY) {
-    this.state.mouseX = clientX;
-    this.state.mouseY = clientY;
-    this.state.mousedown = true;
-    this.content.classList.add(PANEL_CLASS_NO_INTERACTION);
-  }
-  __resize(clientX, clientY) {
-    const x = clientX;
-    const y = clientY;
-    const width = Math.max(PANEL_MIN_WIDTH, this.container.offsetWidth - (x - this.state.mouseX)) + "px";
-    if (this.state.contentId) {
-      this.state.width[this.state.contentId] = width;
-    }
-    this.container.style.width = width;
-    this.state.mouseX = x;
-    this.state.mouseY = y;
-  }
-};
-
-// src/components/Tooltip.ts
-var Tooltip = class extends AbstractComponent {
-  /**
-   * @internal
-   */
-  constructor(viewer, config) {
-    super(viewer, {
-      className: "psv-tooltip"
-    });
-    /**
-     * @internal
-     */
-    this.state = {
-      visible: true,
-      arrow: 0,
-      border: 0,
-      state: 0 /* NONE */,
-      width: 0,
-      height: 0,
-      pos: "",
-      config: null,
-      data: null
-    };
-    this.content = document.createElement("div");
-    this.content.className = "psv-tooltip-content";
-    this.container.appendChild(this.content);
-    this.arrow = document.createElement("div");
-    this.arrow.className = "psv-tooltip-arrow";
-    this.container.appendChild(this.arrow);
-    this.container.addEventListener("transitionend", this);
-    this.container.style.top = "-1000px";
-    this.container.style.left = "-1000px";
-    this.show(config);
-  }
-  /**
-   * @internal
-   */
-  handleEvent(e) {
-    if (e.type === "transitionend") {
-      this.__onTransitionEnd(e);
-    }
-  }
-  /**
-   * @internal
-   */
-  destroy() {
-    delete this.state.data;
-    super.destroy();
-  }
-  /**
-   * @throws {@link PSVError} always
-   * @internal
-   */
-  toggle() {
-    throw new PSVError("Tooltip cannot be toggled");
-  }
-  /**
-   * Displays the tooltip on the viewer
-   * @internal
-   */
-  show(config) {
-    if (this.state.state !== 0 /* NONE */) {
-      throw new PSVError("Initialized tooltip cannot be re-initialized");
-    }
-    if (config.className) {
-      addClasses(this.container, config.className);
-    }
-    this.state.state = 3 /* READY */;
-    this.update(config.content, config);
-    this.state.data = config.data;
-    this.state.state = 1 /* SHOWING */;
-    this.viewer.dispatchEvent(new ShowTooltipEvent(this, this.state.data));
-    this.__waitImages();
-  }
-  /**
-   * Updates the content of the tooltip, optionally with a new position
-   * @throws {@link PSVError} if the configuration is invalid
-   */
-  update(content, config) {
-    this.content.innerHTML = content;
-    const rect = this.container.getBoundingClientRect();
-    this.state.width = rect.right - rect.left;
-    this.state.height = rect.bottom - rect.top;
-    this.state.arrow = parseInt(getStyle(this.arrow, "borderTopWidth"), 10);
-    this.state.border = parseInt(getStyle(this.container, "borderTopLeftRadius"), 10);
-    this.move(config ?? this.state.config);
-  }
-  /**
-   * Moves the tooltip to a new position
-   * @throws {@link PSVError} if the configuration is invalid
-   */
-  move(config) {
-    if (this.state.state !== 1 /* SHOWING */ && this.state.state !== 3 /* READY */) {
-      throw new PSVError("Uninitialized tooltip cannot be moved");
-    }
-    if (!config.box) {
-      config.box = {
-        width: 0,
-        height: 0
-      };
-    }
-    this.state.config = config;
-    const t = this.container;
-    const a = this.arrow;
-    const style = {
-      posClass: cleanCssPosition(config.position, { allowCenter: false, cssOrder: false }) || ["top", "center"],
-      width: this.state.width,
-      height: this.state.height,
-      top: 0,
-      left: 0,
-      arrowTop: 0,
-      arrowLeft: 0
-    };
-    this.__computeTooltipPosition(style, config);
-    let swapY = null;
-    let swapX = null;
-    if (style.top < 0) {
-      swapY = "bottom";
-    } else if (style.top + style.height > this.viewer.state.size.height) {
-      swapY = "top";
-    }
-    if (style.left < 0) {
-      swapX = "right";
-    } else if (style.left + style.width > this.viewer.state.size.width) {
-      swapX = "left";
-    }
-    if (swapX || swapY) {
-      const ordered = cssPositionIsOrdered(style.posClass);
-      if (swapY) {
-        style.posClass[ordered ? 0 : 1] = swapY;
-      }
-      if (swapX) {
-        style.posClass[ordered ? 1 : 0] = swapX;
-      }
-      this.__computeTooltipPosition(style, config);
-    }
-    t.style.top = style.top + "px";
-    t.style.left = style.left + "px";
-    a.style.top = style.arrowTop + "px";
-    a.style.left = style.arrowLeft + "px";
-    const newPos = style.posClass.join("-");
-    if (newPos !== this.state.pos) {
-      t.classList.remove(`psv-tooltip--${this.state.pos}`);
-      this.state.pos = newPos;
-      t.classList.add(`psv-tooltip--${this.state.pos}`);
-    }
-  }
-  /**
-   * Hides the tooltip
-   */
-  hide() {
-    this.container.classList.remove("psv-tooltip--visible");
-    this.state.state = 2 /* HIDING */;
-    this.viewer.dispatchEvent(new HideTooltipEvent(this.state.data));
-  }
-  /**
-   * Finalize transition
-   */
-  __onTransitionEnd(e) {
-    if (e.propertyName === "transform") {
-      switch (this.state.state) {
-        case 1 /* SHOWING */:
-          this.container.classList.add("psv-tooltip--visible");
-          this.state.state = 3 /* READY */;
-          break;
-        case 2 /* HIDING */:
-          this.state.state = 0 /* NONE */;
-          this.destroy();
-          break;
-        default:
-      }
-    }
-  }
-  /**
-   * Computes the position of the tooltip and its arrow
-   */
-  __computeTooltipPosition(style, config) {
-    const arrow = this.state.arrow;
-    const top = config.top;
-    const height = style.height;
-    const left = config.left;
-    const width = style.width;
-    const offsetSide = arrow + this.state.border;
-    const offsetX = config.box.width / 2 + arrow * 2;
-    const offsetY = config.box.height / 2 + arrow * 2;
-    switch (style.posClass.join("-")) {
-      case "top-left":
-        style.top = top - offsetY - height;
-        style.left = left + offsetSide - width;
-        style.arrowTop = height;
-        style.arrowLeft = width - offsetSide - arrow;
-        break;
-      case "top-center":
-        style.top = top - offsetY - height;
-        style.left = left - width / 2;
-        style.arrowTop = height;
-        style.arrowLeft = width / 2 - arrow;
-        break;
-      case "top-right":
-        style.top = top - offsetY - height;
-        style.left = left - offsetSide;
-        style.arrowTop = height;
-        style.arrowLeft = arrow;
-        break;
-      case "bottom-left":
-        style.top = top + offsetY;
-        style.left = left + offsetSide - width;
-        style.arrowTop = -arrow * 2;
-        style.arrowLeft = width - offsetSide - arrow;
-        break;
-      case "bottom-center":
-        style.top = top + offsetY;
-        style.left = left - width / 2;
-        style.arrowTop = -arrow * 2;
-        style.arrowLeft = width / 2 - arrow;
-        break;
-      case "bottom-right":
-        style.top = top + offsetY;
-        style.left = left - offsetSide;
-        style.arrowTop = -arrow * 2;
-        style.arrowLeft = arrow;
-        break;
-      case "left-top":
-        style.top = top + offsetSide - height;
-        style.left = left - offsetX - width;
-        style.arrowTop = height - offsetSide - arrow;
-        style.arrowLeft = width;
-        break;
-      case "center-left":
-        style.top = top - height / 2;
-        style.left = left - offsetX - width;
-        style.arrowTop = height / 2 - arrow;
-        style.arrowLeft = width;
-        break;
-      case "left-bottom":
-        style.top = top - offsetSide;
-        style.left = left - offsetX - width;
-        style.arrowTop = arrow;
-        style.arrowLeft = width;
-        break;
-      case "right-top":
-        style.top = top + offsetSide - height;
-        style.left = left + offsetX;
-        style.arrowTop = height - offsetSide - arrow;
-        style.arrowLeft = -arrow * 2;
-        break;
-      case "center-right":
-        style.top = top - height / 2;
-        style.left = left + offsetX;
-        style.arrowTop = height / 2 - arrow;
-        style.arrowLeft = -arrow * 2;
-        break;
-      case "right-bottom":
-        style.top = top - offsetSide;
-        style.left = left + offsetX;
-        style.arrowTop = arrow;
-        style.arrowLeft = -arrow * 2;
-        break;
-    }
-  }
-  /**
-   * If the tooltip contains images, recompute its size once they are loaded
-   */
-  __waitImages() {
-    const images = this.content.querySelectorAll("img");
-    if (images.length > 0) {
-      const promises = [];
-      images.forEach((image) => {
-        promises.push(
-          new Promise((resolve) => {
-            image.onload = resolve;
-            image.onerror = resolve;
-          })
-        );
-      });
-      Promise.all(promises).then(() => {
-        if (this.state.state === 1 /* SHOWING */ || this.state.state === 3 /* READY */) {
-          const rect = this.container.getBoundingClientRect();
-          this.state.width = rect.right - rect.left;
-          this.state.height = rect.bottom - rect.top;
-          this.move(this.state.config);
-        }
-      });
-    }
-  }
-};
-
-// src/icons/error.svg
-var error_default = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="15 15 70 70"><path fill="currentColor" d="M50,16.2c-18.6,0-33.8,15.1-33.8,33.8S31.4,83.7,50,83.7S83.8,68.6,83.8,50S68.6,16.2,50,16.2z M50,80.2c-16.7,0-30.2-13.6-30.2-30.2S33.3,19.7,50,19.7S80.3,33.3,80.3,50S66.7,80.2,50,80.2z"/><rect fill="currentColor" x="48" y="31.7" width="4" height="28"/><rect fill="currentColor" x="48" y="63.2" width="4" height="5"/><!--Created by Shastry from the Noun Project--></svg>\n';
 
 // src/services/DataHelper.ts
 import { Euler as Euler2, MathUtils as MathUtils5, Vector3 as Vector32 } from "three";
@@ -4754,10 +2949,10 @@ var Renderer = class extends AbstractService {
     this.renderer.setPixelRatio(SYSTEM.pixelRatio);
     this.renderer.domElement.className = "psv-canvas";
     this.scene = new Scene();
-    this.camera = new PerspectiveCamera(50, 16 / 9, 0.1, 2 * SPHERE_RADIUS);
+    this.camera = this.viewer.camera || new PerspectiveCamera(50, 16 / 9, 0.1, 2 * SPHERE_RADIUS);
     this.mesh = this.viewer.adapter.createMesh();
     this.mesh.userData = { [VIEWER_DATA]: true };
-    this.meshContainer = new Group();
+    this.meshContainer = this.viewer.meshContainer || new Group();
     this.meshContainer.add(this.mesh);
     this.scene.add(this.meshContainer);
     this.raycaster = new Raycaster();
@@ -4765,7 +2960,6 @@ var Renderer = class extends AbstractService {
     this.container.className = "psv-canvas-container";
     this.container.style.background = this.config.canvasBackground;
     this.container.appendChild(this.renderer.domElement);
-    this.viewer.container.appendChild(this.container);
     this.viewer.addEventListener(SizeUpdatedEvent.type, this);
     this.viewer.addEventListener(ZoomUpdatedEvent.type, this);
     this.viewer.addEventListener(PositionUpdatedEvent.type, this);
@@ -4856,27 +3050,18 @@ var Renderer = class extends AbstractService {
    */
   __onSizeUpdated() {
     this.renderer.setSize(this.state.size.width, this.state.size.height);
-    this.camera.aspect = this.state.aspect;
-    this.camera.updateProjectionMatrix();
     this.viewer.needsUpdate();
   }
   /**
    * Updates the fov of the camera
    */
   __onZoomUpdated() {
-    this.camera.fov = this.state.vFov;
-    this.camera.updateProjectionMatrix();
     this.viewer.needsUpdate();
   }
   /**
    * Updates the position of the camera
    */
   __onPositionUpdated() {
-    this.camera.position.set(0, 0, 0);
-    this.camera.lookAt(this.state.direction);
-    if (this.config.fisheye) {
-      this.camera.position.copy(this.state.direction).multiplyScalar(this.config.fisheye / 2).negate();
-    }
     this.viewer.needsUpdate();
   }
   /**
@@ -4914,17 +3099,15 @@ var Renderer = class extends AbstractService {
    * Applies a panorama data pose to a Mesh
    * @internal
    */
-  setPanoramaPose(panoData, mesh = this.mesh) {
-    const cleanCorrection = this.viewer.dataHelper.cleanPanoramaPose(panoData);
-    mesh.rotation.set(-cleanCorrection.tilt, -cleanCorrection.pan, -cleanCorrection.roll, "ZXY");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  setPanoramaPose(_panoData, _mesh = this.mesh) {
   }
   /**
    * Applies a SphereCorrection to a Group
    * @internal
    */
-  setSphereCorrection(sphereCorrection, group = this.meshContainer) {
-    const cleanCorrection = this.viewer.dataHelper.cleanSphereCorrection(sphereCorrection);
-    group.rotation.set(cleanCorrection.tilt, cleanCorrection.pan, cleanCorrection.roll, "ZXY");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  setSphereCorrection(_sphereCorrection, _group = this.meshContainer) {
   }
   /**
    * Performs transition between the current and a new texture
@@ -5277,28 +3460,20 @@ var Viewer = class extends TypedEventTarget {
     super();
     /** @internal */
     this.plugins = {};
-    /** @internal */
-    this.children = [];
-    this.onResize = throttle(() => this.navbar.autoSize(), 500);
     SYSTEM.load();
     this.state = new ViewerState();
     this.config = getViewerConfig(config);
     this.parent = getElement(config.container);
     this.parent[VIEWER_DATA] = this;
-    this.container = document.createElement("div");
-    this.container.classList.add("psv-container");
-    this.parent.appendChild(this.container);
+    this.container = this.parent;
+    this.camera = config.camera;
+    this.meshContainer = config.meshContainer;
     this.adapter = new this.config.adapter[0](this, this.config.adapter[1]);
     this.renderer = new Renderer(this);
     this.textureLoader = new TextureLoader(this);
     this.eventsHandler = new EventsHandler(this);
     this.dataHelper = new DataHelper(this);
     this.dynamics = new ViewerDynamics(this);
-    this.loader = new Loader(this);
-    this.navbar = new Navbar(this);
-    this.panel = new Panel(this);
-    this.notification = new Notification(this);
-    this.overlay = new Overlay(this);
     this.resize(this.config.size);
     resolveBoolean(SYSTEM.isTouchEnabled, (enabled) => {
       toggleClass(this.container, "psv--is-touch", enabled);
@@ -5309,13 +3484,9 @@ var Viewer = class extends TypedEventTarget {
     for (const plugin of Object.values(this.plugins)) {
       plugin.init?.();
     }
-    if (this.config.navbar) {
-      this.navbar.setButtons(this.config.navbar);
-    }
     if (this.config.panorama) {
       this.setPanorama(this.config.panorama);
     } else {
-      this.loader.show();
     }
   }
   /**
@@ -5329,8 +3500,6 @@ var Viewer = class extends TypedEventTarget {
       plugin.destroy();
       delete this.plugins[id];
     }
-    this.children.slice().forEach((child) => child.destroy());
-    this.children.length = 0;
     this.eventsHandler.destroy();
     this.renderer.destroy();
     this.textureLoader.destroy();
@@ -5343,10 +3512,6 @@ var Viewer = class extends TypedEventTarget {
   init() {
     this.eventsHandler.init();
     this.renderer.init();
-    if (this.config.navbar) {
-      this.container.classList.add("psv--has-navbar");
-      this.navbar.show();
-    }
     if (this.config.keyboard === "always") {
       this.startKeyboardControl();
     }
@@ -5427,7 +3592,6 @@ var Viewer = class extends TypedEventTarget {
       this.state.aspect = this.state.size.width / this.state.size.height;
       this.state.hFov = this.dataHelper.vFovToHFov(this.state.vFov);
       this.dispatchEvent(new SizeUpdatedEvent(this.getSize()));
-      this.onResize();
     }
   }
   /**
@@ -5473,24 +3637,17 @@ var Viewer = class extends TypedEventTarget {
     this.config.caption = options.caption;
     this.config.description = options.description;
     const done = (err) => {
-      this.loader.hide();
       this.state.loadingPromise = null;
       if (isAbortError(err)) {
         return false;
       } else if (err) {
-        this.navbar.setCaption("");
-        this.showError(this.config.lang.loadError);
         console.error(err);
         throw err;
       } else {
-        this.setOverlay(options.overlay, options.overlayOpacity);
-        this.navbar.setCaption(this.config.caption);
         return true;
       }
     };
-    this.navbar.setCaption(`<em>${this.config.loadingTxt || ""}</em>`);
     if (options.showLoader || !this.state.ready) {
-      this.loader.show();
     }
     const loadingPromise = this.adapter.loadTexture(this.config.panorama, options.panoData).then((textureData) => {
       if (textureData.panorama !== this.config.panorama) {
@@ -5521,7 +3678,6 @@ var Viewer = class extends TypedEventTarget {
       );
     } else {
       this.state.loadingPromise = loadingPromise.then((textureData) => {
-        this.loader.hide();
         this.dispatchEvent(new PanoramaLoadedEvent(textureData));
         this.state.transitionAnimation = this.renderer.transition(textureData, options);
         return this.state.transitionAnimation;
@@ -5598,7 +3754,6 @@ var Viewer = class extends TypedEventTarget {
       this.config[key] = value;
       switch (key) {
         case "caption":
-          this.navbar.setCaption(this.config.caption);
           break;
         case "size":
           this.resize(this.config.size);
@@ -5606,9 +3761,7 @@ var Viewer = class extends TypedEventTarget {
         case "sphereCorrection":
           this.renderer.setSphereCorrection(this.config.sphereCorrection);
           break;
-        case "navbar":
         case "lang":
-          this.navbar.setButtons(this.config.navbar);
           break;
         case "moveSpeed":
         case "zoomSpeed":
@@ -5643,19 +3796,12 @@ var Viewer = class extends TypedEventTarget {
   /**
    * Displays an error message over the viewer
    */
-  showError(message) {
-    this.overlay.show({
-      id: IDS.ERROR,
-      image: error_default,
-      title: message,
-      dissmisable: false
-    });
+  showError() {
   }
   /**
    *  Hides the error message
    */
   hideError() {
-    this.overlay.hide(IDS.ERROR);
   }
   /**
    * Rotates the view to specific position
@@ -5816,14 +3962,6 @@ var Viewer = class extends TypedEventTarget {
     this.state.keyboardEnabled = false;
   }
   /**
-   * Creates a new tooltip
-   * @description Use {@link Tooltip.move} to update the tooltip without re-create
-   * @throws {@link PSVError} if the configuration is invalid
-   */
-  createTooltip(config) {
-    return new Tooltip(this, config);
-  }
-  /**
    * Subscribes to events on objects in the three.js scene
    * @param userDataKey - only objects with the following `userData` will be observed
    */
@@ -5848,8 +3986,6 @@ var Viewer = class extends TypedEventTarget {
 };
 export {
   AbstractAdapter,
-  AbstractButton,
-  AbstractComponent,
   AbstractConfigurablePlugin,
   AbstractPlugin,
   constants_exports as CONSTANTS,
@@ -5860,7 +3996,6 @@ export {
   TypedEvent,
   Viewer,
   events_exports as events,
-  registerButton,
   utils_exports as utils
 };
 //# sourceMappingURL=index.module.js.map

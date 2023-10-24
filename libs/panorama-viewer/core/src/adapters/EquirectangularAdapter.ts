@@ -84,10 +84,10 @@ export class EquirectangularAdapter extends AbstractAdapter<string, Texture> {
         let xmpPanoData: PanoData;
 
         if (useXmpPanoData) {
-            xmpPanoData = await this.loadXMP(panorama, (p) => this.viewer.loader.setProgress(p));
+            xmpPanoData = await this.loadXMP(panorama);
             img = await this.viewer.textureLoader.loadImage(panorama);
         } else {
-            img = await this.viewer.textureLoader.loadImage(panorama, (p) => this.viewer.loader.setProgress(p));
+            img = await this.viewer.textureLoader.loadImage(panorama);
         }
 
         if (typeof newPanoData === 'function') {

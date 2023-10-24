@@ -1,5 +1,4 @@
 import { Mesh } from 'three';
-import { Tooltip, TooltipConfig } from './components/Tooltip';
 import { TypedEvent } from './lib/TypedEventTarget';
 import { ClickData, Point, Position, Size, TextureData, ViewerConfig } from './model';
 import type { Viewer } from './Viewer';
@@ -160,22 +159,6 @@ export class HidePanelEvent extends ViewerEvent {
 }
 
 /**
- * @event Triggered when a tooltip is hidden
- */
-export class HideTooltipEvent extends ViewerEvent {
-    static override readonly type = 'hide-tooltip';
-    override type: 'hide-tooltip';
-
-    /** @internal */
-    constructor(
-        /** Userdata associated to the tooltip */
-        public readonly tooltipData: TooltipConfig['data']
-    ) {
-        super(HideTooltipEvent.type);
-    }
-}
-
-/**
  * @event Triggered when a key is pressed, can be cancelled
  */
 export class KeypressEvent extends ViewerEvent {
@@ -293,24 +276,6 @@ export class ShowPanelEvent extends ViewerEvent {
 }
 
 /**
- * @event Triggered when a tooltip is shown
- */
-export class ShowTooltipEvent extends ViewerEvent {
-    static override readonly type = 'show-tooltip';
-    override type: 'show-tooltip';
-
-    /** @internal */
-    constructor(
-        /** Instance of the tooltip */
-        public readonly tooltip: Tooltip,
-        /** Userdata associated to the tooltip */
-        public readonly tooltipData?: TooltipConfig['data']
-    ) {
-        super(ShowTooltipEvent.type);
-    }
-}
-
-/**
  * @event Triggered when the viewer size changes
  */
 export class SizeUpdatedEvent extends ViewerEvent {
@@ -423,7 +388,6 @@ export type ViewerEvents =
     | HideNotificationEvent
     | HideOverlayEvent
     | HidePanelEvent
-    | HideTooltipEvent
     | KeypressEvent
     | LoadProgressEvent
     | PanoramaLoadedEvent
@@ -433,7 +397,6 @@ export type ViewerEvents =
     | ShowNotificationEvent
     | ShowOverlayEvent
     | ShowPanelEvent
-    | ShowTooltipEvent
     | SizeUpdatedEvent
     | StopAllEvent
     | ZoomUpdatedEvent

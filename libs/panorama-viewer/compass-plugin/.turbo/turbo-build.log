@@ -18,16 +18,16 @@ ASSET dist/LICENSE
 ASSET dist/.npmrc
 ASSET dist/README.md
 ASSET dist/package.json
+[32mIIFE[39m [1mdist\index.css     [22m[32m1.01 KB[39m
+[32mIIFE[39m [1mdist\index.js      [22m[32m11.99 KB[39m
+[32mIIFE[39m [1mdist\index.css.map [22m[32m5.74 KB[39m
+[32mIIFE[39m [1mdist\index.js.map  [22m[32m19.03 KB[39m
+[32mIIFE[39m ⚡️ Build success in 145ms
 [32mESM[39m [1mdist\index.module.js     [22m[32m9.72 KB[39m
 [32mESM[39m [1mdist\index.css           [22m[32m1.01 KB[39m
-[32mESM[39m [1mdist\index.module.js.map [22m[32m18.66 KB[39m
 [32mESM[39m [1mdist\index.css.map       [22m[32m5.74 KB[39m
-[32mESM[39m ⚡️ Build success in 156ms
-[32mIIFE[39m [1mdist\index.js      [22m[32m11.99 KB[39m
-[32mIIFE[39m [1mdist\index.css     [22m[32m1.01 KB[39m
-[32mIIFE[39m [1mdist\index.js.map  [22m[32m19.03 KB[39m
-[32mIIFE[39m [1mdist\index.css.map [22m[32m5.74 KB[39m
-[32mIIFE[39m ⚡️ Build success in 156ms
+[32mESM[39m [1mdist\index.module.js.map [22m[32m18.66 KB[39m
+[32mESM[39m ⚡️ Build success in 153ms
 [34mDTS[39m Build start
-[32mDTS[39m ⚡️ Build success in 4215ms
+[32mDTS[39m ⚡️ Build success in 4305ms
 [32mDTS[39m [1mdist\index.d.ts [22m[32m2.38 KB[39m
