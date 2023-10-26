@@ -64,7 +64,7 @@ export class Renderer extends AbstractService {
         this.renderer.setPixelRatio(SYSTEM.pixelRatio);
         this.renderer.domElement.className = 'psv-canvas';
 
-        this.scene = new Scene();
+        this.scene = this.viewer.scene || new Scene();
 
         this.camera = this.viewer.camera || new PerspectiveCamera(50, 16 / 9, 0.1, 2 * SPHERE_RADIUS);
 

@@ -1,4 +1,4 @@
-import { Group, Object3D, PerspectiveCamera, Texture, WebGLRenderer } from 'three';
+import { Group, Object3D, PerspectiveCamera, Scene, Texture } from 'three';
 import { AdapterConstructor } from './adapters/AbstractAdapter';
 import { ACTIONS } from './data/constants';
 import { PluginConstructor } from './plugins/AbstractPlugin';
@@ -266,6 +266,7 @@ export type ViewerConfig = {
     container: HTMLElement | string;
     camera?: PerspectiveCamera;
     meshContainer?: Group;
+    scene?: Scene;
     panorama?: any;
     overlay?: any;
     /** @default 1 */

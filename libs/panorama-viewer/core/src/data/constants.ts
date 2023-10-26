@@ -51,7 +51,7 @@ export const INERTIA_WINDOW = 300;
 /**
  * Radius of the SphereGeometry, Half-length of the BoxGeometry
  */
-export const SPHERE_RADIUS = 10;
+export const SPHERE_RADIUS = 1;
 
 /**
  * Property name added to viewer element

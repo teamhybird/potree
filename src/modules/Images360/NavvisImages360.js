@@ -241,19 +241,28 @@ export class NavvisImages360 extends EventDispatcher {
         console.log('360 image activee!!!');
         this.viewer.showLoadingScreen(true);
         this.node.remove(this.sphere);
-        const viewer = this.load(image360);
-        previousImage360 = image360;
-        this.sphere.visible = true;
-        this.viewer.showLoadingScreen(false);
-
-        // this.sphere.visible = true;
-        // console.log(viewer.renderer.mesh);
-        // this.sphere = viewer.renderer.mesh;
-        // this.sphere.scale.set(1, 1, 1);
-        this.sphere.add(new THREE.AxesHelper(3));
-        this.node.add(this.sphere);
-        // viewer.renderer.mesh.add(new THREE.AxesHelper(3));
-        // this.node.add(viewer.renderer.mesh);
+        this.load(image360)
+          .then(() => {
+            if (!this.view360Enabled) {
+              throw new Error("ABORTED: Image loaded but couldn't be renderered because the view was switched in the meantime while the image was loading");
+            }
+            this.sphere.visible = true;
+            this.sphere.add(new THREE.AxesHelper(3));
+            this.node.add(this.sphere);
+            for (const footprint of this.footprints) {
+              footprint.visible = true;
+            }
+            // reset fov whenever in 360 view and 360 image is loaded
+            if (previousFOV) {
+              this.viewer.setFOV(previousFOV);
+            }
+            this.viewer.showLoadingScreen(false);
+          })
+          .catch((e) => {
+            console.log(e);
+            this.view360Enabled = false;
+            this.viewer.showLoadingScreen(false);
+          });
 
         // this.load(image360)
         //   .then(() => {
@@ -351,7 +360,6 @@ export class NavvisImages360 extends EventDispatcher {
   }
 
   load(image360) {
-    console.log(image360);
     const pano = {
       minFov: 30,
       options: {
@@ -415,19 +423,18 @@ export class NavvisImages360 extends EventDispatcher {
       loadingImg: 'https://photo-sphere-viewer-data.netlify.app/assets/loader.gif',
     });
     viewer.setOption('minFov', pano.minFov);
-    viewer.setPanorama(pano.config, pano.options);
     console.log('HELLOOO', viewer.renderer);
-    return viewer;
+    return viewer.setPanorama(pano.config, pano.options);
 
-    return new Promise((resolve, reject) => {
-      let texture = new THREE.TextureLoader().load(image360.file, resolve, undefined, (err) => {
-        reject(err);
-      });
-      texture.wrapS = THREE.RepeatWrapping;
-      texture.repeat.x = -1;
+    // return new Promise((resolve, reject) => {
+    //   let texture = new THREE.TextureLoader().load(image360.file, resolve, undefined, (err) => {
+    //     reject(err);
+    //   });
+    //   texture.wrapS = THREE.RepeatWrapping;
+    //   texture.repeat.x = -1;
 
-      image360.texture = texture;
-    });
+    //   image360.texture = texture;
+    // });
   }
 
   handleHovering() {

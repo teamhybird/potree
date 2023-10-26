@@ -66,7 +66,7 @@ var LONGTOUCH_DELAY = 500;
 var TWOFINGERSOVERLAY_DELAY = 100;
 var CTRLZOOM_TIMEOUT = 2e3;
 var INERTIA_WINDOW = 300;
-var SPHERE_RADIUS = 10;
+var SPHERE_RADIUS = 1;
 var VIEWER_DATA = "photoSphereViewer";
 var ACTIONS = /* @__PURE__ */ ((ACTIONS2) => {
   ACTIONS2["ROTATE_UP"] = "ROTATE_UP";
@@ -1948,6 +1948,7 @@ var DEFAULTS = {
   container: null,
   camera: null,
   meshContainer: null,
+  scene: null,
   adapter: [EquirectangularAdapter, null],
   plugins: [],
   caption: null,
@@ -2948,7 +2949,7 @@ var Renderer = class extends AbstractService {
     this.renderer = new WebGLRenderer({ alpha: true, antialias: true });
     this.renderer.setPixelRatio(SYSTEM.pixelRatio);
     this.renderer.domElement.className = "psv-canvas";
-    this.scene = new Scene();
+    this.scene = this.viewer.scene || new Scene();
     this.camera = this.viewer.camera || new PerspectiveCamera(50, 16 / 9, 0.1, 2 * SPHERE_RADIUS);
     this.mesh = this.viewer.adapter.createMesh();
     this.mesh.userData = { [VIEWER_DATA]: true };
@@ -3468,6 +3469,7 @@ var Viewer = class extends TypedEventTarget {
     this.container = this.parent;
     this.camera = config.camera;
     this.meshContainer = config.meshContainer;
+    this.scene = config.scene;
     this.adapter = new this.config.adapter[0](this, this.config.adapter[1]);
     this.renderer = new Renderer(this);
     this.textureLoader = new TextureLoader(this);
