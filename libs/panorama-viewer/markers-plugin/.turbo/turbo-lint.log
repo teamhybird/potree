@@ -1,6 +1,0 @@
-$ eslint . --fix && stylelint "src/**/*.scss" --fix
-
-[33mDeprecation warnings:[39m
- [2m-[22m The "string-quotes" rule is deprecated.
- [2m-[22m The "indentation" rule is deprecated.
-

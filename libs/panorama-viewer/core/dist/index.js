@@ -104,7 +104,7 @@
   var TWOFINGERSOVERLAY_DELAY = 100;
   var CTRLZOOM_TIMEOUT = 2e3;
   var INERTIA_WINDOW = 300;
-  var SPHERE_RADIUS = 1;
+  var SPHERE_RADIUS = 1.2;
   var VIEWER_DATA = "photoSphereViewer";
   var ACTIONS = /* @__PURE__ */ ((ACTIONS2) => {
     ACTIONS2["ROTATE_UP"] = "ROTATE_UP";
@@ -3485,6 +3485,7 @@ void main() {
   };
 
   // src/Viewer.ts
+  var import_three12 = require_three();
   var Viewer = class extends TypedEventTarget {
     constructor(config) {
       super();
@@ -3593,7 +3594,7 @@ void main() {
      * Returns the current zoom level
      */
     getZoomLevel() {
-      return this.dynamics.zoom.current;
+      return import_three12.MathUtils.clamp(this.config.maxFov - this.camera.fov, 0, 100);
     }
     /**
      * Returns the current viewer size

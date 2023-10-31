@@ -66,7 +66,7 @@ var LONGTOUCH_DELAY = 500;
 var TWOFINGERSOVERLAY_DELAY = 100;
 var CTRLZOOM_TIMEOUT = 2e3;
 var INERTIA_WINDOW = 300;
-var SPHERE_RADIUS = 1;
+var SPHERE_RADIUS = 1.2;
 var VIEWER_DATA = "photoSphereViewer";
 var ACTIONS = /* @__PURE__ */ ((ACTIONS2) => {
   ACTIONS2["ROTATE_UP"] = "ROTATE_UP";
@@ -3456,6 +3456,7 @@ var ViewerState = class {
 };
 
 // src/Viewer.ts
+import { MathUtils as MathUtils8 } from "three";
 var Viewer = class extends TypedEventTarget {
   constructor(config) {
     super();
@@ -3564,7 +3565,7 @@ var Viewer = class extends TypedEventTarget {
    * Returns the current zoom level
    */
   getZoomLevel() {
-    return this.dynamics.zoom.current;
+    return MathUtils8.clamp(this.config.maxFov - this.camera.fov, 0, 100);
   }
   /**
    * Returns the current viewer size

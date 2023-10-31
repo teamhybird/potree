@@ -27,7 +27,7 @@ export class PanoControls extends EventDispatcher {
     this.scene = null;
     this.sceneControls = new THREE.Scene();
 
-    this.rotationSpeed = 200;
+    this.rotationSpeed = 10;
     this.moveSpeed = 10;
 
     this.fadeFactor = 50;
@@ -40,9 +40,10 @@ export class PanoControls extends EventDispatcher {
     this.tweens = [];
 
     let drag = (e) => {
-      if (e.drag.object !== null) {
-        return;
-      }
+      // if (e.drag.object !== null) {
+      //   return;
+      // }
+      let view = this.scene.view;
 
       if (e.drag.startHandled === undefined) {
         e.drag.startHandled = true;
@@ -56,8 +57,18 @@ export class PanoControls extends EventDispatcher {
       };
 
       if (e.drag.mouse === MOUSE.LEFT) {
-        this.yawDelta += ndrag.x * this.rotationSpeed;
+        let yawDelta = ndrag.x * this.rotationSpeed * 0.5;
         this.pitchDelta += ndrag.y * this.rotationSpeed;
+        let pitchDelta = ndrag.y * this.rotationSpeed * 0.2;
+        {
+          // apply rotation
+          let yaw = view.yaw;
+          let pitch = view.pitch;
+          yaw -= yawDelta;
+          pitch -= pitchDelta;
+          view.yaw = yaw;
+          view.pitch = THREE.Math.clamp(pitch, -Math.PI / 2, Math.PI / 2);
+        }
       }
     };
 
@@ -77,6 +88,7 @@ export class PanoControls extends EventDispatcher {
       fov = Math.min(Math.max(fov, 10), 100);
 
       this.viewer.setFOV(fov);
+      this.rotationSpeed = fov / 10;
 
       if (this.scrollTimer !== null) {
         clearTimeout(this.scrollTimer);
@@ -123,17 +135,17 @@ export class PanoControls extends EventDispatcher {
       }
     }
 
-    {
-      // apply rotation
-      let yaw = view.yaw;
-      let pitch = view.pitch;
+    // {
+    //   // apply rotation
+    //   let yaw = view.yaw;
+    //   let pitch = view.pitch;
 
-      yaw -= this.yawDelta * delta;
-      pitch -= this.pitchDelta * delta;
+    //   yaw -= this.yawDelta * delta;
+    //   pitch -= this.pitchDelta * delta;
 
-      view.yaw = yaw;
-      view.pitch = pitch;
-    }
+    //   view.yaw = yaw;
+    //   view.pitch = pitch;
+    // }
 
     {
       // apply translation

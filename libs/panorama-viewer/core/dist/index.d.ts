@@ -35,7 +35,7 @@ declare const INERTIA_WINDOW = 300;
 /**
  * Radius of the SphereGeometry, Half-length of the BoxGeometry
  */
-declare const SPHERE_RADIUS = 1;
+declare const SPHERE_RADIUS = 1.2;
 /**
  * Property name added to viewer element
  */
