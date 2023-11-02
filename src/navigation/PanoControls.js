@@ -27,7 +27,6 @@ export class PanoControls extends EventDispatcher {
     this.scene = null;
     this.sceneControls = new THREE.Scene();
 
-    this.rotationSpeed = 10;
     this.moveSpeed = 10;
 
     this.fadeFactor = 50;
@@ -57,9 +56,10 @@ export class PanoControls extends EventDispatcher {
       };
 
       if (e.drag.mouse === MOUSE.LEFT) {
-        let yawDelta = ndrag.x * this.rotationSpeed * 0.5;
-        this.pitchDelta += ndrag.y * this.rotationSpeed;
-        let pitchDelta = ndrag.y * this.rotationSpeed * 0.2;
+        const rotationSpeed = this.viewer.getFOV() / 10;
+        let yawDelta = ndrag.x * rotationSpeed * 0.5;
+        this.pitchDelta += ndrag.y * rotationSpeed;
+        let pitchDelta = ndrag.y * rotationSpeed * 0.2;
         {
           // apply rotation
           let yaw = view.yaw;
@@ -88,7 +88,6 @@ export class PanoControls extends EventDispatcher {
       fov = Math.min(Math.max(fov, 10), 100);
 
       this.viewer.setFOV(fov);
-      this.rotationSpeed = fov / 10;
 
       if (this.scrollTimer !== null) {
         clearTimeout(this.scrollTimer);

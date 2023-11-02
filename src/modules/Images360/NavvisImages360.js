@@ -67,20 +67,21 @@ export class NavvisImages360 extends EventDispatcher {
     this.scene.name = 'scene_360_images';
     this.light = new THREE.PointLight(0xffffff, 1.0);
     this.scene.add(this.light);
+    let camera = this.viewer.scene.getActiveCamera();
     this.photoSphereViewer = new PhotoSphereViewer.Viewer({
       container: 'potree_render_area',
-      camera: this.viewer.scene.cameraP,
+      camera: camera,
       meshContainer: this.sphere,
+      potreeViewer: this.viewer,
       adapter: [
         PhotoSphereViewer.EquirectangularTilesAdapter,
         {
           // showErrorTile: true,
-          baseBlur: true,
-          // resolution: 216,
+          // baseBlur: true,
+          resolution: 32,
           // debug: true,
         },
       ],
-      // plugins: [PhotoSphereViewer.GyroscopePlugin],
       loadingImg: 'https://photo-sphere-viewer-data.netlify.app/assets/loader.gif',
     });
 
@@ -251,6 +252,27 @@ export class NavvisImages360 extends EventDispatcher {
 
     this.sphere.visible = true;
 
+    const setSpherePositionAndRotation = () => {
+      {
+        // orientation
+        let { panoX, panoY, panoZ, panoW } = image360;
+
+        this.sphere.setRotationFromQuaternion(new THREE.Quaternion(panoX, panoY, panoZ, panoW));
+        this.sphere.rotateX(THREE.Math.degToRad(90));
+        this.sphere.rotateY(THREE.Math.degToRad(90)); // Texture is rotated by 90 degrees on Y axis
+      }
+      let { panoLongitude, panoLatitude, panoAltitude } = image360;
+
+      this.sphere.position.set(panoLongitude, panoLatitude, panoAltitude);
+
+      let target = new THREE.Vector3().copy(this.sphere.position);
+      let dir = target.clone().sub(this.viewer.scene.view.position).normalize();
+      let move = dir.multiplyScalar(0.000001);
+      let newCamPos = target.clone().sub(move);
+
+      this.setView(newCamPos, null, this.view360Enabled ? 0 : withAnimation ? 500 : 0);
+    };
+
     const moveToTarget = () => {
       this.sphere.visible = false;
 
@@ -271,6 +293,7 @@ export class NavvisImages360 extends EventDispatcher {
             if (previousFOV) {
               this.viewer.setFOV(previousFOV);
             }
+            setSpherePositionAndRotation();
             this.viewer.showLoadingScreen(false);
           })
           .catch((e) => {
@@ -307,26 +330,8 @@ export class NavvisImages360 extends EventDispatcher {
         for (const footprint of this.footprints) {
           footprint.visible = true;
         }
+        setSpherePositionAndRotation();
       }
-
-      {
-        // orientation
-        let { panoX, panoY, panoZ, panoW } = image360;
-
-        this.sphere.setRotationFromQuaternion(new THREE.Quaternion(panoX, panoY, panoZ, panoW));
-        this.sphere.rotateX(THREE.Math.degToRad(90));
-        this.sphere.rotateY(THREE.Math.degToRad(90)); // Texture is rotated by 90 degrees on Y axis
-      }
-      let { panoLongitude, panoLatitude, panoAltitude } = image360;
-
-      this.sphere.position.set(panoLongitude, panoLatitude, panoAltitude);
-
-      let target = new THREE.Vector3().copy(this.sphere.position);
-      let dir = target.clone().sub(this.viewer.scene.view.position).normalize();
-      let move = dir.multiplyScalar(0.000001);
-      let newCamPos = target.clone().sub(move);
-
-      this.setView(newCamPos, null, this.view360Enabled ? 0 : withAnimation ? 500 : 0);
     };
 
     if (this.view360Enabled && previousImage360) {
@@ -375,6 +380,8 @@ export class NavvisImages360 extends EventDispatcher {
   }
 
   async load(image360) {
+    const cols = 8,
+      rows = 4;
     const imageTilesUrls = [];
     if (this.fetchTiles) {
       try {
@@ -392,7 +399,7 @@ export class NavvisImages360 extends EventDispatcher {
             url: tile.URL,
           });
           count++;
-          if (count > 31) {
+          if (count > cols * rows - 1) {
             count = 0;
             resolutionIndex++;
           }
@@ -402,40 +409,38 @@ export class NavvisImages360 extends EventDispatcher {
           minFov: 0,
           maxFov: 100,
           config: {
-            width: 8192,
-            cols: 8,
-            rows: 4,
+            width: 256 * cols,
+            cols: cols,
+            rows: rows,
             levels: [
               {
-                width: 4096, // 128
-                cols: 8,
-                rows: 4,
+                width: 128 * cols, // 128 * cols
+                cols: cols,
+                rows: rows,
                 zoomRange: [0, 20],
               },
               {
-                width: 8192, // 256
-                cols: 8,
-                rows: 4,
+                width: 256 * cols, // 256 * cols
+                cols: cols,
+                rows: rows,
                 zoomRange: [20, 50],
               },
               {
-                width: 16384, // 512
-                cols: 8,
-                rows: 4,
+                width: 512 * cols, // 512 * cols
+                cols: cols,
+                rows: rows,
                 zoomRange: [50, 70],
               },
               {
-                width: 32768, // 1024
-                cols: 8,
-                rows: 4,
+                width: 1024 * cols, // 1024 * cols
+                cols: cols,
+                rows: rows,
                 zoomRange: [70, 100],
               },
             ],
 
             tileUrl: (col, row, level) => {
-              const imageNum = 0;
-              const num = row * 8 + (7 - col);
-              // return `${Potree.resourcePath}/assets/tiles/r${level}/0/${String(imageNum).padStart(5, '0')}-pano-tex-r${level}-${String(num).padStart(2, '0')}.jpg`;
+              const num = row * 8 + col;
               const foundIndex = imageTilesUrls.findIndex((tile) => tile.resolution === level && tile.imageNum === num);
               if (foundIndex > -1) {
                 return imageTilesUrls[foundIndex].url;
@@ -456,6 +461,60 @@ export class NavvisImages360 extends EventDispatcher {
         return null;
       }
     }
+
+    // // TEMP - FOR LOCAL TESTING
+    // const pano = {
+    //   minFov: 0,
+    //   maxFov: 100,
+    //   config: {
+    //     levels: [
+    //       {
+    //         width: 128 * cols, // 128 * cols
+    //         cols: cols,
+    //         rows: rows,
+    //         zoomRange: [0, 20],
+    //       },
+    //       {
+    //         width: 256 * cols, // 256 * cols
+    //         cols: cols,
+    //         rows: rows,
+    //         zoomRange: [20, 50],
+    //       },
+    //       {
+    //         width: 512 * cols, // 512 * cols
+    //         cols: cols,
+    //         rows: rows,
+    //         zoomRange: [50, 70],
+    //       },
+    //       {
+    //         width: 1024 * cols, // 1024 * cols
+    //         cols: cols,
+    //         rows: rows,
+    //         zoomRange: [70, 100],
+    //       },
+    //     ],
+
+    //     tileUrl: (col, row, level) => {
+    //       const imageNum = 0;
+    //       const num = row * 8 + (7 - col);
+    //       return `${Potree.resourcePath}/assets/tiles/r${level}/0/${String(imageNum).padStart(5, '0')}-pano-tex-r${level}-${String(num).padStart(2, '0')}.jpg`;
+    //       // const foundIndex = imageTilesUrls.findIndex((tile) => tile.resolution === level && tile.imageNum === num);
+    //       // if (foundIndex > -1) {
+    //       //   return imageTilesUrls[foundIndex].url;
+    //       // } else {
+    //       //   console.warn('Tile not found', level, num);
+    //       //   return null;
+    //       // }
+    //     },
+    //   },
+    // };
+
+    // this.photoSphereViewer.setOption('minFov', pano.minFov);
+    // this.photoSphereViewer.setOption('maxFov', pano.maxFov);
+    // await this.photoSphereViewer.setPanorama(pano.config, pano.options);
+    // console.log('SET PANORAMA');
+    // return null;
+    // //TEMP
 
     // return new Promise((resolve, reject) => {
     //   let texture = new THREE.TextureLoader().load(image360.file, resolve, undefined, (err) => {

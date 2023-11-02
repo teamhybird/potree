@@ -1,4 +1,4 @@
-import { Mesh, Vector3, Euler, WebGLRenderer, Renderer as Renderer$1, Intersection, Object3D, PerspectiveCamera, Group, Scene, Texture, BufferGeometry, ShaderMaterial } from 'three';
+import { Mesh, Vector3, Group, Euler, WebGLRenderer, Renderer as Renderer$1, Intersection, Object3D, PerspectiveCamera, Scene, Texture, BufferGeometry, ShaderMaterial } from 'three';
 
 /**
  * Default duration of the transition between panoramas
@@ -666,8 +666,8 @@ declare class DataHelper extends AbstractService {
 declare class Renderer extends AbstractService {
     private readonly renderer;
     private readonly scene;
-    private readonly mesh;
-    private readonly meshContainer;
+    readonly mesh: Mesh;
+    readonly meshContainer: Group;
     private readonly raycaster;
     private readonly container;
     private timestamp?;
@@ -745,6 +745,7 @@ declare class Viewer extends TypedEventTarget<ViewerEvents> {
     readonly container: HTMLElement;
     readonly camera: PerspectiveCamera;
     readonly meshContainer: Group;
+    readonly potreeViewer: any;
     readonly scene: Scene;
     readonly renderer: Renderer;
     readonly textureLoader: TextureLoader;
@@ -862,6 +863,11 @@ declare class Viewer extends TypedEventTarget<ViewerEvents> {
      * Enters or exits the fullscreen mode
      */
     toggleFullscreen(): void;
+    /**
+     * Sets camera direction
+     * @param direction - new camera direction
+     */
+    setDirection(direction: Vector3): void;
     /**
      * Enables the keyboard controls
      */
@@ -1189,6 +1195,7 @@ type ViewerConfig = {
     container: HTMLElement | string;
     camera?: PerspectiveCamera;
     meshContainer?: Group;
+    potreeViewer?: any;
     scene?: Scene;
     panorama?: any;
     overlay?: any;

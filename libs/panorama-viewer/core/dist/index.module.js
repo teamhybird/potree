@@ -416,7 +416,7 @@ function isObject(obj) {
 }
 
 // src/utils/psv.ts
-import { LinearFilter, MathUtils, Quaternion, RepeatWrapping, Texture } from "three";
+import { EquirectangularReflectionMapping, LinearFilter, MathUtils, Quaternion, Texture } from "three";
 
 // src/PSVError.ts
 var PSVError = class extends Error {
@@ -633,8 +633,7 @@ function createTexture(img) {
   texture.needsUpdate = true;
   texture.minFilter = LinearFilter;
   texture.generateMipmaps = false;
-  texture.wrapS = RepeatWrapping;
-  texture.repeat.x = -1;
+  texture.mapping = EquirectangularReflectionMapping;
   return texture;
 }
 var quaternion = new Quaternion();
@@ -1948,6 +1947,7 @@ var DEFAULTS = {
   container: null,
   camera: null,
   meshContainer: null,
+  potreeViewer: null,
   scene: null,
   adapter: [EquirectangularAdapter, null],
   plugins: [],
@@ -2354,9 +2354,6 @@ import { MathUtils as MathUtils6, SplineCurve, Vector2 } from "three";
 // src/icons/gesture.svg
 var gesture_default = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="currentColor" d="M33.38 33.2a1.96 1.96 0 0 0 1.5-3.23 10.61 10.61 0 0 1 7.18-17.51c.7-.06 1.31-.49 1.61-1.12a13.02 13.02 0 0 1 11.74-7.43c7.14 0 12.96 5.8 12.96 12.9 0 3.07-1.1 6.05-3.1 8.38-.7.82-.61 2.05.21 2.76.83.7 2.07.6 2.78-.22a16.77 16.77 0 0 0 4.04-10.91C72.3 7.54 64.72 0 55.4 0a16.98 16.98 0 0 0-14.79 8.7 14.6 14.6 0 0 0-12.23 14.36c0 3.46 1.25 6.82 3.5 9.45.4.45.94.69 1.5.69m45.74 43.55a22.13 22.13 0 0 1-5.23 12.4c-4 4.55-9.53 6.86-16.42 6.86-12.6 0-20.1-10.8-20.17-10.91a1.82 1.82 0 0 0-.08-.1c-5.3-6.83-14.55-23.82-17.27-28.87-.05-.1 0-.21.02-.23a6.3 6.3 0 0 1 8.24 1.85l9.38 12.59a1.97 1.97 0 0 0 3.54-1.17V25.34a4 4 0 0 1 1.19-2.87 3.32 3.32 0 0 1 2.4-.95c1.88.05 3.4 1.82 3.4 3.94v24.32a1.96 1.96 0 0 0 3.93 0v-33.1a3.5 3.5 0 0 1 7 0v35.39a1.96 1.96 0 0 0 3.93 0v-.44c.05-2.05 1.6-3.7 3.49-3.7 1.93 0 3.5 1.7 3.5 3.82v5.63c0 .24.04.48.13.71l.1.26a1.97 1.97 0 0 0 3.76-.37c.33-1.78 1.77-3.07 3.43-3.07 1.9 0 3.45 1.67 3.5 3.74l-1.77 18.1zM77.39 51c-1.25 0-2.45.32-3.5.9v-.15c0-4.27-3.33-7.74-7.42-7.74-1.26 0-2.45.33-3.5.9V16.69a7.42 7.42 0 0 0-14.85 0v1.86a7 7 0 0 0-3.28-.94 7.21 7.21 0 0 0-5.26 2.07 7.92 7.92 0 0 0-2.38 5.67v37.9l-5.83-7.82a10.2 10.2 0 0 0-13.35-2.92 4.1 4.1 0 0 0-1.53 5.48C20 64.52 28.74 80.45 34.07 87.34c.72 1.04 9.02 12.59 23.4 12.59 7.96 0 14.66-2.84 19.38-8.2a26.06 26.06 0 0 0 6.18-14.6l1.78-18.2v-.2c0-4.26-3.32-7.73-7.42-7.73z"/><!--Created by AomAm from the Noun Project--></svg>\n';
 
-// src/icons/mousewheel.svg
-var mousewheel_default = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 17 79 79"><path fill="currentColor" d="M38.1 29.27c-.24 0-.44.2-.44.45v10.7a.45.45 0 00.9 0v-10.7c0-.25-.2-.45-.45-.45zm10.2 26.66a11.54 11.54 0 01-8.48-6.14.45.45 0 10-.8.41 12.45 12.45 0 009.22 6.62.45.45 0 00.07-.9zm24.55-13.08a23.04 23.04 0 00-22.56-23v7.07l-.01.05a2.83 2.83 0 012.39 2.78v14.03l.09-.02h8.84v-9.22a.45.45 0 11.9 0v9.22h10.35v-.9zm0 27.33V44.66H62.5c-.02 2.01-.52 4-1.47 5.76a.45.45 0 01-.61.18.45.45 0 01-.19-.61 11.54 11.54 0 001.36-5.33h-8.83l-.1-.01a2.83 2.83 0 01-2.83 2.84h-.04-.04a2.83 2.83 0 01-2.83-2.83v-14.9a2.82 2.82 0 012.47-2.8v-7.11a23.04 23.04 0 00-22.57 23v.91h14.72V29.88a8.2 8.2 0 015.02-7.57c.22-.1.5.01.59.24.1.23-.01.5-.24.6a7.3 7.3 0 00-4.47 6.73v13.88h3.9a.45.45 0 110 .9h-3.9v.15a7.32 7.32 0 0011.23 6.17.45.45 0 01.49.76 8.22 8.22 0 01-12.62-6.93v-.15H26.82v25.52a23.04 23.04 0 0023.01 23.01 23.04 23.04 0 0023.02-23.01zm1.8-27.33v27.33A24.85 24.85 0 0149.84 95a24.85 24.85 0 01-24.82-24.82V42.85a24.85 24.85 0 0124.82-24.82 24.85 24.85 0 0124.83 24.82zM57.98 29.88v9.36a.45.45 0 11-.9 0v-9.36a7.28 7.28 0 00-3.4-6.17.45.45 0 01.49-.76 8.18 8.18 0 013.8 6.93z"/><!-- Created by Icon Island from the Noun Project --></svg>\n';
-
 // src/services/EventsHandler.ts
 var EventsHandler = class extends AbstractService {
   constructor(viewer) {
@@ -2653,21 +2650,12 @@ var EventsHandler = class extends AbstractService {
     if (!this.config.mousewheel) {
       return;
     }
-    if (this.config.mousewheelCtrlKey && !this.data.ctrlKeyDown) {
-      this.viewer.overlay.show({
-        id: IDS.CTRL_ZOOM,
-        image: mousewheel_default,
-        title: this.config.lang.ctrlZoom
-      });
-      clearTimeout(this.data.ctrlZoomTimeout);
-      this.data.ctrlZoomTimeout = setTimeout(() => this.viewer.overlay.hide(IDS.CTRL_ZOOM), CTRLZOOM_TIMEOUT);
-      return;
-    }
     evt.preventDefault();
     evt.stopPropagation();
     const delta = evt.deltaY / Math.abs(evt.deltaY) * 5 * this.config.zoomSpeed;
     if (delta !== 0) {
       this.viewer.dynamics.zoom.step(-delta, 5);
+      this.viewer.zoom(this.viewer.dynamics.zoom.current);
     }
   }
   /**
@@ -2989,7 +2977,6 @@ var Renderer = class extends AbstractService {
   destroy() {
     this.renderer.setAnimationLoop(null);
     this.cleanScene(this.scene);
-    this.viewer.container.removeChild(this.container);
     this.viewer.removeEventListener(SizeUpdatedEvent.type, this);
     this.viewer.removeEventListener(ZoomUpdatedEvent.type, this);
     this.viewer.removeEventListener(PositionUpdatedEvent.type, this);
@@ -3044,26 +3031,21 @@ var Renderer = class extends AbstractService {
     } else {
       this.customRenderer = null;
     }
-    this.viewer.needsUpdate();
   }
   /**
    * Updates the size of the renderer and the aspect of the camera
    */
   __onSizeUpdated() {
-    this.renderer.setSize(this.state.size.width, this.state.size.height);
-    this.viewer.needsUpdate();
   }
   /**
    * Updates the fov of the camera
    */
   __onZoomUpdated() {
-    this.viewer.needsUpdate();
   }
   /**
    * Updates the position of the camera
    */
   __onPositionUpdated() {
-    this.viewer.needsUpdate();
   }
   /**
    * Main event loop, performs a render if `state.needsUpdate` is true
@@ -3072,7 +3054,6 @@ var Renderer = class extends AbstractService {
     const elapsed = !this.timestamp ? 0 : timestamp - this.timestamp;
     this.timestamp = timestamp;
     this.viewer.dispatchEvent(new BeforeRenderEvent(timestamp, elapsed));
-    this.viewer.dynamics.update(elapsed);
     if (this.state.needsUpdate) {
       (this.customRenderer || this.renderer).render(this.scene, this.camera);
       this.viewer.dispatchEvent(new RenderEvent());
@@ -3086,7 +3067,6 @@ var Renderer = class extends AbstractService {
   setTexture(textureData) {
     this.state.panoData = textureData.panoData;
     this.viewer.adapter.setTexture(this.mesh, textureData);
-    this.viewer.needsUpdate();
   }
   /**
    * Applies the overlay to the mesh
@@ -3094,7 +3074,6 @@ var Renderer = class extends AbstractService {
    */
   setOverlay(textureData, opacity) {
     this.viewer.adapter.setOverlay(this.mesh, textureData, opacity);
-    this.viewer.needsUpdate();
   }
   /**
    * Applies a panorama data pose to a Mesh
@@ -3470,6 +3449,7 @@ var Viewer = class extends TypedEventTarget {
     this.container = this.parent;
     this.camera = config.camera;
     this.meshContainer = config.meshContainer;
+    this.potreeViewer = config.potreeViewer;
     this.scene = config.scene;
     this.adapter = new this.config.adapter[0](this, this.config.adapter[1]);
     this.renderer = new Renderer(this);
@@ -3509,7 +3489,6 @@ var Viewer = class extends TypedEventTarget {
     this.dataHelper.destroy();
     this.adapter.destroy();
     this.dynamics.destroy();
-    this.parent.removeChild(this.container);
     delete this.parent[VIEWER_DATA];
   }
   init() {
@@ -3559,7 +3538,7 @@ var Viewer = class extends TypedEventTarget {
    * Returns the current position of the camera
    */
   getPosition() {
-    return this.dataHelper.cleanPosition(this.dynamics.position.current);
+    return this.dataHelper.cleanPosition({ yaw: this.potreeViewer.scene.view.yaw, pitch: this.potreeViewer.scene.view.pitch });
   }
   /**
    * Returns the current zoom level
@@ -3815,13 +3794,13 @@ var Viewer = class extends TypedEventTarget {
     if (e.defaultPrevented) {
       return;
     }
-    this.dynamics.position.setValue(e.position);
+    this.dispatchEvent(new PositionUpdatedEvent(e.position));
   }
   /**
    * Zooms to a specific level between `maxFov` and `minFov`
    */
   zoom(level) {
-    this.dynamics.zoom.setValue(level);
+    this.dispatchEvent(new ZoomUpdatedEvent(level));
   }
   /**
    * Increases the zoom level
@@ -3951,6 +3930,13 @@ var Viewer = class extends TypedEventTarget {
     } else {
       this.exitFullscreen();
     }
+  }
+  /**
+   * Sets camera direction
+   * @param direction - new camera direction
+   */
+  setDirection(direction) {
+    this.state.direction = direction;
   }
   /**
    * Enables the keyboard controls
