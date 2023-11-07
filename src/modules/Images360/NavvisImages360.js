@@ -67,23 +67,7 @@ export class NavvisImages360 extends EventDispatcher {
     this.scene.name = 'scene_360_images';
     this.light = new THREE.PointLight(0xffffff, 1.0);
     this.scene.add(this.light);
-    let camera = this.viewer.scene.getActiveCamera();
-    this.photoSphereViewer = new PhotoSphereViewer.Viewer({
-      container: 'potree_render_area',
-      camera: camera,
-      meshContainer: this.sphere,
-      potreeViewer: this.viewer,
-      adapter: [
-        PhotoSphereViewer.EquirectangularTilesAdapter,
-        {
-          // showErrorTile: true,
-          // baseBlur: true,
-          resolution: 32,
-          // debug: true,
-        },
-      ],
-      loadingImg: 'https://photo-sphere-viewer-data.netlify.app/assets/loader.gif',
-    });
+    this.photoSphereViewer = null;
 
     this.viewer.inputHandler.registerInteractiveScene(this.scene);
 
@@ -252,7 +236,7 @@ export class NavvisImages360 extends EventDispatcher {
 
     this.sphere.visible = true;
 
-    const setSpherePositionAndRotation = () => {
+    const setSpherePositionAndRotation = (callback = () => null) => {
       {
         // orientation
         let { panoX, panoY, panoZ, panoW } = image360;
@@ -270,7 +254,7 @@ export class NavvisImages360 extends EventDispatcher {
       let move = dir.multiplyScalar(0.000001);
       let newCamPos = target.clone().sub(move);
 
-      this.setView(newCamPos, null, this.view360Enabled ? 0 : withAnimation ? 500 : 0);
+      this.setView(newCamPos, null, this.view360Enabled ? 0 : withAnimation ? 500 : 0, callback);
     };
 
     const moveToTarget = () => {
@@ -278,6 +262,7 @@ export class NavvisImages360 extends EventDispatcher {
 
       if (this.view360Enabled) {
         this.viewer.showLoadingScreen(true);
+        setSpherePositionAndRotation();
         this.node.remove(this.sphere);
         this.load(image360)
           .then(() => {
@@ -293,7 +278,6 @@ export class NavvisImages360 extends EventDispatcher {
             if (previousFOV) {
               this.viewer.setFOV(previousFOV);
             }
-            setSpherePositionAndRotation();
             this.viewer.showLoadingScreen(false);
           })
           .catch((e) => {
@@ -438,7 +422,7 @@ export class NavvisImages360 extends EventDispatcher {
                 zoomRange: [70, 100],
               },
             ],
-
+            // baseUrl: image360.file,
             tileUrl: (col, row, level) => {
               const num = row * 8 + col;
               const foundIndex = imageTilesUrls.findIndex((tile) => tile.resolution === level && tile.imageNum === num);
@@ -452,6 +436,25 @@ export class NavvisImages360 extends EventDispatcher {
           },
         };
 
+        if (this.photoSphereViewer) {
+          this.photoSphereViewer.destroy();
+        }
+        let camera = this.viewer.scene.getActiveCamera();
+        this.photoSphereViewer = new PhotoSphereViewer.Viewer({
+          container: 'potree_render_area',
+          camera: camera,
+          meshContainer: this.sphere,
+          potreeViewer: this.viewer,
+          adapter: [
+            PhotoSphereViewer.EquirectangularTilesAdapter,
+            {
+              // showErrorTile: true,
+              // baseBlur: true,
+              resolution: 32,
+              // debug: true,
+            },
+          ],
+        });
         this.photoSphereViewer.setOption('minFov', pano.minFov);
         this.photoSphereViewer.setOption('maxFov', pano.maxFov);
         await this.photoSphereViewer.setPanorama(pano.config, pano.options);

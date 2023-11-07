@@ -352,7 +352,7 @@ var EquirectangularTilesAdapter = class extends AbstractAdapter {
       this.SPHERE_SEGMENTS,
       this.SPHERE_HORIZONTAL_SEGMENTS,
       -Math.PI / 2
-    ).scale(-1, 1, 1).toNonIndexed();
+    ).scale(-0.5, 0.5, 0.5).toNonIndexed();
     geometry.clearGroups();
     let i = 0;
     let k = 0;
@@ -446,6 +446,7 @@ var EquirectangularTilesAdapter = class extends AbstractAdapter {
         const segmentRow = Math.floor(segmentIndex / this.SPHERE_SEGMENTS);
         const segmentCol = segmentIndex - segmentRow * this.SPHERE_SEGMENTS;
         let config = tileConfig;
+        const highResConfig = isMultiTiles(panorama) ? getTileConfigByIndex(panorama, panorama.levels.length - 1, this) : null;
         while (config) {
           const row = Math.floor(segmentRow / config.facesByRow);
           const col = Math.floor(segmentCol / config.facesByCol);
@@ -469,6 +470,24 @@ var EquirectangularTilesAdapter = class extends AbstractAdapter {
             tile.url = panorama.tileUrl(col, row, config.level);
             if (tile.url) {
               tilesToLoad[id] = tile;
+              if (highResConfig && highResConfig.level !== config.level) {
+                const highResTile = {
+                  row,
+                  col,
+                  angle: angle * 2,
+                  config: highResConfig,
+                  url: null
+                };
+                const highResId = tileId(highResTile);
+                if (tilesToLoad[highResId]) {
+                  tilesToLoad[highResId].angle = Math.min(tilesToLoad[highResId].angle * 2, angle * 2);
+                } else {
+                  highResTile.url = panorama.tileUrl(col, row, highResConfig.level);
+                  if (highResTile.url) {
+                    tilesToLoad[highResId] = highResTile;
+                  }
+                }
+              }
               break;
             } else {
               config = getTileConfigByIndex(panorama, config.level - 1, this);

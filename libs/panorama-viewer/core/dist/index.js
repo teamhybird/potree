@@ -104,7 +104,7 @@
   var TWOFINGERSOVERLAY_DELAY = 100;
   var CTRLZOOM_TIMEOUT = 2e3;
   var INERTIA_WINDOW = 300;
-  var SPHERE_RADIUS = 1.2;
+  var SPHERE_RADIUS = 1;
   var VIEWER_DATA = "photoSphereViewer";
   var ACTIONS = /* @__PURE__ */ ((ACTIONS2) => {
     ACTIONS2["ROTATE_UP"] = "ROTATE_UP";
