@@ -322,7 +322,7 @@ export class NavvisImages360 extends EventDispatcher {
       let { panoLongitude, panoLatitude, panoAltitude } = image360;
       let target = new THREE.Vector3(panoLongitude, panoLatitude, panoAltitude);
       let dir = new THREE.Vector3().subVectors(target, this.viewer.scene.view.position).normalize();
-      let move = dir.multiplyScalar(0.2);
+      let move = dir.multiplyScalar(0.02);
       let newCamPos = this.viewer.scene.view.position.clone().add(move);
       // disable all footprints while animation is playing
       for (const footprint of this.footprints) {

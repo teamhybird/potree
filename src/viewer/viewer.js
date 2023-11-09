@@ -1994,6 +1994,10 @@ export class Viewer extends EventDispatcher {
         this.scene.cameraP.rotation.z = this.scene.view.yaw;
       }
 
+      // Update camera near and far plane in 360 view
+      if (controls === this.panoControls) {
+        camera.near = 0.01;
+      }
       this.scene.cameraO.position.copy(scene.view.position);
       this.scene.cameraO.rotation.order = 'ZXY';
       this.scene.cameraO.rotation.x = Math.PI / 2 + this.scene.view.pitch;
