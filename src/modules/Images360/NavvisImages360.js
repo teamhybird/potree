@@ -46,11 +46,12 @@ class Image360 {
 }
 
 export class NavvisImages360 extends EventDispatcher {
-  constructor(viewer, fetchTiles) {
+  constructor(viewer, fetchTiles, tilesDisabled) {
     super();
 
     this.viewer = viewer;
     this.fetchTiles = fetchTiles;
+    this.tilesDisabled = tilesDisabled;
 
     this.images = [];
     this.node = new THREE.Object3D();
@@ -369,25 +370,30 @@ export class NavvisImages360 extends EventDispatcher {
     const imageTilesUrls = [];
     if (this.fetchTiles) {
       try {
-        const res = await this.fetchTiles({
-          PanoramicImageID: image360.id,
-          ImageNumber: `${String(0).padStart(2, '0')}`,
-        });
-        const { Data } = res.data;
-        let resolutionIndex = 0;
-        let count = 0;
-        Data.forEach((tile, index) => {
-          imageTilesUrls.push({
-            imageNum: count,
-            resolution: resolutionIndex,
-            url: tile.URL,
+        let optionalPanoProps = {};
+        if (!this.tilesDisabled) {
+          const res = await this.fetchTiles({
+            PanoramicImageID: image360.id,
+            ImageNumber: `${String(0).padStart(2, '0')}`,
           });
-          count++;
-          if (count > cols * rows - 1) {
-            count = 0;
-            resolutionIndex++;
-          }
-        });
+          const { Data } = res.data;
+          let resolutionIndex = 0;
+          let count = 0;
+          Data.forEach((tile, index) => {
+            imageTilesUrls.push({
+              imageNum: count,
+              resolution: resolutionIndex,
+              url: tile.URL,
+            });
+            count++;
+            if (count > cols * rows - 1) {
+              count = 0;
+              resolutionIndex++;
+            }
+          });
+        } else {
+          optionalPanoProps.baseUrl = image360.file;
+        }
 
         const pano = {
           minFov: 0,
@@ -422,7 +428,6 @@ export class NavvisImages360 extends EventDispatcher {
                 zoomRange: [70, 100],
               },
             ],
-            // baseUrl: image360.file,
             tileUrl: (col, row, level) => {
               const num = row * 8 + col;
               const foundIndex = imageTilesUrls.findIndex((tile) => tile.resolution === level && tile.imageNum === num);
@@ -433,6 +438,7 @@ export class NavvisImages360 extends EventDispatcher {
                 return null;
               }
             },
+            ...optionalPanoProps,
           },
         };
 
@@ -639,14 +645,14 @@ export class NavvisImages360 extends EventDispatcher {
 }
 
 export class NavvisImages360Loader {
-  static async load(dataset, viewer, params = {}, fetchTiles) {
+  static async load(dataset, viewer, params = {}, fetchTiles = null, tilesDisabled = false) {
     if (!params.transform) {
       params.transform = {
         forward: (a) => a,
       };
     }
 
-    let images360 = new NavvisImages360(viewer, fetchTiles);
+    let images360 = new NavvisImages360(viewer, fetchTiles, tilesDisabled);
 
     for (const imageInfo of dataset.ImageInfos) {
       const file = imageInfo.ImageURL;
