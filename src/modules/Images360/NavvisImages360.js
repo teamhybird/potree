@@ -693,6 +693,7 @@ export class NavvisImages360Loader {
         opacity: images360.showFootprints ? footprintDefaultOpacity : 0,
         color: 0xffffff,
         alphaTest: footprintDefaultOpacity - 0.1,
+        side: THREE.DoubleSide,
       });
 
       const mesh = new THREE.Mesh(geometry, material);
