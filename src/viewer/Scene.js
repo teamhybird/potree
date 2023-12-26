@@ -5,10 +5,6 @@ import { View } from './View.js';
 import { Utils } from '../utils.js';
 import { EventDispatcher } from '../EventDispatcher.js';
 
-let measurementsAddedQueue = [];
-let measurementsDeletedQueue = [];
-let measurementsAddedQueueLoading = false;
-let measurementsDeletedQueueLoading = false;
 const batchNumber = 5;
 
 export class Scene extends EventDispatcher {
@@ -48,6 +44,10 @@ export class Scene extends EventDispatcher {
     this.deviceControls = null;
     this.panoControls = null;
     this.inputHandler = null;
+    this.measurementsAddedQueue = [];
+    this.measurementsDeletedQueue = [];
+    this.measurementsAddedQueueLoading = false;
+    this.measurementsDeletedQueueLoading = false;
 
     this.view = new View();
 
@@ -296,8 +296,8 @@ export class Scene extends EventDispatcher {
 
   addMeasurement(measurement) {
     // this.measurements.push(measurement);
-    measurementsAddedQueue.push({ measurement, event: 'added' });
-    if (!measurementsAddedQueueLoading) {
+    this.measurementsAddedQueue.push({ measurement, event: 'added' });
+    if (!this.measurementsAddedQueueLoading) {
       this.loadMeasurementsFromQueue();
     }
     // this.dispatchEvent({
@@ -308,31 +308,31 @@ export class Scene extends EventDispatcher {
   }
 
   removeMeasurement(measurement) {
-    // var foundIndex = measurementsAddedQueue.findIndex(({ measurement: m }) => m === measurement);
+    // var foundIndex = this.measurementsAddedQueue.findIndex(({ measurement: m }) => m === measurement);
     // if (foundIndex > -1) {
     //   // no need to add to queue becuase it was not rendered at all previously
-    //   measurementsAddedQueue.splice(foundIndex, 1);
+    //   this.measurementsAddedQueue.splice(foundIndex, 1);
     // } else {
-    measurementsDeletedQueue.push({ measurement, event: 'deleted' });
+    this.measurementsDeletedQueue.push({ measurement, event: 'deleted' });
     // }
-    if (!measurementsDeletedQueueLoading) {
+    if (!this.measurementsDeletedQueueLoading) {
       this.deleteMeasurementsFromQueue();
     }
   }
 
   loadMeasurementsFromQueue() {
-    if (measurementsAddedQueue.length === 0) {
-      measurementsAddedQueueLoading = false;
-      if (measurementsDeletedQueue.length > 0) {
+    if (this.measurementsAddedQueue.length === 0) {
+      this.measurementsAddedQueueLoading = false;
+      if (this.measurementsDeletedQueue.length > 0) {
         // if measurements still in the queue after adding continue with removing them because add has higher priority over remove
         this.deleteMeasurementsFromQueue();
       }
       return;
     }
-    measurementsAddedQueueLoading = true;
+    this.measurementsAddedQueueLoading = true;
     let counter = 0;
-    while (measurementsAddedQueue.length > 0 && batchNumber > counter) {
-      var { measurement } = measurementsAddedQueue.shift();
+    while (this.measurementsAddedQueue.length > 0 && batchNumber > counter) {
+      var { measurement } = this.measurementsAddedQueue.shift();
       this.measurements.push(measurement);
       this.dispatchEvent({
         type: 'measurement_added',
@@ -350,15 +350,15 @@ export class Scene extends EventDispatcher {
   }
 
   deleteMeasurementsFromQueue() {
-    if (measurementsDeletedQueue.length === 0 || measurementsAddedQueueLoading) {
+    if (this.measurementsDeletedQueue.length === 0 || this.measurementsAddedQueueLoading) {
       // No measurements in the queue or adding measurements in progress because add has higher priority
-      measurementsDeletedQueueLoading = false;
+      this.measurementsDeletedQueueLoading = false;
       return;
     }
-    measurementsDeletedQueueLoading = true;
+    this.measurementsDeletedQueueLoading = true;
     let counter = 0;
-    while (measurementsDeletedQueue.length > 0 && batchNumber > counter) {
-      var { measurement } = measurementsDeletedQueue.shift();
+    while (this.measurementsDeletedQueue.length > 0 && batchNumber > counter) {
+      var { measurement } = this.measurementsDeletedQueue.shift();
       let index = this.measurements.indexOf(measurement);
       if (index > -1) {
         this.measurements.splice(index, 1);

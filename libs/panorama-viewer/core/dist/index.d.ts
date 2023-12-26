@@ -1,4 +1,4 @@
-import { Mesh, Vector3, Euler, WebGLRenderer, Renderer as Renderer$1, Intersection, Object3D, Texture, BufferGeometry, ShaderMaterial } from 'three';
+import { Mesh, Vector3, Group, Euler, WebGLRenderer, Renderer as Renderer$1, Intersection, Object3D, PerspectiveCamera, Scene, Texture, BufferGeometry, ShaderMaterial } from 'three';
 
 /**
  * Default duration of the transition between panoramas
@@ -35,7 +35,7 @@ declare const INERTIA_WINDOW = 300;
 /**
  * Radius of the SphereGeometry, Half-length of the BoxGeometry
  */
-declare const SPHERE_RADIUS = 10;
+declare const SPHERE_RADIUS = 1;
 /**
  * Property name added to viewer element
  */
@@ -121,409 +121,6 @@ declare namespace constants {
     constants_ICONS as ICONS,
     constants_EASINGS as EASINGS,
   };
-}
-
-/**
- * Base class for UI components
- */
-declare abstract class AbstractComponent {
-    protected readonly parent: Viewer | AbstractComponent;
-    /**
-     * Reference to main controller
-     */
-    protected readonly viewer: Viewer;
-    /**
-     * Container element
-     */
-    readonly container: HTMLDivElement;
-    constructor(parent: Viewer | AbstractComponent, config: {
-        className?: string;
-    });
-    /**
-     * Destroys the component
-     */
-    destroy(): void;
-    /**
-     * Displays or hides the component
-     */
-    toggle(visible?: boolean): void;
-    /**
-     * Hides the component
-     */
-    hide(options?: any): void;
-    /**
-     * Displays the component
-     */
-    show(options?: any): void;
-    /**
-     * Checks if the component is visible
-     */
-    isVisible(): boolean;
-}
-
-/**
- * Loader component
- */
-declare class Loader extends AbstractComponent {
-    private readonly loader;
-    private readonly canvas;
-    private readonly size;
-    private readonly border;
-    private readonly thickness;
-    private readonly color;
-    private readonly textColor;
-    /**
-     * Sets the loader progression
-     */
-    setProgress(value: number): void;
-    private __updateContent;
-}
-
-/**
- * Configuration for {@link AbstractButton}
- */
-type ButtonConfig = {
-    id?: string;
-    className?: string;
-    title?: string;
-    /**
-     * if the button has an mouse hover effect
-     * @default false
-     */
-    hoverScale?: boolean;
-    /**
-     * if the button can be moved to menu when the navbar is too small
-     * @default false
-     */
-    collapsable?: boolean;
-    /**
-     * if the button is accessible with the keyboard
-     * @default true
-     */
-    tabbable?: boolean;
-    /**
-     * icon of the button
-     */
-    icon?: string;
-    /**
-     * override icon when the button is active
-     */
-    iconActive?: string;
-};
-/**
- * Base class for navbar buttons
- */
-declare abstract class AbstractButton extends AbstractComponent {
-    /**
-     * Unique identifier of the button
-     */
-    static readonly id: string;
-    /**
-     * Identifier to declare a group of buttons
-     */
-    static readonly groupId?: string;
-    /**
-     * Internal properties
-     */
-    protected readonly state: {
-        visible: boolean;
-        enabled: boolean;
-        supported: boolean;
-        collapsed: boolean;
-        active: boolean;
-        width: number;
-    };
-    protected readonly config: ButtonConfig;
-    get id(): string;
-    get title(): string;
-    get content(): string;
-    get width(): number;
-    get collapsable(): boolean;
-    constructor(navbar: Navbar, config: ButtonConfig);
-    /**
-     * Action when the button is clicked
-     */
-    abstract onClick(): void;
-    show(refresh?: boolean): void;
-    hide(refresh?: boolean): void;
-    /**
-     * Checks if the button can be displayed
-     */
-    isSupported(): boolean | ResolvableBoolean;
-    /**
-     * Changes the active state of the button
-     */
-    toggleActive(active?: boolean): void;
-    /**
-     * Disables the button
-     */
-    disable(): void;
-    /**
-     * Enables the button
-     */
-    enable(): void;
-    /**
-     * Collapses the button in the navbar menu
-     */
-    collapse(): void;
-    /**
-     * Uncollapses the button from the navbar menu
-     */
-    uncollapse(): void;
-    private __setIcon;
-}
-type ButtonConstructor = {
-    new (navbar: Navbar): AbstractButton;
-} & typeof AbstractButton;
-
-/**
- * Register a new button available for all viewers
- * @param button
- * @param [defaultPosition]  If provided the default configuration of the navbar will be modified.
- * Possible values are :
- *    - `start`
- *    - `end`
- *    - `[id]:left`
- *    - `[id]:right`
- * @throws {@link PSVError} if the button constructor has no "id"
- */
-declare function registerButton(button: ButtonConstructor, defaultPosition?: string): void;
-/**
- * Navigation bar component
- */
-declare class Navbar extends AbstractComponent {
-    /**
-     * Shows the navbar
-     */
-    show(): void;
-    /**
-     * Hides the navbar
-     */
-    hide(): void;
-    /**
-     * Change the buttons visible on the navbar
-     */
-    setButtons(buttons: ParsedViewerConfig['navbar']): void;
-    /**
-     * Changes the navbar caption
-     */
-    setCaption(html: string): void;
-    /**
-     * Returns a button by its identifier
-     */
-    getButton(id: string, warnNotFound?: boolean): AbstractButton;
-}
-
-/**
- * Configuration for {@link Notification.show}
- */
-type NotificationConfig = {
-    /**
-     * unique identifier to use with {@link Notification.hide} and {@link Notification.isVisible}
-     */
-    id?: string;
-    /**
-     * notification content
-     */
-    content: string;
-    /**
-     * automatically hide the notification after X milliseconds
-     */
-    timeout?: number;
-};
-/**
- * Notification component
- */
-declare class Notification extends AbstractComponent {
-    private readonly content;
-    /**
-     * Checks if the notification is visible
-     */
-    isVisible(id?: string): boolean;
-    /**
-     * Displays a notification on the viewer
-     *
-     * @example
-     * viewer.showNotification({ content: 'Hello world', timeout: 5000 })
-     * @example
-     * viewer.showNotification('Hello world')
-     */
-    show(config: string | NotificationConfig): void;
-    /**
-     * Hides the notification
-     */
-    hide(id?: string): void;
-}
-
-/**
- * Configuration for {@link Overlay.show}
- */
-type OverlayConfig = {
-    /**
-     * unique identifier to use with {@link Overlay.hide} and {@link Overlay.isVisible}
-     */
-    id?: string;
-    /**
-     * SVG image/icon displayed above the text
-     */
-    image?: string;
-    /**
-     * main message
-     */
-    title: string;
-    /**
-     * secondary message
-     */
-    text?: string;
-    /**
-     * if the user can hide the overlay by clicking
-     * @default true
-     */
-    dissmisable?: boolean;
-};
-/**
- * Overlay component
- */
-declare class Overlay extends AbstractComponent {
-    private readonly image;
-    private readonly title;
-    private readonly text;
-    /**
-     * Checks if the overlay is visible
-     */
-    isVisible(id?: string): boolean;
-    /**
-     * Displays an overlay on the viewer
-     */
-    show(config: string | OverlayConfig): void;
-    /**
-     * Hides the overlay
-     */
-    hide(id?: string): void;
-}
-
-/**
- * Configuration for {@link Panel.show}
- */
-type PanelConfig = {
-    /**
-     * unique identifier to use with {@link Panel.hide} and {@link Panel.isVisible} and to store the width
-     */
-    id?: string;
-    /**
-     * HTML content of the panel
-     */
-    content: string;
-    /**
-     * remove the default margins
-     * @default false
-     */
-    noMargin?: boolean;
-    /**
-     * initial width
-     */
-    width?: string;
-    /**
-     * called when the user clicks inside the panel or presses the Enter key while an element focused
-     */
-    clickHandler?: (target: HTMLElement) => void;
-};
-/**
- * Panel component
- */
-declare class Panel extends AbstractComponent {
-    private readonly content;
-    /**
-     * Checks if the panel is visible
-     */
-    isVisible(id?: string): boolean;
-    /**
-     * Shows the panel
-     */
-    show(config: string | PanelConfig): void;
-    /**
-     * Hides the panel
-     */
-    hide(id?: string): void;
-    private __onMouseDown;
-    private __onTouchStart;
-    private __onMouseUp;
-    private __onTouchEnd;
-    private __onMouseMove;
-    private __onTouchMove;
-    private __onKeyPress;
-    private __startResize;
-    private __resize;
-}
-
-/**
- * Object defining the tooltip position
- */
-type TooltipPosition = {
-    /**
-     * Position of the tip of the arrow of the tooltip, in pixels
-     */
-    top: number;
-    /**
-     * Position of the tip of the arrow of the tooltip, in pixels
-     */
-    left: number;
-    /**
-     * Tooltip position toward it's arrow tip.
-     * Accepted values are combinations of `top`, `center`, `bottom` and `left`, `center`, `right`.
-     */
-    position?: string | [string, string];
-};
-/**
- * Configuration for {@link Viewer.createTooltip}
- */
-type TooltipConfig = TooltipPosition & {
-    /**
-     * HTML content of the tooltip
-     */
-    content: string;
-    /**
-     * Additional CSS class added to the tooltip
-     */
-    className?: string;
-    /**
-     * Userdata associated to the tooltip
-     */
-    data?: any;
-};
-/**
- * Tooltip component
- * @description Never instanciate tooltips directly use {@link Viewer#createTooltip} instead
- */
-declare class Tooltip extends AbstractComponent {
-    private readonly content;
-    private readonly arrow;
-    /**
-     * Updates the content of the tooltip, optionally with a new position
-     * @throws {@link PSVError} if the configuration is invalid
-     */
-    update(content: string, config?: TooltipPosition): void;
-    /**
-     * Moves the tooltip to a new position
-     * @throws {@link PSVError} if the configuration is invalid
-     */
-    move(config: TooltipPosition): void;
-    /**
-     * Hides the tooltip
-     */
-    hide(): void;
-    /**
-     * Finalize transition
-     */
-    private __onTransitionEnd;
-    /**
-     * Computes the position of the tooltip and its arrow
-     */
-    private __computeTooltipPosition;
-    /**
-     * If the tooltip contains images, recompute its size once they are loaded
-     */
-    private __waitImages;
 }
 
 /**
@@ -655,15 +252,6 @@ declare class HidePanelEvent extends ViewerEvent {
     type: 'hide-panel';
 }
 /**
- * @event Triggered when a tooltip is hidden
- */
-declare class HideTooltipEvent extends ViewerEvent {
-    /** Userdata associated to the tooltip */
-    readonly tooltipData: TooltipConfig['data'];
-    static readonly type = "hide-tooltip";
-    type: 'hide-tooltip';
-}
-/**
  * @event Triggered when a key is pressed, can be cancelled
  */
 declare class KeypressEvent extends ViewerEvent {
@@ -734,17 +322,6 @@ declare class ShowPanelEvent extends ViewerEvent {
     type: 'show-panel';
 }
 /**
- * @event Triggered when a tooltip is shown
- */
-declare class ShowTooltipEvent extends ViewerEvent {
-    /** Instance of the tooltip */
-    readonly tooltip: Tooltip;
-    /** Userdata associated to the tooltip */
-    readonly tooltipData?: TooltipConfig['data'];
-    static readonly type = "show-tooltip";
-    type: 'show-tooltip';
-}
-/**
  * @event Triggered when the viewer size changes
  */
 declare class SizeUpdatedEvent extends ViewerEvent {
@@ -805,7 +382,7 @@ declare class ObjectHoverEvent extends ObjectEvent {
     static readonly type = "hover-object";
     type: 'hover-object';
 }
-type ViewerEvents = BeforeAnimateEvent | BeforeRenderEvent | BeforeRotateEvent | ClickEvent | ConfigChangedEvent | DoubleClickEvent | FullscreenEvent | HideNotificationEvent | HideOverlayEvent | HidePanelEvent | HideTooltipEvent | KeypressEvent | LoadProgressEvent | PanoramaLoadedEvent | PositionUpdatedEvent | ReadyEvent | RenderEvent | ShowNotificationEvent | ShowOverlayEvent | ShowPanelEvent | ShowTooltipEvent | SizeUpdatedEvent | StopAllEvent | ZoomUpdatedEvent | ObjectEnterEvent | ObjectLeaveEvent | ObjectHoverEvent;
+type ViewerEvents = BeforeAnimateEvent | BeforeRenderEvent | BeforeRotateEvent | ClickEvent | ConfigChangedEvent | DoubleClickEvent | FullscreenEvent | HideNotificationEvent | HideOverlayEvent | HidePanelEvent | KeypressEvent | LoadProgressEvent | PanoramaLoadedEvent | PositionUpdatedEvent | ReadyEvent | RenderEvent | ShowNotificationEvent | ShowOverlayEvent | ShowPanelEvent | SizeUpdatedEvent | StopAllEvent | ZoomUpdatedEvent | ObjectEnterEvent | ObjectLeaveEvent | ObjectHoverEvent;
 
 type events_ViewerEvent = ViewerEvent;
 declare const events_ViewerEvent: typeof ViewerEvent;
@@ -829,8 +406,6 @@ type events_HideOverlayEvent = HideOverlayEvent;
 declare const events_HideOverlayEvent: typeof HideOverlayEvent;
 type events_HidePanelEvent = HidePanelEvent;
 declare const events_HidePanelEvent: typeof HidePanelEvent;
-type events_HideTooltipEvent = HideTooltipEvent;
-declare const events_HideTooltipEvent: typeof HideTooltipEvent;
 type events_KeypressEvent = KeypressEvent;
 declare const events_KeypressEvent: typeof KeypressEvent;
 type events_LoadProgressEvent = LoadProgressEvent;
@@ -849,8 +424,6 @@ type events_ShowOverlayEvent = ShowOverlayEvent;
 declare const events_ShowOverlayEvent: typeof ShowOverlayEvent;
 type events_ShowPanelEvent = ShowPanelEvent;
 declare const events_ShowPanelEvent: typeof ShowPanelEvent;
-type events_ShowTooltipEvent = ShowTooltipEvent;
-declare const events_ShowTooltipEvent: typeof ShowTooltipEvent;
 type events_SizeUpdatedEvent = SizeUpdatedEvent;
 declare const events_SizeUpdatedEvent: typeof SizeUpdatedEvent;
 type events_StopAllEvent = StopAllEvent;
@@ -879,7 +452,6 @@ declare namespace events {
     events_HideNotificationEvent as HideNotificationEvent,
     events_HideOverlayEvent as HideOverlayEvent,
     events_HidePanelEvent as HidePanelEvent,
-    events_HideTooltipEvent as HideTooltipEvent,
     events_KeypressEvent as KeypressEvent,
     events_LoadProgressEvent as LoadProgressEvent,
     events_PanoramaLoadedEvent as PanoramaLoadedEvent,
@@ -889,7 +461,6 @@ declare namespace events {
     events_ShowNotificationEvent as ShowNotificationEvent,
     events_ShowOverlayEvent as ShowOverlayEvent,
     events_ShowPanelEvent as ShowPanelEvent,
-    events_ShowTooltipEvent as ShowTooltipEvent,
     events_SizeUpdatedEvent as SizeUpdatedEvent,
     events_StopAllEvent as StopAllEvent,
     events_ZoomUpdatedEvent as ZoomUpdatedEvent,
@@ -1095,8 +666,8 @@ declare class DataHelper extends AbstractService {
 declare class Renderer extends AbstractService {
     private readonly renderer;
     private readonly scene;
-    private readonly mesh;
-    private readonly meshContainer;
+    readonly mesh: Mesh;
+    readonly meshContainer: Group;
     private readonly raycaster;
     private readonly container;
     private timestamp?;
@@ -1172,15 +743,13 @@ declare class Viewer extends TypedEventTarget<ViewerEvents> {
     readonly config: ParsedViewerConfig;
     readonly parent: HTMLElement;
     readonly container: HTMLElement;
+    readonly camera: PerspectiveCamera;
+    readonly meshContainer: Group;
+    readonly potreeViewer: any;
+    readonly scene: Scene;
     readonly renderer: Renderer;
     readonly textureLoader: TextureLoader;
     readonly dataHelper: DataHelper;
-    readonly loader: Loader;
-    readonly navbar: Navbar;
-    readonly notification: Notification;
-    readonly overlay: Overlay;
-    readonly panel: Panel;
-    private readonly onResize;
     constructor(config: ViewerConfig);
     /**
      * Destroys the viewer
@@ -1248,7 +817,7 @@ declare class Viewer extends TypedEventTarget<ViewerEvents> {
     /**
      * Displays an error message over the viewer
      */
-    showError(message: string): void;
+    showError(): void;
     /**
      *  Hides the error message
      */
@@ -1295,6 +864,11 @@ declare class Viewer extends TypedEventTarget<ViewerEvents> {
      */
     toggleFullscreen(): void;
     /**
+     * Sets camera direction
+     * @param direction - new camera direction
+     */
+    setDirection(direction: Vector3): void;
+    /**
      * Enables the keyboard controls
      */
     startKeyboardControl(): void;
@@ -1302,12 +876,6 @@ declare class Viewer extends TypedEventTarget<ViewerEvents> {
      * Disables the keyboard controls
      */
     stopKeyboardControl(): void;
-    /**
-     * Creates a new tooltip
-     * @description Use {@link Tooltip.move} to update the tooltip without re-create
-     * @throws {@link PSVError} if the configuration is invalid
-     */
-    createTooltip(config: TooltipConfig): Tooltip;
     /**
      * Subscribes to events on objects in the three.js scene
      * @param userDataKey - only objects with the following `userData` will be observed
@@ -1625,6 +1193,10 @@ type NavbarCustomButton = {
  */
 type ViewerConfig = {
     container: HTMLElement | string;
+    camera?: PerspectiveCamera;
+    meshContainer?: Group;
+    potreeViewer?: any;
+    scene?: Scene;
     panorama?: any;
     overlay?: any;
     /** @default 1 */
@@ -1707,14 +1279,13 @@ type ViewerConfig = {
 /**
  * Viewer configuration after applying parsers
  */
-type ParsedViewerConfig = Omit<ViewerConfig, 'adapter' | 'plugins' | 'defaultYaw' | 'defaultPitch' | 'fisheye' | 'requestHeaders' | 'navbar' | 'keyboard'> & {
+type ParsedViewerConfig = Omit<ViewerConfig, 'adapter' | 'plugins' | 'defaultYaw' | 'defaultPitch' | 'fisheye' | 'requestHeaders' | 'keyboard'> & {
     adapter?: [AdapterConstructor, any];
     plugins?: Array<[PluginConstructor, any]>;
     defaultYaw?: number;
     defaultPitch?: number;
     fisheye?: number;
     requestHeaders?: (url: string) => Record<string, string>;
-    navbar?: Array<string | NavbarCustomButton>;
     keyboard?: false | 'always' | 'fullscreen';
 };
 /**
@@ -2414,4 +1985,4 @@ declare class PSVError extends Error {
     constructor(message: string);
 }
 
-export { AbstractAdapter, AbstractButton, AbstractComponent, AbstractConfigurablePlugin, AbstractPlugin, AdapterConstructor, AnimateOptions, ButtonConfig, ButtonConstructor, constants as CONSTANTS, ClickData, CssSize, DEFAULTS, DataHelper, EquirectangularAdapter, EquirectangularAdapterConfig, ExtendedPosition, Loader, Navbar, NavbarCustomButton, Notification, NotificationConfig, Overlay, OverlayConfig, PSVError, Panel, PanelConfig, PanoData, PanoDataProvider, PanoramaOptions, PanoramaPosition, ParsedViewerConfig, PluginConstructor, Point, Position, ReadonlyViewerConfig, Renderer, ResolvableBoolean, SYSTEM, Size, SphereCorrection, SphericalPosition, TextureData, TextureLoader, Tooltip, TooltipConfig, TooltipPosition, TypedEvent, TypedEventTarget, UpdatableViewerConfig, Viewer, ViewerConfig, ViewerState, events, registerButton, index as utils };
+export { AbstractAdapter, AbstractConfigurablePlugin, AbstractPlugin, AdapterConstructor, AnimateOptions, constants as CONSTANTS, ClickData, CssSize, DEFAULTS, DataHelper, EquirectangularAdapter, EquirectangularAdapterConfig, ExtendedPosition, NavbarCustomButton, PSVError, PanoData, PanoDataProvider, PanoramaOptions, PanoramaPosition, ParsedViewerConfig, PluginConstructor, Point, Position, ReadonlyViewerConfig, Renderer, ResolvableBoolean, SYSTEM, Size, SphereCorrection, SphericalPosition, TextureData, TextureLoader, TypedEvent, TypedEventTarget, UpdatableViewerConfig, Viewer, ViewerConfig, ViewerState, events, index as utils };

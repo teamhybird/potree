@@ -6,8 +6,9 @@
 
 // src/EquirectangularTilesAdapter.ts
 import { AbstractAdapter, CONSTANTS, EquirectangularAdapter, events, PSVError as PSVError3, utils } from "@photo-sphere-viewer/core";
+import { SPHERE_RADIUS } from "@photo-sphere-viewer/core/src/data/constants";
 import {
-  BackSide,
+  FrontSide,
   Frustum,
   ImageLoader,
   MathUtils as MathUtils2,
@@ -254,6 +255,8 @@ var getConfig = utils.getConfigParser(
 var frustum = new Frustum();
 var projScreenMatrix = new Matrix4();
 var vertexPosition = new Vector3();
+var direction = new Vector3();
+var directionVector = new Vector3();
 var EquirectangularTilesAdapter = class extends AbstractAdapter {
   constructor(viewer, config) {
     super(viewer);
@@ -349,7 +352,7 @@ var EquirectangularTilesAdapter = class extends AbstractAdapter {
       this.SPHERE_SEGMENTS,
       this.SPHERE_HORIZONTAL_SEGMENTS,
       -Math.PI / 2
-    ).scale(1, 1, 1).toNonIndexed();
+    ).scale(-0.5, 0.5, 0.5).toNonIndexed();
     geometry.clearGroups();
     let i = 0;
     let k = 0;
@@ -390,9 +393,9 @@ var EquirectangularTilesAdapter = class extends AbstractAdapter {
   __setTexture(mesh, texture) {
     let material;
     if (texture) {
-      material = new MeshBasicMaterial2({ map: texture, side: BackSide });
+      material = new MeshBasicMaterial2({ map: texture, side: FrontSide });
     } else {
-      material = new MeshBasicMaterial2({ opacity: 0, side: BackSide, transparent: true });
+      material = new MeshBasicMaterial2({ opacity: 0, side: FrontSide, transparent: true });
     }
     for (let i = 0; i < this.NB_GROUPS; i++) {
       mesh.material.push(material);
@@ -429,7 +432,8 @@ var EquirectangularTilesAdapter = class extends AbstractAdapter {
     const tilesToLoad = {};
     for (let i = 0; i < this.NB_VERTICES; i += 1) {
       vertexPosition.fromBufferAttribute(verticesPosition, i);
-      vertexPosition.applyEuler(this.viewer.renderer.sphereCorrection);
+      this.viewer.renderer.meshContainer.updateMatrixWorld();
+      vertexPosition.applyMatrix4(this.viewer.renderer.meshContainer.matrixWorld);
       if (frustum.containsPoint(vertexPosition)) {
         let segmentIndex;
         if (i < this.SPHERE_SEGMENTS * NB_VERTICES_BY_SMALL_FACE) {
@@ -442,10 +446,12 @@ var EquirectangularTilesAdapter = class extends AbstractAdapter {
         const segmentRow = Math.floor(segmentIndex / this.SPHERE_SEGMENTS);
         const segmentCol = segmentIndex - segmentRow * this.SPHERE_SEGMENTS;
         let config = tileConfig;
+        const highResConfig = isMultiTiles(panorama) ? getTileConfigByIndex(panorama, panorama.levels.length - 1, this) : null;
         while (config) {
           const row = Math.floor(segmentRow / config.facesByRow);
           const col = Math.floor(segmentCol / config.facesByCol);
-          let angle = vertexPosition.angleTo(this.viewer.state.direction);
+          direction.addVectors(camera.position, camera.getWorldDirection(directionVector).multiplyScalar(SPHERE_RADIUS));
+          let angle = vertexPosition.angleTo(direction);
           if (row === 0 || row === config.rows - 1) {
             angle *= 2;
           }
@@ -464,6 +470,24 @@ var EquirectangularTilesAdapter = class extends AbstractAdapter {
             tile.url = panorama.tileUrl(col, row, config.level);
             if (tile.url) {
               tilesToLoad[id] = tile;
+              if (highResConfig && highResConfig.level !== config.level) {
+                const highResTile = {
+                  row,
+                  col,
+                  angle: angle * 2,
+                  config: highResConfig,
+                  url: null
+                };
+                const highResId = tileId(highResTile);
+                if (tilesToLoad[highResId]) {
+                  tilesToLoad[highResId].angle = Math.min(tilesToLoad[highResId].angle * 2, angle * 2);
+                } else {
+                  highResTile.url = panorama.tileUrl(col, row, highResConfig.level);
+                  if (highResTile.url) {
+                    tilesToLoad[highResId] = highResTile;
+                  }
+                }
+              }
               break;
             } else {
               config = getTileConfigByIndex(panorama, config.level - 1, this);
@@ -500,7 +524,7 @@ var EquirectangularTilesAdapter = class extends AbstractAdapter {
         if (this.config.debug) {
           image = buildDebugTexture(image, tile.config.level, tileId(tile));
         }
-        const material = new MeshBasicMaterial2({ map: utils.createTexture(image), side: BackSide });
+        const material = new MeshBasicMaterial2({ map: utils.createTexture(image), side: FrontSide });
         this.__swapMaterial(tile, material, false);
         this.viewer.needsUpdate();
       }

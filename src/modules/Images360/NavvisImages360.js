@@ -46,10 +46,12 @@ class Image360 {
 }
 
 export class NavvisImages360 extends EventDispatcher {
-  constructor(viewer) {
+  constructor(viewer, fetchTiles, tilesDisabled) {
     super();
 
     this.viewer = viewer;
+    this.fetchTiles = fetchTiles;
+    this.tilesDisabled = tilesDisabled;
 
     this.images = [];
     this.node = new THREE.Object3D();
@@ -58,18 +60,15 @@ export class NavvisImages360 extends EventDispatcher {
     this._footprintsVisible = true;
     this._view360Enabled = false;
 
-    this.sphere = new THREE.Mesh(sgHigh, sm);
-    this.sphere.visible = false;
-    this.sphere.scale.set(5, 5, 5);
-    this.node.add(this.sphere);
+    this.sphere = new THREE.Group();
     this._visible = true;
-    // this.node.add(label);
     this.focusedImage = null;
 
     this.scene = new THREE.Scene();
     this.scene.name = 'scene_360_images';
     this.light = new THREE.PointLight(0xffffff, 1.0);
     this.scene.add(this.light);
+    this.photoSphereViewer = null;
 
     this.viewer.inputHandler.registerInteractiveScene(this.scene);
 
@@ -238,21 +237,41 @@ export class NavvisImages360 extends EventDispatcher {
 
     this.sphere.visible = true;
 
+    const setSpherePositionAndRotation = (callback = () => null) => {
+      {
+        // orientation
+        let { panoX, panoY, panoZ, panoW } = image360;
+
+        this.sphere.setRotationFromQuaternion(new THREE.Quaternion(panoX, panoY, panoZ, panoW));
+        this.sphere.rotateX(THREE.Math.degToRad(90));
+        this.sphere.rotateY(THREE.Math.degToRad(90)); // Texture is rotated by 90 degrees on Y axis
+      }
+      let { panoLongitude, panoLatitude, panoAltitude } = image360;
+
+      this.sphere.position.set(panoLongitude, panoLatitude, panoAltitude);
+
+      let target = new THREE.Vector3().copy(this.sphere.position);
+      let dir = target.clone().sub(this.viewer.scene.view.position).normalize();
+      let move = dir.multiplyScalar(0.000001);
+      let newCamPos = target.clone().sub(move);
+
+      this.setView(newCamPos, null, this.view360Enabled ? 0 : withAnimation ? 500 : 0, callback);
+    };
+
     const moveToTarget = () => {
       this.sphere.visible = false;
 
       if (this.view360Enabled) {
         this.viewer.showLoadingScreen(true);
+        setSpherePositionAndRotation();
+        this.node.remove(this.sphere);
         this.load(image360)
           .then(() => {
             if (!this.view360Enabled) {
               throw new Error("ABORTED: Image loaded but couldn't be renderered because the view was switched in the meantime while the image was loading");
             }
             this.sphere.visible = true;
-            this.sphere.material.map = image360.texture;
-            this.sphere.material.depthTest = false;
-            this.sphere.material.depthWrite = false;
-            this.sphere.material.needsUpdate = true;
+            this.node.add(this.sphere);
             for (const footprint of this.footprints) {
               footprint.visible = true;
             }
@@ -267,36 +286,44 @@ export class NavvisImages360 extends EventDispatcher {
             this.view360Enabled = false;
             this.viewer.showLoadingScreen(false);
           });
+
+        // this.load(image360)
+        //   .then(() => {
+        //     if (!this.view360Enabled) {
+        //       throw new Error("ABORTED: Image loaded but couldn't be renderered because the view was switched in the meantime while the image was loading");
+        //     }
+        //     this.sphere.visible = true;
+        //     this.sphere.material.map = image360.texture;
+        //     this.sphere.material.depthTest = false;
+        //     this.sphere.material.depthWrite = false;
+        //     this.sphere.material.needsUpdate = true;
+        //     for (const footprint of this.footprints) {
+        //       footprint.visible = true;
+        //     }
+        //     // reset fov whenever in 360 view and 360 image is loaded
+        //     if (previousFOV) {
+        //       this.viewer.setFOV(previousFOV);
+        //     }
+        //     this.viewer.showLoadingScreen(false);
+        //   })
+        //   .catch((e) => {
+        //     console.log(e);
+        //     this.view360Enabled = false;
+        //     this.viewer.showLoadingScreen(false);
+        //   });
       } else {
         for (const footprint of this.footprints) {
           footprint.visible = true;
         }
+        setSpherePositionAndRotation();
       }
-
-      {
-        // orientation
-        let { panoX, panoY, panoZ, panoW } = image360;
-
-        this.sphere.setRotationFromQuaternion(new THREE.Quaternion(panoX, panoY, panoZ, panoW));
-        this.sphere.rotateX(THREE.Math.degToRad(90));
-      }
-      let { panoLongitude, panoLatitude, panoAltitude } = image360;
-
-      this.sphere.position.set(panoLongitude, panoLatitude, panoAltitude);
-
-      let target = new THREE.Vector3().copy(this.sphere.position);
-      let dir = target.clone().sub(this.viewer.scene.view.position).normalize();
-      let move = dir.multiplyScalar(0.000001);
-      let newCamPos = target.clone().sub(move);
-
-      this.setView(newCamPos, null, this.view360Enabled ? 0 : withAnimation ? 500 : 0);
     };
 
     if (this.view360Enabled && previousImage360) {
       let { panoLongitude, panoLatitude, panoAltitude } = image360;
       let target = new THREE.Vector3(panoLongitude, panoLatitude, panoAltitude);
       let dir = new THREE.Vector3().subVectors(target, this.viewer.scene.view.position).normalize();
-      let move = dir.multiplyScalar(0.2);
+      let move = dir.multiplyScalar(0.02);
       let newCamPos = this.viewer.scene.view.position.clone().add(move);
       // disable all footprints while animation is playing
       for (const footprint of this.footprints) {
@@ -337,16 +364,176 @@ export class NavvisImages360 extends EventDispatcher {
     this.focusedImage = null;
   }
 
-  load(image360) {
-    return new Promise((resolve, reject) => {
-      let texture = new THREE.TextureLoader().load(image360.file, resolve, undefined, (err) => {
-        reject(err);
-      });
-      texture.wrapS = THREE.RepeatWrapping;
-      texture.repeat.x = -1;
+  async load(image360) {
+    const cols = 8,
+      rows = 4;
+    const imageTilesUrls = [];
+    if (this.fetchTiles) {
+      try {
+        let optionalPanoProps = {};
+        if (!this.tilesDisabled) {
+          const res = await this.fetchTiles({
+            PanoramicImageID: image360.id,
+            ImageNumber: `${String(0).padStart(2, '0')}`,
+          });
+          const { Data } = res.data;
+          let resolutionIndex = 0;
+          let count = 0;
+          Data.forEach((tile, index) => {
+            imageTilesUrls.push({
+              imageNum: count,
+              resolution: resolutionIndex,
+              url: tile.URL,
+            });
+            count++;
+            if (count > cols * rows - 1) {
+              count = 0;
+              resolutionIndex++;
+            }
+          });
+        } else {
+          optionalPanoProps.baseUrl = image360.file;
+        }
 
-      image360.texture = texture;
-    });
+        const pano = {
+          minFov: 0,
+          maxFov: 100,
+          config: {
+            width: 256 * cols,
+            cols: cols,
+            rows: rows,
+            levels: [
+              {
+                width: 128 * cols, // 128 * cols
+                cols: cols,
+                rows: rows,
+                zoomRange: [0, 20],
+              },
+              {
+                width: 256 * cols, // 256 * cols
+                cols: cols,
+                rows: rows,
+                zoomRange: [20, 50],
+              },
+              {
+                width: 512 * cols, // 512 * cols
+                cols: cols,
+                rows: rows,
+                zoomRange: [50, 70],
+              },
+              {
+                width: 1024 * cols, // 1024 * cols
+                cols: cols,
+                rows: rows,
+                zoomRange: [70, 100],
+              },
+            ],
+            tileUrl: (col, row, level) => {
+              const num = row * 8 + col;
+              const foundIndex = imageTilesUrls.findIndex((tile) => tile.resolution === level && tile.imageNum === num);
+              if (foundIndex > -1) {
+                return imageTilesUrls[foundIndex].url;
+              } else {
+                console.warn('Tile not found', level, num);
+                return null;
+              }
+            },
+            ...optionalPanoProps,
+          },
+        };
+
+        if (this.photoSphereViewer) {
+          this.photoSphereViewer.destroy();
+        }
+        let camera = this.viewer.scene.getActiveCamera();
+        this.photoSphereViewer = new PhotoSphereViewer.Viewer({
+          container: 'potree_render_area',
+          camera: camera,
+          meshContainer: this.sphere,
+          potreeViewer: this.viewer,
+          adapter: [
+            PhotoSphereViewer.EquirectangularTilesAdapter,
+            {
+              // showErrorTile: true,
+              // baseBlur: true,
+              resolution: 32,
+              // debug: true,
+            },
+          ],
+        });
+        this.photoSphereViewer.setOption('minFov', pano.minFov);
+        this.photoSphereViewer.setOption('maxFov', pano.maxFov);
+        await this.photoSphereViewer.setPanorama(pano.config, pano.options);
+        return null;
+      } catch (e) {
+        console.log('FAIL', e);
+        return null;
+      }
+    }
+
+    // // TEMP - FOR LOCAL TESTING
+    // const pano = {
+    //   minFov: 0,
+    //   maxFov: 100,
+    //   config: {
+    //     levels: [
+    //       {
+    //         width: 128 * cols, // 128 * cols
+    //         cols: cols,
+    //         rows: rows,
+    //         zoomRange: [0, 20],
+    //       },
+    //       {
+    //         width: 256 * cols, // 256 * cols
+    //         cols: cols,
+    //         rows: rows,
+    //         zoomRange: [20, 50],
+    //       },
+    //       {
+    //         width: 512 * cols, // 512 * cols
+    //         cols: cols,
+    //         rows: rows,
+    //         zoomRange: [50, 70],
+    //       },
+    //       {
+    //         width: 1024 * cols, // 1024 * cols
+    //         cols: cols,
+    //         rows: rows,
+    //         zoomRange: [70, 100],
+    //       },
+    //     ],
+
+    //     tileUrl: (col, row, level) => {
+    //       const imageNum = 0;
+    //       const num = row * 8 + (7 - col);
+    //       return `${Potree.resourcePath}/assets/tiles/r${level}/0/${String(imageNum).padStart(5, '0')}-pano-tex-r${level}-${String(num).padStart(2, '0')}.jpg`;
+    //       // const foundIndex = imageTilesUrls.findIndex((tile) => tile.resolution === level && tile.imageNum === num);
+    //       // if (foundIndex > -1) {
+    //       //   return imageTilesUrls[foundIndex].url;
+    //       // } else {
+    //       //   console.warn('Tile not found', level, num);
+    //       //   return null;
+    //       // }
+    //     },
+    //   },
+    // };
+
+    // this.photoSphereViewer.setOption('minFov', pano.minFov);
+    // this.photoSphereViewer.setOption('maxFov', pano.maxFov);
+    // await this.photoSphereViewer.setPanorama(pano.config, pano.options);
+    // console.log('SET PANORAMA');
+    // return null;
+    // //TEMP
+
+    // return new Promise((resolve, reject) => {
+    //   let texture = new THREE.TextureLoader().load(image360.file, resolve, undefined, (err) => {
+    //     reject(err);
+    //   });
+    //   texture.wrapS = THREE.RepeatWrapping;
+    //   texture.repeat.x = -1;
+
+    //   image360.texture = texture;
+    // });
   }
 
   handleHovering() {
@@ -458,14 +645,14 @@ export class NavvisImages360 extends EventDispatcher {
 }
 
 export class NavvisImages360Loader {
-  static async load(dataset, viewer, params = {}) {
+  static async load(dataset, viewer, params = {}, fetchTiles = null, tilesDisabled = false) {
     if (!params.transform) {
       params.transform = {
         forward: (a) => a,
       };
     }
 
-    let images360 = new NavvisImages360(viewer);
+    let images360 = new NavvisImages360(viewer, fetchTiles, tilesDisabled);
 
     for (const imageInfo of dataset.ImageInfos) {
       const file = imageInfo.ImageURL;
@@ -506,6 +693,7 @@ export class NavvisImages360Loader {
         opacity: images360.showFootprints ? footprintDefaultOpacity : 0,
         color: 0xffffff,
         alphaTest: footprintDefaultOpacity - 0.1,
+        side: THREE.DoubleSide,
       });
 
       const mesh = new THREE.Mesh(geometry, material);
