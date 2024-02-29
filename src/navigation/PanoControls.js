@@ -39,9 +39,9 @@ export class PanoControls extends EventDispatcher {
     this.tweens = [];
 
     let drag = (e) => {
-      // if (e.drag.object !== null) {
-      //   return;
-      // }
+      if (e.drag.object !== null) {
+        return;
+      }
       let view = this.scene.view;
 
       if (e.drag.startHandled === undefined) {
