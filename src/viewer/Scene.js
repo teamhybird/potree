@@ -1,6 +1,6 @@
 import * as THREE from '../../libs/three.js/build/three.module.js';
 import { Annotation } from '../Annotation.js';
-import { CameraMode } from '../defines.js';
+import { CameraMode, MeasurementTransparancy } from '../defines.js';
 import { View } from './View.js';
 import { Utils } from '../utils.js';
 import { EventDispatcher } from '../EventDispatcher.js';
@@ -48,6 +48,8 @@ export class Scene extends EventDispatcher {
     this.measurementsDeletedQueue = [];
     this.measurementsAddedQueueLoading = false;
     this.measurementsDeletedQueueLoading = false;
+
+    this.selectedMeasurement = null;
 
     this.view = new View();
 
@@ -294,8 +296,43 @@ export class Scene extends EventDispatcher {
     }
   }
 
+  setAllMeasurementsTransparency(transparency) {
+    this.measurements.forEach((measurement) => {
+      measurement.transparency = transparency;
+    });
+    this.measurementsAddedQueue.forEach(({ measurement }) => {
+      measurement.transparency = transparency;
+    });
+  }
+
+  selectMeasurement(measurement) {
+    if (!this.selectedMeasurement) {
+      // No previously selected measurement, set all measurements to medium opacity
+      this.setAllMeasurementsTransparency(MeasurementTransparancy.MEDIUM);
+    } else {
+      this.selectedMeasurement.selected = false;
+    }
+    this.selectedMeasurement = measurement;
+    this.selectedMeasurement.selected = true;
+  }
+
+  unselectMeasurement() {
+    if (!this.selectedMeasurement) {
+      // No selected measurement, skip
+      return;
+    }
+    this.selectedMeasurement.selected = false;
+    this.selectedMeasurement = null;
+    // No selected measurement, set all measurements to default opacity
+    this.setAllMeasurementsTransparency(MeasurementTransparancy.SOLID);
+  }
+
   addMeasurement(measurement) {
     // this.measurements.push(measurement);
+    if (this.selectedMeasurement !== null) {
+      // There is already selected measurement, set measurement to medium opacity
+      measurement.transparency = MeasurementTransparancy.MEDIUM;
+    }
     this.measurementsAddedQueue.push({ measurement, event: 'added' });
     if (!this.measurementsAddedQueueLoading) {
       this.loadMeasurementsFromQueue();

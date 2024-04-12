@@ -4,7 +4,7 @@ import { Utils } from '../utils.js';
 import { Line2 } from '../../libs/three.js/lines/Line2.js';
 import { LineGeometry } from '../../libs/three.js/lines/LineGeometry.js';
 import { LineMaterial } from '../../libs/three.js/lines/LineMaterial.js';
-import { SystemType } from '../defines.js';
+import { SystemType, MeasurementTransparancy } from '../defines.js';
 
 const allMeasureVariants = [
   { systemType: SystemType.cluster, colorNames: ['green'] },
@@ -18,7 +18,9 @@ const allMeasureVariants = [
   { systemType: SystemType.measurement, colorNames: ['yellow', 'lightOrange', 'orange', 'green', 'lightBlue', 'blue', 'purple', 'red'] },
 ];
 
-function createHeightLine() {
+let previousTransparency = null;
+
+function createHeightLine(transparency) {
   let lineGeometry = new LineGeometry();
 
   lineGeometry.setPositions([0, 0, 0, 0, 0, 0]);
@@ -29,10 +31,12 @@ function createHeightLine() {
     gapSize: 2,
     linewidth: 2,
     resolution: new THREE.Vector2(1000, 1000),
+    transparent: true,
   });
 
   // lineMaterial.depthTest = false;
   const heightEdge = new Line2(lineGeometry, lineMaterial);
+  heightEdge.material.uniforms.opacity.value = transparency;
   heightEdge.visible = false;
 
   //this.add(this.heightEdge);
@@ -40,36 +44,36 @@ function createHeightLine() {
   return heightEdge;
 }
 
-function createHeightLabel() {
+function createHeightLabel(selected) {
   const heightLabel = new TextSprite('');
 
   heightLabel.setTextColor({ r: 255, g: 255, b: 255, a: 1.0 });
   heightLabel.setBorderColor({ r: 0, g: 0, b: 0, a: 1.0 });
   heightLabel.setBackgroundColor({ r: 0, g: 0, b: 0, a: 1.0 });
   heightLabel.fontsize = 16;
-  // heightLabel.material.depthTest = false;
-  heightLabel.material.opacity = 1;
+  heightLabel.material.depthTest = false;
+  heightLabel.material.opacity = selected ? MeasurementTransparancy.SOLID : 0;
   heightLabel.visible = false;
 
   return heightLabel;
 }
 
-function createAreaLabel() {
+function createAreaLabel(selected) {
   const areaLabel = new TextSprite('');
 
   areaLabel.setTextColor({ r: 255, g: 255, b: 255, a: 1.0 });
   areaLabel.setBorderColor({ r: 0, g: 0, b: 0, a: 1.0 });
   areaLabel.setBackgroundColor({ r: 0, g: 0, b: 0, a: 1.0 });
   areaLabel.fontsize = 16;
-  // areaLabel.material.depthTest = false;
-  areaLabel.material.opacity = 1;
+  areaLabel.material.depthTest = false;
+  areaLabel.material.opacity = selected ? MeasurementTransparancy.SOLID : 0;
   areaLabel.visible = false;
 
   return areaLabel;
 }
 
 function createCircleMesh(color) {
-  let circleMaterial = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, color: color, transparent: true, opacity: 0.2, depthWrite: false });
+  let circleMaterial = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, color: color, transparent: true, opacity: 0.2 });
   let circleGeometry = new THREE.CircleGeometry(1, 32);
 
   const circleMesh = new THREE.Mesh(circleGeometry, circleMaterial);
@@ -159,7 +163,7 @@ function createCircleCenter() {
   return circleCenter;
 }
 
-function createLine(color) {
+function createLine(color, transparency) {
   const geometry = new LineGeometry();
 
   geometry.setPositions([0, 0, 0, 0, 0, 0]);
@@ -170,11 +174,13 @@ function createLine(color) {
     resolution: new THREE.Vector2(1000, 1000),
     gapSize: 1,
     dashed: true,
+    transparent: true,
   });
 
   // material.depthTest = false;
 
   const line = new Line2(geometry, material);
+  line.material.uniforms.opacity.value = transparency;
 
   return line;
 }
@@ -203,6 +209,7 @@ function createCircle(color) {
     gapSize: 2,
     linewidth: 2,
     resolution: new THREE.Vector2(1000, 1000),
+    transparent: true,
   });
 
   // material.depthTest = false;
@@ -213,7 +220,7 @@ function createCircle(color) {
   return line;
 }
 
-function createAzimuth(color) {
+function createAzimuth(color, transparency) {
   const azimuth = {
     label: null,
     center: null,
@@ -239,7 +246,7 @@ function createAzimuth(color) {
     label.setBackgroundColor({ r: 0, g: 0, b: 0, a: 1.0 });
     label.fontsize = 16;
     // label.material.depthTest = false;
-    label.material.opacity = 1;
+    label.material.opacity = transparency;
 
     azimuth.label = label;
   }
@@ -247,10 +254,10 @@ function createAzimuth(color) {
   azimuth.center = new THREE.Mesh(sg, sm);
   azimuth.target = new THREE.Mesh(sg, sm);
   azimuth.north = new THREE.Mesh(sg, sm);
-  azimuth.centerToNorth = createLine(color);
-  azimuth.centerToTarget = createLine(color);
-  azimuth.centerToTargetground = createLine(color);
-  azimuth.targetgroundToTarget = createLine(color);
+  azimuth.centerToNorth = createLine(color, transparency);
+  azimuth.centerToTarget = createLine(color, transparency);
+  azimuth.centerToTargetground = createLine(color, transparency);
+  azimuth.targetgroundToTarget = createLine(color, transparency);
   azimuth.circle = createCircle(color);
 
   azimuth.node = new THREE.Object3D();
@@ -283,6 +290,9 @@ export class Measure extends THREE.Object3D {
     this._measureText = null;
     this._coordinatesText = null;
     this._showArea = false;
+    this._selected = false;
+    this._hovered = false;
+    this._transparency = MeasurementTransparancy.SOLID;
 
     this._closed = true;
     this._showAngles = false;
@@ -312,16 +322,16 @@ export class Measure extends THREE.Object3D {
     this.coordinateLabels = [];
     this.measureLabels = [];
 
-    this.heightEdge = createHeightLine();
-    this.heightLabel = createHeightLabel();
-    this.areaLabel = createAreaLabel();
+    this.heightEdge = createHeightLine(this.transparency);
+    this.heightLabel = createHeightLabel(this.selected);
+    this.areaLabel = createAreaLabel(this.selected);
     // this.circleRadiusLabel = createCircleRadiusLabel();
     // this.circleRadiusLine = createCircleRadiusLine();
     // this.circleLine = createCircleLine();
     // this.circleCenter = createCircleCenter();
     this.circleMesh = createCircleMesh(this.color);
 
-    this.azimuth = createAzimuth(this.color);
+    this.azimuth = createAzimuth(this.color, this.transparency);
 
     this.add(this.heightEdge);
     this.add(this.heightLabel);
@@ -360,7 +370,7 @@ export class Measure extends THREE.Object3D {
       case SystemType.cluster:
         path += `cluster-icons/${subFolder}`;
         break;
-			case SystemType.notification:
+      case SystemType.notification:
         path += `notification-icons/${subFolder}`;
         break;
       default:
@@ -420,7 +430,8 @@ export class Measure extends THREE.Object3D {
     map.minFilter = THREE.LinearFilter;
     map.magFilter = THREE.LinearFilter;
 
-    const material = new THREE.MeshBasicMaterial({ map, transparent: true, depthTest: true, depthWrite: true });
+    const material = new THREE.MeshBasicMaterial({ map, transparent: true });
+    material.opacity = this.transparency;
 
     return new THREE.Mesh(geometry, material);
   }
@@ -456,7 +467,7 @@ export class Measure extends THREE.Object3D {
     {
       // edges
       let geometry = new THREE.Geometry();
-      let material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, color: this.color, transparent: true, opacity: 0.2, depthWrite: false });
+      let material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, color: this.color, transparent: true, opacity: 0.2 });
       let lineGeometry = new LineGeometry();
       lineGeometry.setPositions([0, 0, 0, 0, 0, 0]);
 
@@ -464,12 +475,14 @@ export class Measure extends THREE.Object3D {
         color: this.color,
         linewidth: 2,
         resolution: new THREE.Vector2(1000, 1000),
+        transparent: true,
       });
 
       // lineMaterial.depthTest = false;
 
       let edge = new Line2(lineGeometry, lineMaterial);
       edge.visible = true;
+      edge.material.uniforms.opacity.value = this.transparency;
 
       this.add(edge);
       this.edges.push(edge);
@@ -494,9 +507,10 @@ export class Measure extends THREE.Object3D {
         edgeLabel.setBackgroundColor({ r: rgbColor.r, g: rgbColor.g, b: rgbColor.b, a: 0.8 });
         edgeLabel.setTextColor({ r: 255, g: 255, b: 255, a: 1.0 });
       }
-      // edgeLabel.material.depthTest = false;
-      edgeLabel.visible = false;
+      edgeLabel.material.depthTest = false;
       edgeLabel.fontsize = 16;
+      edgeLabel.material.opacity = this.selected ? MeasurementTransparancy.SOLID : 0;
+      edgeLabel.visible = false;
       this.edgeLabels.push(edgeLabel);
       this.add(edgeLabel);
     }
@@ -510,8 +524,8 @@ export class Measure extends THREE.Object3D {
         angleLabel.setTextColor({ r: 255, g: 255, b: 255, a: 1.0 });
       }
       angleLabel.fontsize = 16;
-      // angleLabel.material.depthTest = false;
-      angleLabel.material.opacity = 1;
+      angleLabel.material.depthTest = false;
+      angleLabel.material.opacity = this.selected ? MeasurementTransparancy.SOLID : 0;
       angleLabel.visible = false;
       this.angleLabels.push(angleLabel);
       this.add(angleLabel);
@@ -526,8 +540,8 @@ export class Measure extends THREE.Object3D {
         coordinateLabel.setTextColor({ r: 255, g: 255, b: 255, a: 1.0 });
       }
       coordinateLabel.fontsize = 16;
-      // coordinateLabel.material.depthTest = false;
-      coordinateLabel.material.opacity = 1;
+      coordinateLabel.material.depthTest = false;
+      coordinateLabel.material.opacity = this.selected ? MeasurementTransparancy.SOLID : 0;
       coordinateLabel.visible = false;
       this.coordinateLabels.push(coordinateLabel);
       this.add(coordinateLabel);
@@ -542,8 +556,8 @@ export class Measure extends THREE.Object3D {
         measureLabel.setTextColor({ r: 255, g: 255, b: 255, a: 1.0 });
       }
       measureLabel.fontsize = 16;
-      // measureLabel.material.depthTest = false;
-      measureLabel.material.opacity = 1;
+      measureLabel.material.depthTest = false;
+      measureLabel.material.opacity = this.transparency;
       measureLabel.visible = false;
       this.measureLabels.push(measureLabel);
       this.add(measureLabel);
@@ -553,6 +567,7 @@ export class Measure extends THREE.Object3D {
       // area label
       this.areaLabel.setBorderColor({ r: rgbColor.r, g: rgbColor.g, b: rgbColor.b, a: 0.8 });
       this.areaLabel.setBackgroundColor({ r: rgbColor.r, g: rgbColor.g, b: rgbColor.b, a: 0.8 });
+      this.areaLabel.material.opacity = this.selected ? MeasurementTransparancy.SOLID : 0;
     }
 
     {
@@ -594,7 +609,8 @@ export class Measure extends THREE.Object3D {
 
       let mouseover = (e) => {
         let i = this.spheres.indexOf(e.target);
-        e.object.material.opacity = 0.7;
+        this.hovered = true;
+
         this.dispatchEvent({
           type: 'marker_mouseover',
           measurement: this,
@@ -604,7 +620,8 @@ export class Measure extends THREE.Object3D {
 
       let mouseleave = (e) => {
         let i = this.spheres.indexOf(e.target);
-        e.object.material.opacity = 1;
+        this.hovered = false;
+
         this.dispatchEvent({
           type: 'marker_mouseleave',
           measurement: this,
@@ -778,6 +795,7 @@ export class Measure extends THREE.Object3D {
       let point = this.points[0];
       let position = point.position;
       this.spheres[0].position.copy(position);
+      this.spheres[0].material.opacity = this.transparency;
 
       {
         // coordinate labels
@@ -789,7 +807,7 @@ export class Measure extends THREE.Object3D {
           .join(' / ');
         coordinateLabel.setText(this.coordinatesText || msg);
 
-        coordinateLabel.visible = this.showCoordinates;
+        coordinateLabel.material.opacity = this.selected || this.hovered ? MeasurementTransparancy.SOLID : 0;
       }
 
       {
@@ -797,7 +815,7 @@ export class Measure extends THREE.Object3D {
         let measureLabel = this.measureLabels[0];
         measureLabel.setText(this.measureText);
 
-        measureLabel.visible = this.showMeasureText;
+        measureLabel.material.opacity = this.transparency;
       }
 
       return;
@@ -826,12 +844,14 @@ export class Measure extends THREE.Object3D {
       // spheres
       sphere.position.copy(point.position);
       sphere.material.color = this.color;
+      sphere.material.opacity = this.transparency;
 
       {
         // edges
         let edge = this.edges[index];
 
         edge.material.color = this.color;
+        edge.material.uniforms.opacity.value = this.transparency;
 
         edge.position.copy(point.position);
 
@@ -841,7 +861,6 @@ export class Measure extends THREE.Object3D {
         edge.geometry.computeBoundingSphere();
         edge.computeLineDistances();
         edge.visible = index < lastIndex || this.closed;
-
         if (!this.showEdges) {
           edge.visible = false;
         }
@@ -867,6 +886,7 @@ export class Measure extends THREE.Object3D {
         let txtLength = Utils.addCommas(distance.toFixed(2));
         edgeLabel.setText(`${txtLength} ${suffix}`);
         edgeLabel.visible = this.showDistances && (index < lastIndex || this.closed) && this.points.length >= 2 && distance > 0;
+        edgeLabel.material.opacity = this.selected || this.hovered ? MeasurementTransparancy.SOLID : 0;
       }
 
       {
@@ -888,6 +908,7 @@ export class Measure extends THREE.Object3D {
         angleLabel.setText(msg);
 
         angleLabel.visible = this.showAngles && (index < lastIndex || this.closed) && this.points.length >= 3 && angle > 0;
+        angleLabel.material.opacity = this.selected || this.hovered ? MeasurementTransparancy.SOLID : 0;
       }
     }
 
@@ -940,7 +961,9 @@ export class Measure extends THREE.Object3D {
       // update height stuff
       let heightEdge = this.heightEdge;
       heightEdge.visible = this.showHeight;
+      heightEdge.material.uniforms.opacity.value = this.transparency;
       this.heightLabel.visible = this.showHeight;
+      this.heightLabel.material.opacity = this.selected || this.hovered ? MeasurementTransparancy.SOLID : 0;
 
       if (this.showHeight) {
         let sorted = this.points.slice().sort((a, b) => a.position.z - b.position.z);
@@ -1044,6 +1067,7 @@ export class Measure extends THREE.Object3D {
       // update area label
       this.areaLabel.position.copy(centroid);
       this.areaLabel.visible = this.showArea && this.points.length >= 3;
+      this.areaLabel.material.opacity = this.selected || this.hovered ? MeasurementTransparancy.SOLID : 0;
       let area = this.getArea();
 
       let suffix = '';
@@ -1086,6 +1110,49 @@ export class Measure extends THREE.Object3D {
 
   set showCoordinates(value) {
     this._showCoordinates = value;
+    this.update();
+  }
+
+  get selected() {
+    return this._selected;
+  }
+
+  set selected(value) {
+    if (this.systemType === SystemType.cluster) {
+      // Clusters cannot be selected
+      return;
+    }
+    this._selected = value;
+    if (value) {
+      this.transparency = MeasurementTransparancy.SOLID;
+    } else {
+      this.transparency = MeasurementTransparancy.MEDIUM;
+    }
+  }
+  get hovered() {
+    return this._hovered;
+  }
+
+  set hovered(value) {
+    if (this.systemType === SystemType.cluster) {
+      // Clusters don't have hover state
+      return;
+    }
+    this._hovered = value;
+    if (value) {
+      this.transparency = MeasurementTransparancy.SOLID;
+    } else if (!this.selected && previousTransparency) {
+      this.transparency = previousTransparency;
+    }
+    previousTransparency = value;
+  }
+
+  get transparency() {
+    return this._transparency;
+  }
+
+  set transparency(value) {
+    this._transparency = value;
     this.update();
   }
 
