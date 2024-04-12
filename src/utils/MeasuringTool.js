@@ -1,7 +1,7 @@
 import * as THREE from '../../libs/three.js/build/three.module.js';
 import { Measure } from './Measure.js';
 import { Utils } from '../utils.js';
-import { CameraMode, SystemType } from '../defines.js';
+import { CameraMode, MeasurementTransparancy, SystemType } from '../defines.js';
 import { EventDispatcher } from '../EventDispatcher.js';
 
 function updateAzimuth(viewer, measure) {
@@ -152,7 +152,7 @@ export class MeasuringTool extends EventDispatcher {
     }
 
     viewer.addEventListener('update', this.update.bind(this));
-    viewer.addEventListener('render.pass.perspective_overlay', this.render.bind(this));
+    viewer.addEventListener('render.pass.scene', this.render.bind(this));
     viewer.addEventListener('scene_changed', this.onSceneChange.bind(this));
 
     viewer.scene.addEventListener('measurement_added', this.onAdd);
@@ -339,7 +339,6 @@ export class MeasuringTool extends EventDispatcher {
   update() {
     let camera = this.viewer.scene.getActiveCamera();
     let measurements = this.viewer.scene.measurements;
-    let images360 = this.viewer.scene.images360;
 
     const renderAreaSize = this.renderer.getSize(new THREE.Vector2());
     let clientWidth = renderAreaSize.width;
@@ -360,6 +359,9 @@ export class MeasuringTool extends EventDispatcher {
         let distance = camera.position.distanceTo(sphere.getWorldPosition(new THREE.Vector3()));
         let pr = Utils.projectedRadius(1, camera, distance, clientWidth, clientHeight);
         let scale = this.getMeasurePointSize(measure.systemType) / pr;
+        if (measure.selected) {
+          scale *= 1.2;
+        }
         sphere.scale.set(scale, scale, scale);
         sphere.quaternion.copy(camera.quaternion);
       }
@@ -394,14 +396,6 @@ export class MeasuringTool extends EventDispatcher {
         const matrix = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
         frustum.setFromProjectionMatrix(matrix);
         label.visible = measure.showCoordinates && frustum.containsPoint(sphere.position);
-        // if (images360 && images360[0] && images360[0].view360Enabled) {
-        //   const I = Utils.getMousePointCloudIntersection(screenPos, camera, this.viewer, this.viewer.scene.pointclouds, { pickClipped: true });
-        //   if (I) {
-        //     const d = sphere.getWorldPosition(new THREE.Vector3()).clone().distanceTo(I.location);
-        //     sphere.visible = d < 1;
-        //     label.visible = label.visible && d < 1;
-        //   }
-        // }
 
         let labelPos = new THREE.Vector3((screenPos.x / clientWidth) * 2 - 1, -(screenPos.y / clientHeight) * 2 + 1, 0.5);
         labelPos.unproject(camera);
@@ -550,7 +544,40 @@ export class MeasuringTool extends EventDispatcher {
     }
   }
 
-  render() {
-    this.viewer.renderer.render(this.scene, this.viewer.scene.getActiveCamera());
+  render(params) {
+    const renderer = this.viewer.renderer;
+
+    const oldTarget = renderer.getRenderTarget();
+
+    if (params.renderTarget) {
+      renderer.setRenderTarget(params.renderTarget);
+    }
+    this.viewer.scene.measurements.forEach((measurement) => {
+      measurement.traverse(function (object) {
+        if (object.material) {
+          if (object.material.type !== 'SpriteMaterial') {
+            object.material.opacity = MeasurementTransparancy.HIGH;
+            object.material.depthTest = false;
+          }
+        }
+      });
+    });
+    renderer.render(this.scene, this.viewer.scene.getActiveCamera());
+    this.viewer.scene.measurements.forEach((measurement) => {
+      // update all measurements to reset the transparency of the objects
+      measurement.update();
+      measurement.traverse(function (object) {
+        if (object.material && object.material.type !== 'SpriteMaterial') {
+          if (measurement.selected || measurement.hovered) {
+            // if object is selected it should be shown even if it is behind
+            object.material.depthTest = false;
+          } else {
+            object.material.depthTest = true;
+          }
+        }
+      });
+    });
+    renderer.render(this.scene, this.viewer.scene.getActiveCamera());
+    renderer.setRenderTarget(oldTarget);
   }
 }

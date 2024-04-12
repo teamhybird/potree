@@ -66,5 +66,11 @@ export const SystemType = {
   component: 'Component',
   inspect: 'INSPECT',
   none: 'None',
-  notification:'NOTIFICATION'
+  notification: 'NOTIFICATION',
+};
+
+export const MeasurementTransparancy = {
+  SOLID: 1,
+  MEDIUM: 0.5,
+  HIGH: 0.2,
 };
