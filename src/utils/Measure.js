@@ -44,29 +44,29 @@ function createHeightLine(transparency) {
   return heightEdge;
 }
 
-function createHeightLabel(selected) {
+function createHeightLabel(selected, transparency) {
   const heightLabel = new TextSprite('');
 
   heightLabel.setTextColor({ r: 255, g: 255, b: 255, a: 1.0 });
   heightLabel.setBorderColor({ r: 0, g: 0, b: 0, a: 1.0 });
   heightLabel.setBackgroundColor({ r: 0, g: 0, b: 0, a: 1.0 });
   heightLabel.fontsize = 16;
-  heightLabel.material.depthTest = false;
-  heightLabel.material.opacity = selected ? MeasurementTransparancy.SOLID : 0;
+  // heightLabel.material.depthTest = false;
+  heightLabel.material.opacity = transparency;
   heightLabel.visible = false;
 
   return heightLabel;
 }
 
-function createAreaLabel(selected) {
+function createAreaLabel(selected, transparency) {
   const areaLabel = new TextSprite('');
 
   areaLabel.setTextColor({ r: 255, g: 255, b: 255, a: 1.0 });
   areaLabel.setBorderColor({ r: 0, g: 0, b: 0, a: 1.0 });
   areaLabel.setBackgroundColor({ r: 0, g: 0, b: 0, a: 1.0 });
   areaLabel.fontsize = 16;
-  areaLabel.material.depthTest = false;
-  areaLabel.material.opacity = selected ? MeasurementTransparancy.SOLID : 0;
+  // areaLabel.material.depthTest = false;
+  areaLabel.material.opacity = transparency;
   areaLabel.visible = false;
 
   return areaLabel;
@@ -323,8 +323,8 @@ export class Measure extends THREE.Object3D {
     this.measureLabels = [];
 
     this.heightEdge = createHeightLine(this.transparency);
-    this.heightLabel = createHeightLabel(this.selected);
-    this.areaLabel = createAreaLabel(this.selected);
+    this.heightLabel = createHeightLabel(this.selected, this.transparency);
+    this.areaLabel = createAreaLabel(this.selected, this.transparency);
     // this.circleRadiusLabel = createCircleRadiusLabel();
     // this.circleRadiusLine = createCircleRadiusLine();
     // this.circleLine = createCircleLine();
@@ -507,9 +507,9 @@ export class Measure extends THREE.Object3D {
         edgeLabel.setBackgroundColor({ r: rgbColor.r, g: rgbColor.g, b: rgbColor.b, a: 0.8 });
         edgeLabel.setTextColor({ r: 255, g: 255, b: 255, a: 1.0 });
       }
-      edgeLabel.material.depthTest = false;
+      // edgeLabel.material.depthTest = false;
       edgeLabel.fontsize = 16;
-      edgeLabel.material.opacity = this.selected ? MeasurementTransparancy.SOLID : 0;
+      edgeLabel.material.opacity = this.transparency;
       edgeLabel.visible = false;
       this.edgeLabels.push(edgeLabel);
       this.add(edgeLabel);
@@ -524,8 +524,8 @@ export class Measure extends THREE.Object3D {
         angleLabel.setTextColor({ r: 255, g: 255, b: 255, a: 1.0 });
       }
       angleLabel.fontsize = 16;
-      angleLabel.material.depthTest = false;
-      angleLabel.material.opacity = this.selected ? MeasurementTransparancy.SOLID : 0;
+      // angleLabel.material.depthTest = false;
+      angleLabel.material.opacity = this.transparency;
       angleLabel.visible = false;
       this.angleLabels.push(angleLabel);
       this.add(angleLabel);
@@ -540,8 +540,8 @@ export class Measure extends THREE.Object3D {
         coordinateLabel.setTextColor({ r: 255, g: 255, b: 255, a: 1.0 });
       }
       coordinateLabel.fontsize = 16;
-      coordinateLabel.material.depthTest = false;
-      coordinateLabel.material.opacity = this.selected ? MeasurementTransparancy.SOLID : 0;
+      // coordinateLabel.material.depthTest = false;
+      coordinateLabel.material.opacity = this.transparency;
       coordinateLabel.visible = false;
       this.coordinateLabels.push(coordinateLabel);
       this.add(coordinateLabel);
@@ -567,7 +567,7 @@ export class Measure extends THREE.Object3D {
       // area label
       this.areaLabel.setBorderColor({ r: rgbColor.r, g: rgbColor.g, b: rgbColor.b, a: 0.8 });
       this.areaLabel.setBackgroundColor({ r: rgbColor.r, g: rgbColor.g, b: rgbColor.b, a: 0.8 });
-      this.areaLabel.material.opacity = this.selected ? MeasurementTransparancy.SOLID : 0;
+      this.areaLabel.material.opacity = this.transparency;
     }
 
     {
@@ -807,7 +807,7 @@ export class Measure extends THREE.Object3D {
           .join(' / ');
         coordinateLabel.setText(this.coordinatesText || msg);
 
-        coordinateLabel.material.opacity = this.selected || this.hovered ? MeasurementTransparancy.SOLID : 0;
+        coordinateLabel.material.opacity = this.transparency;
       }
 
       {
@@ -886,7 +886,7 @@ export class Measure extends THREE.Object3D {
         let txtLength = Utils.addCommas(distance.toFixed(2));
         edgeLabel.setText(`${txtLength} ${suffix}`);
         edgeLabel.visible = this.showDistances && (index < lastIndex || this.closed) && this.points.length >= 2 && distance > 0;
-        edgeLabel.material.opacity = this.selected || this.hovered ? MeasurementTransparancy.SOLID : 0;
+        edgeLabel.material.opacity = this.transparency;
       }
 
       {
@@ -908,7 +908,7 @@ export class Measure extends THREE.Object3D {
         angleLabel.setText(msg);
 
         angleLabel.visible = this.showAngles && (index < lastIndex || this.closed) && this.points.length >= 3 && angle > 0;
-        angleLabel.material.opacity = this.selected || this.hovered ? MeasurementTransparancy.SOLID : 0;
+        angleLabel.material.opacity = this.transparency;
       }
     }
 
@@ -963,7 +963,7 @@ export class Measure extends THREE.Object3D {
       heightEdge.visible = this.showHeight;
       heightEdge.material.uniforms.opacity.value = this.transparency;
       this.heightLabel.visible = this.showHeight;
-      this.heightLabel.material.opacity = this.selected || this.hovered ? MeasurementTransparancy.SOLID : 0;
+      this.heightLabel.material.opacity = this.transparency;
 
       if (this.showHeight) {
         let sorted = this.points.slice().sort((a, b) => a.position.z - b.position.z);
@@ -1067,7 +1067,7 @@ export class Measure extends THREE.Object3D {
       // update area label
       this.areaLabel.position.copy(centroid);
       this.areaLabel.visible = this.showArea && this.points.length >= 3;
-      this.areaLabel.material.opacity = this.selected || this.hovered ? MeasurementTransparancy.SOLID : 0;
+      this.areaLabel.material.opacity = this.transparency;
       let area = this.getArea();
 
       let suffix = '';
