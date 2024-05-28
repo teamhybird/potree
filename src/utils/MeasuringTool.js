@@ -576,12 +576,14 @@ export class MeasuringTool extends EventDispatcher {
       });
     });
     renderer.render(this.scene, this.viewer.scene.getActiveCamera());
+    // TEMP: 360 not working properly
+    const is360ViewModeActive = (this.viewer.scene.images360 || []).some((image360) => image360 && image360.view360Enabled);
     this.viewer.scene.measurements.forEach((measurement) => {
       // update all measurements to reset the transparency of the objects
       measurement.update();
       measurement.traverse(function (object) {
         if (object.material && object.material.type !== 'SpriteMaterial') {
-          if (measurement.selected || measurement.hovered) {
+          if (measurement.selected || measurement.hovered || is360ViewModeActive) {
             // if object is selected it should be shown even if it is behind
             object.material.depthTest = false;
           } else {
@@ -598,7 +600,7 @@ export class MeasuringTool extends EventDispatcher {
         measurement.areaLabel,
       ].forEach((object) => {
         if (object.material) {
-          if (measurement.selected || measurement.hovered) {
+          if (measurement.selected || measurement.hovered || is360ViewModeActive) {
             // if object is selected it should be shown even if it is behind
             object.material.depthTest = false;
           } else {
