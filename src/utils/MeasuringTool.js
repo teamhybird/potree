@@ -561,6 +561,19 @@ export class MeasuringTool extends EventDispatcher {
           }
         }
       });
+      [
+        ...(measurement.sphereLabels || []),
+        ...(measurement.edgeLabels || []),
+        ...(measurement.angleLabels || []),
+        ...(measurement.coordinateLabels || []),
+        measurement.heightLabel,
+        measurement.areaLabel,
+      ].forEach((object) => {
+        if (object.material) {
+          object.material.opacity = MeasurementTransparancy.HIGH;
+          object.material.depthTest = false;
+        }
+      });
     });
     renderer.render(this.scene, this.viewer.scene.getActiveCamera());
     this.viewer.scene.measurements.forEach((measurement) => {
@@ -568,6 +581,23 @@ export class MeasuringTool extends EventDispatcher {
       measurement.update();
       measurement.traverse(function (object) {
         if (object.material && object.material.type !== 'SpriteMaterial') {
+          if (measurement.selected || measurement.hovered) {
+            // if object is selected it should be shown even if it is behind
+            object.material.depthTest = false;
+          } else {
+            object.material.depthTest = true;
+          }
+        }
+      });
+      [
+        ...(measurement.sphereLabels || []),
+        ...(measurement.edgeLabels || []),
+        ...(measurement.angleLabels || []),
+        ...(measurement.coordinateLabels || []),
+        measurement.heightLabel,
+        measurement.areaLabel,
+      ].forEach((object) => {
+        if (object.material) {
           if (measurement.selected || measurement.hovered) {
             // if object is selected it should be shown even if it is behind
             object.material.depthTest = false;
