@@ -956,6 +956,11 @@ export class Viewer extends EventDispatcher {
   }
 
   zoomToPosition(camPos, points, animationDuration = 0) {
+    const is360ViewModeActive = (this.scene.images360 || []).some((image360) => image360 && image360.view360Enabled);
+    if (is360ViewModeActive) {
+      console.warn('Zoom to position on viewer instance not allowed for 360 view mode');
+      return;
+    }
     let view = this.scene.view;
     let camera = this.scene.cameraP.clone();
     camera.rotation.copy(this.scene.cameraP.rotation);
