@@ -279,6 +279,7 @@ export class EDLRenderer {
       }
     }
 
+    viewer.dispatchEvent({ type: 'render.pass.before_scene', viewer: viewer });
     viewer.dispatchEvent({ type: 'render.pass.scene', viewer: viewer, renderTarget: this.rtRegular });
     viewer.renderer.setRenderTarget(null);
     viewer.renderer.render(viewer.scene.scene, camera);
@@ -312,6 +313,7 @@ export class EDLRenderer {
       }
     }
 
+    viewer.dispatchEvent({ type: 'render.pass.before_scene', viewer: viewer });
     viewer.dispatchEvent({ type: 'render.pass.scene', viewer: viewer });
 
     viewer.renderer.clearDepth();

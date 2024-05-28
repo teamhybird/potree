@@ -301,6 +301,7 @@ export class HQSplatRenderer {
 
     viewer.renderer.render(viewer.scene.scene, camera);
 
+    viewer.dispatchEvent({ type: 'render.pass.before_scene', viewer: viewer });
     viewer.dispatchEvent({ type: 'render.pass.scene', viewer: viewer });
 
     viewer.renderer.clearDepth();

@@ -66,16 +66,21 @@ export class NavvisImages360 extends EventDispatcher {
 
     this.scene = new THREE.Scene();
     this.scene.name = 'scene_360_images';
+    this.sceneOverlay = new THREE.Scene();
+    this.sceneOverlay.name = 'scene_360_images_overlay';
+
     this.light = new THREE.PointLight(0xffffff, 1.0);
     this.scene.add(this.light);
+    this.sceneOverlay.add(this.light);
     this.photoSphereViewer = null;
 
-    this.viewer.inputHandler.registerInteractiveScene(this.scene);
+    this.viewer.inputHandler.registerInteractiveScene(this.sceneOverlay);
 
     this.viewer.addEventListener('update', () => {
       this.update(this.viewer);
     });
-    this.viewer.addEventListener('render.pass.scene', (e) => this.render(e));
+    this.viewer.addEventListener('render.pass.before_scene', (e) => this.render(e));
+    this.viewer.addEventListener('render.pass.perspective_overlay', (e) => this.renderOverlay(e));
     this.viewer.addEventListener('scene_changed', this.onSceneChange.bind(this));
 
     this.viewer.inputHandler.addInputListener(this);
@@ -86,11 +91,6 @@ export class NavvisImages360 extends EventDispatcher {
       mouseMoved = true;
     };
     let mouseUp = (e) => {
-      if (!mouseMoved) {
-        if (currentlyHovered && currentlyHovered.image360) {
-          this.focus(currentlyHovered.image360);
-        }
-      }
       domElement.removeEventListener('mousemove', mouseMove);
     };
 
@@ -99,18 +99,49 @@ export class NavvisImages360 extends EventDispatcher {
       domElement.addEventListener('mousemove', mouseMove);
     };
 
+    let footprintMouseOver = (e) => {
+      if (e.footprint) {
+        e.footprint.material.opacity = footprintHoveredOpacity;
+      }
+    };
+
+    let footprintMouseLeave = (e) => {
+      if (e.footprint) {
+        e.footprint.material.opacity = this.showFootprints ? footprintDefaultOpacity : 0;
+      }
+    };
+
+    let footprintMouseClick = (e) => {
+      let i = this.footprints.indexOf(e.footprint);
+      if (i > -1) {
+        if (e.footprint && e.footprint.image360 && !mouseMoved) {
+          this.focus(e.footprint.image360);
+        }
+      }
+    };
+
     this.addEventListener('mouseup', mouseUp);
     this.addEventListener('mousedown', mouseDown);
+    this.addEventListener('footprint_mouseover', footprintMouseOver);
+    this.addEventListener('footprint_mouseleave', footprintMouseLeave);
+    this.addEventListener('footprint_clicked', footprintMouseClick);
+
     this.viewer.scene.addEventListener('360_images_added', this.onAdd.bind(this));
     this.viewer.scene.addEventListener('360_images_removed', this.onRemove.bind(this));
   }
 
   onRemove(e) {
     this.scene.remove(e.images.node);
+    (e.footprints || []).forEach((mesh) => {
+      this.sceneOverlay.remove(mesh);
+    });
   }
 
   onAdd(e) {
     this.scene.add(e.images.node);
+    (e.footprints || []).forEach((mesh) => {
+      this.sceneOverlay.add(mesh);
+    });
   }
 
   onSceneChange(e) {
@@ -536,36 +567,6 @@ export class NavvisImages360 extends EventDispatcher {
     // });
   }
 
-  handleHovering() {
-    let mouse = this.viewer.inputHandler.mouse;
-    let camera = this.viewer.scene.getActiveCamera();
-    let domElement = this.viewer.renderer.domElement;
-
-    let ray = Utils.mouseToRay(mouse, camera, domElement.clientWidth, domElement.clientHeight);
-
-    // let tStart = performance.now();
-    raycaster.ray.copy(ray);
-    let intersections = raycaster.intersectObjects(
-      this.footprints.filter((v) => v.visible),
-      false
-    );
-
-    if (intersections.length === 0) {
-      // label.visible = false;
-
-      return;
-    }
-
-    let intersection = intersections[0];
-    if (intersection.object && intersection.object.image360 && intersection.object.visible) {
-      currentlyHovered = intersection.object;
-      currentlyHovered.material.opacity = footprintHoveredOpacity;
-    }
-    //label.visible = true;
-    //label.setText(currentlyHovered.image360.file);
-    //currentlyHovered.getWorldPosition(label.position);
-  }
-
   updateImages(newImages = [], closestImage = null, params = {}) {
     if (!params.transform) {
       params.transform = {
@@ -573,8 +574,7 @@ export class NavvisImages360 extends EventDispatcher {
       };
     }
     this.images.forEach((image) => {
-      this.node.remove(image.mesh);
-      this.viewer.scene.scene.remove(image.mesh);
+      this.sceneOverlay.remove(image.mesh);
     });
 
     this.images = [];
@@ -622,13 +622,6 @@ export class NavvisImages360 extends EventDispatcher {
   update() {
     let camera = this.viewer.scene.getActiveCamera();
     this.light.position.copy(camera.position);
-
-    if (currentlyHovered) {
-      currentlyHovered.material.opacity = this.showFootprints ? footprintDefaultOpacity : 0;
-      currentlyHovered = null;
-    }
-
-    this.handleHovering();
   }
 
   render(params) {
@@ -640,6 +633,18 @@ export class NavvisImages360 extends EventDispatcher {
       renderer.setRenderTarget(params.renderTarget);
     }
     renderer.render(this.scene, this.viewer.scene.getActiveCamera());
+    renderer.setRenderTarget(oldTarget);
+  }
+
+  renderOverlay(params) {
+    const renderer = this.viewer.renderer;
+
+    const oldTarget = renderer.getRenderTarget();
+
+    if (params.renderTarget) {
+      renderer.setRenderTarget(params.renderTarget);
+    }
+    renderer.render(this.sceneOverlay, this.viewer.scene.getActiveCamera());
     renderer.setRenderTarget(oldTarget);
   }
 }
@@ -688,11 +693,11 @@ export class NavvisImages360Loader {
       const geometry = new THREE.CircleBufferGeometry(0.5, 32);
       const material = new THREE.MeshBasicMaterial({
         transparent: true,
-        depthTest: false,
-        depthWrite: false,
+        // depthTest: false,
+        // depthWrite: false,
         opacity: images360.showFootprints ? footprintDefaultOpacity : 0,
         color: 0xffffff,
-        alphaTest: footprintDefaultOpacity - 0.1,
+        // alphaTest: footprintDefaultOpacity - 0.1,
         side: THREE.DoubleSide,
       });
 
@@ -713,7 +718,41 @@ export class NavvisImages360Loader {
         // mesh.add(new THREE.AxesHelper(3));
       }
 
-      images360.node.add(mesh);
+      images360.sceneOverlay.add(mesh);
+
+      let mouseover = (e) => {
+        let i = images360.footprints.indexOf(e.target);
+        images360.footprintHovered = true;
+
+        images360.dispatchEvent({
+          type: 'footprint_mouseover',
+          footprint: e.target,
+          index: i,
+        });
+      };
+
+      let mouseleave = (e) => {
+        let i = images360.footprints.indexOf(e.target);
+        images360.footprintHovered = false;
+
+        images360.dispatchEvent({
+          type: 'footprint_mouseleave',
+          footprint: e.target,
+          index: i,
+        });
+      };
+
+      let mouseclick = (e) => {
+        images360.dispatchEvent({
+          type: 'footprint_clicked',
+          footprint: e.target,
+        });
+      };
+
+      mesh.addEventListener('mouseover', mouseover);
+      mesh.addEventListener('mouseleave', mouseleave);
+      mesh.addEventListener('mouseup', mouseclick);
+
       images360.footprints.push(mesh);
 
       image360.mesh = mesh;
