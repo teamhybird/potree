@@ -50,7 +50,10 @@
 		"shape_cube": "Shape [Cube]",
 		"shape_ring": "Shape [Ring]",
 		"shape_cylinder": "Shape [Cylinder]",
-		"shape_sphere": "Shape [Sphere]"
+		"shape_sphere": "Shape [Sphere]",
+		"point_defect": "Defect [Point]",
+		"point_notification": "Notification [Point]",
+		"point_rg_measurement_location": "RG Measurement Location [Point]"
 	},
 	"appearance": {
 		"nb_max_pts": "Point budget", 

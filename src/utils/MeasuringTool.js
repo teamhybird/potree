@@ -329,6 +329,7 @@ export class MeasuringTool extends EventDispatcher {
       case SystemType.notification:
         size = 20;
         break;
+      case SystemType.rgMeasurementLocation:
       default:
         size = 15;
         break;

@@ -67,6 +67,7 @@ export const SystemType = {
   inspect: 'INSPECT',
   none: 'None',
   notification: 'NOTIFICATION',
+  rgMeasurementLocation: 'RG_MEASUREMENT_LOCATION',
 };
 
 export const MeasurementTransparancy = {
