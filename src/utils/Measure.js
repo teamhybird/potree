@@ -642,6 +642,7 @@ export class Measure extends THREE.Object3D {
             measurement: this,
             index: i,
           });
+          e.consume();
         }
       };
 
