@@ -68,6 +68,7 @@ export const SystemType = {
   none: 'None',
   notification: 'NOTIFICATION',
   rgMeasurementLocation: 'RG_MEASUREMENT_LOCATION',
+  rgMeasurementPoint: 'RG_MEASUREMENT_POINT',
 };
 
 export const MeasurementTransparancy = {

@@ -318,18 +318,13 @@ export class MeasuringTool extends EventDispatcher {
         size = 25;
         break;
       case SystemType.defect:
-        size = 20;
-        break;
       case SystemType.component:
-        size = 20;
-        break;
       case SystemType.inspect:
-        size = 20;
-        break;
       case SystemType.notification:
+      case SystemType.rgMeasurementLocation:
+      case SystemType.rgMeasurementPoint:
         size = 20;
         break;
-      case SystemType.rgMeasurementLocation:
       default:
         size = 15;
         break;

@@ -18,6 +18,7 @@ const allMeasureVariants = [
   { systemType: SystemType.measurement, colorNames: ['yellow', 'lightOrange', 'orange', 'green', 'lightBlue', 'blue', 'purple', 'red'] },
   { systemType: SystemType.notification, colorNames: ['green'] },
   { systemType: SystemType.rgMeasurementLocation, colorNames: ['yellow', 'lightOrange', 'orange', 'green', 'lightBlue', 'blue', 'purple', 'red'] },
+  { systemType: SystemType.rgMeasurementPoint, colorNames: ['yellow', 'lightOrange', 'orange', 'green', 'lightBlue', 'blue', 'purple', 'red'] },
 ];
 
 let previousTransparency = null;
@@ -377,6 +378,9 @@ export class Measure extends THREE.Object3D {
         break;
       case SystemType.rgMeasurementLocation:
         path += `rg-measurement-location-icons/${subFolder}`;
+        break;
+      case SystemType.rgMeasurementPoint:
+        path += `rg-measurement-point-icons/${subFolder}`;
         break;
       default:
         path += '';
