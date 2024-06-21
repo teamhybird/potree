@@ -102,8 +102,8 @@ export class NavvisImages360 extends EventDispatcher {
     let footprintMouseClick = (e) => {
       let i = this.footprints.indexOf(e.footprint);
       if (i > -1) {
-        if (e.footprint && e.footprint.image360 && !mouseMoved) {
-          this.focus(e.footprint.image360);
+        if (currentlyHovered && currentlyHovered.image360 && !mouseMoved) {
+          this.focus(currentlyHovered.image360);
         }
       }
     };
@@ -606,28 +606,17 @@ export class NavvisImages360 extends EventDispatcher {
   }
 
   handleHovering() {
-    let mouse = this.viewer.inputHandler.mouse;
-    let camera = this.viewer.scene.getActiveCamera();
-    let domElement = this.viewer.renderer.domElement;
+    const hoveredElements = this.viewer.inputHandler.getHoveredElements();
 
-    let ray = Utils.mouseToRay(mouse, camera, domElement.clientWidth, domElement.clientHeight);
-
-    // let tStart = performance.now();
-    raycaster.ray.copy(ray);
-    let intersections = raycaster.intersectObjects(
-      this.footprints.filter((v) => v.visible),
-      false
-    );
-
-    if (intersections.length === 0) {
+    if (hoveredElements.length === 0) {
       // label.visible = false;
 
       return;
     }
 
-    let intersection = intersections[0];
-    if (intersection.object && intersection.object.image360 && intersection.object.visible) {
-      currentlyHovered = intersection.object;
+    let firstElement = hoveredElements[0];
+    if (firstElement.object && firstElement.object.image360 && firstElement.object.visible) {
+      currentlyHovered = firstElement.object;
       currentlyHovered.material.opacity = footprintHoveredOpacity;
     }
     //label.visible = true;
