@@ -1150,11 +1150,11 @@ export class Measure extends THREE.Object3D {
     }
     this._hovered = value;
     if (value) {
+      previousTransparency = this.transparency;
       this.transparency = MeasurementTransparancy.SOLID;
     } else if (!this.selected && previousTransparency) {
       this.transparency = previousTransparency;
     }
-    previousTransparency = value;
   }
 
   get transparency() {
