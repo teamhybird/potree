@@ -44,6 +44,7 @@ export class FirstPersonControls extends EventDispatcher {
     this.fadeFactor = 50;
     this.yawDelta = 0;
     this.pitchDelta = 0;
+    this.panDelta = new THREE.Vector2(0, 0);
     this.translationDelta = new THREE.Vector3(0, 0, 0);
     this.translationWorldDelta = new THREE.Vector3(0, 0, 0);
     this.scrollTimer = null;
@@ -61,8 +62,6 @@ export class FirstPersonControls extends EventDispatcher {
 
         this.dispatchEvent({ type: 'start' });
       }
-
-      let moveSpeed = this.viewer.getMoveSpeed();
 
       let ndrag = {
         x: e.drag.lastDrag.x / this.renderer.domElement.clientWidth,
@@ -84,8 +83,8 @@ export class FirstPersonControls extends EventDispatcher {
           view.pitch = pitch;
         }
       } else if (e.drag.mouse === MOUSE.RIGHT) {
-        this.translationDelta.x -= ndrag.x * moveSpeed * 100;
-        this.translationDelta.z += ndrag.y * moveSpeed * 100;
+        this.panDelta.x += ndrag.x;
+        this.panDelta.y += ndrag.y;
       }
     };
 
@@ -132,6 +131,7 @@ export class FirstPersonControls extends EventDispatcher {
     this.yawDelta = 0;
     this.pitchDelta = 0;
     this.translationDelta.set(0, 0, 0);
+    this.panDelta.set(0, 0);
   }
 
   zoomToLocation(mouse) {
@@ -283,10 +283,22 @@ export class FirstPersonControls extends EventDispatcher {
     }
 
     {
+      // apply pan
+      let progression = Math.min(1, this.fadeFactor * delta);
+      let panDistance = progression * view.radius * 3;
+
+      let px = -this.panDelta.x * panDistance;
+      let py = this.panDelta.y * panDistance;
+
+      view.pan(px, py);
+    }
+
+    {
       // decelerate over time
       let attenuation = Math.max(0, 1 - this.fadeFactor * delta);
       this.yawDelta *= attenuation;
       this.pitchDelta *= attenuation;
+      this.panDelta.multiplyScalar(attenuation);
       this.translationDelta.multiplyScalar(attenuation);
       this.translationWorldDelta.multiplyScalar(attenuation);
     }
