@@ -8,17 +8,16 @@ import { LineMaterial } from '../../../libs/three.js/lines/LineMaterial.js';
 class ControlPoint {
   constructor() {
     this.position = new THREE.Vector3(0, 0, 0);
-    this.target = new THREE.Vector3(0, 0, 0);
-    this.positionHandle = null;
-    this.targetHandle = null;
+    this.quaternion = new THREE.Quaternion();
   }
 }
 
 export class CameraAnimation extends EventDispatcher {
-  constructor(viewer) {
+  constructor(viewer, camera) {
     super();
 
     this.viewer = viewer;
+    this.camera = camera;
 
     this.selectedElement = null;
 
@@ -31,7 +30,7 @@ export class CameraAnimation extends EventDispatcher {
     this.viewer.scene.scene.add(this.node);
 
     this.frustum = this.createFrustum();
-    this.node.add(this.frustum);
+    // this.node.add(this.frustum);
 
     this.name = 'Camera Animation';
     this.duration = 5;
@@ -50,13 +49,11 @@ export class CameraAnimation extends EventDispatcher {
     const camera = viewer.scene.getActiveCamera();
     const target = viewer.scene.view.getPivot();
 
+    const currentQuaternion = camera.quaternion.clone();
+
     const cpCenter = new THREE.Vector3(0.3 * camera.position.x + 0.7 * target.x, 0.3 * camera.position.y + 0.7 * target.y, 0.3 * camera.position.z + 0.7 * target.z);
 
-    const targetCenter = new THREE.Vector3(0.05 * camera.position.x + 0.95 * target.x, 0.05 * camera.position.y + 0.95 * target.y, 0.05 * camera.position.z + 0.95 * target.z);
-
     const r = camera.position.distanceTo(target) * 0.3;
-
-    //const dir = target.clone().sub(camera.position).normalize();
     const angle = Utils.computeAzimuth(camera.position, target);
 
     const n = 5;
@@ -68,11 +65,13 @@ export class CameraAnimation extends EventDispatcher {
 
       const cpPos = [cpCenter.x + dx, cpCenter.y + dy, cpCenter.z];
 
-      const targetPos = [targetCenter.x + dx * 0.1, targetCenter.y + dy * 0.1, targetCenter.z];
-
       const cp = animation.createControlPoint();
       cp.position.set(...cpPos);
-      cp.target.set(...targetPos);
+
+      const rotationAngle = (2 * Math.PI * i) / n;
+      const rotationQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rotationAngle);
+
+      cp.quaternion.copy(currentQuaternion).multiply(rotationQuat);
     }
 
     return animation;
@@ -94,34 +93,34 @@ export class CameraAnimation extends EventDispatcher {
 
           const visible = this.visible && projected.z < 1 && projected.z > -1;
 
-          if (visible) {
-            const x = width * (projected.x * 0.5 + 0.5);
-            const y = height - height * (projected.y * 0.5 + 0.5);
+          // if (visible) {
+          //   const x = width * (projected.x * 0.5 + 0.5);
+          //   const y = height - height * (projected.y * 0.5 + 0.5);
 
-            cp.positionHandle.svg.style.left = x - cp.positionHandle.svg.clientWidth / 2;
-            cp.positionHandle.svg.style.top = y - cp.positionHandle.svg.clientHeight / 2;
-            cp.positionHandle.svg.style.display = '';
-          } else {
-            cp.positionHandle.svg.style.display = 'none';
-          }
+          //   cp.positionHandle.svg.style.left = x - cp.positionHandle.svg.clientWidth / 2;
+          //   cp.positionHandle.svg.style.top = y - cp.positionHandle.svg.clientHeight / 2;
+          //   cp.positionHandle.svg.style.display = '';
+          // } else {
+          //   cp.positionHandle.svg.style.display = 'none';
+          // }
         }
 
         {
           // target
-          const projected = cp.target.clone().project(camera);
+          const projected = cp.position.clone().project(camera);
 
           const visible = this.visible && projected.z < 1 && projected.z > -1;
 
-          if (visible) {
-            const x = width * (projected.x * 0.5 + 0.5);
-            const y = height - height * (projected.y * 0.5 + 0.5);
+          // if (visible) {
+          //   const x = width * (projected.x * 0.5 + 0.5);
+          //   const y = height - height * (projected.y * 0.5 + 0.5);
 
-            cp.targetHandle.svg.style.left = x - cp.targetHandle.svg.clientWidth / 2;
-            cp.targetHandle.svg.style.top = y - cp.targetHandle.svg.clientHeight / 2;
-            cp.targetHandle.svg.style.display = '';
-          } else {
-            cp.targetHandle.svg.style.display = 'none';
-          }
+          //   cp.targetHandle.svg.style.left = x - cp.targetHandle.svg.clientWidth / 2;
+          //   cp.targetHandle.svg.style.top = y - cp.targetHandle.svg.clientHeight / 2;
+          //   cp.targetHandle.svg.style.display = '';
+          // } else {
+          //   cp.targetHandle.svg.style.display = 'none';
+          // }
         }
       }
 
@@ -135,7 +134,7 @@ export class CameraAnimation extends EventDispatcher {
         const frustum = this.frustum;
 
         frustum.position.copy(frame.position);
-        frustum.lookAt(...frame.target.toArray());
+        frustum.quaternion.copy(frame.quaternion);
         frustum.scale.set(20, 20, 20);
 
         frustum.material.resolution.set(width, height);
@@ -157,8 +156,7 @@ export class CameraAnimation extends EventDispatcher {
       const dir = cp1.position.clone().sub(cp2.position).multiplyScalar(0.5);
       cp.position.copy(cp1.position).add(dir);
 
-      const tDir = cp1.target.clone().sub(cp2.target).multiplyScalar(0.5);
-      cp.target.copy(cp1.target).add(tDir);
+      cp.quaternion.copy(cp1.quaternion).slerp(cp2.quaternion, 0.5);
     } else if (this.controlPoints.length >= 2 && index === this.controlPoints.length) {
       const cp1 = this.controlPoints[this.controlPoints.length - 2];
       const cp2 = this.controlPoints[this.controlPoints.length - 1];
@@ -166,21 +164,21 @@ export class CameraAnimation extends EventDispatcher {
       const dir = cp2.position.clone().sub(cp1.position).multiplyScalar(0.5);
       cp.position.copy(cp1.position).add(dir);
 
-      const tDir = cp2.target.clone().sub(cp1.target).multiplyScalar(0.5);
-      cp.target.copy(cp2.target).add(tDir);
+      cp.quaternion.copy(cp2.quaternion).slerp(cp1.quaternion, 0.5);
     } else if (this.controlPoints.length >= 2) {
       const cp1 = this.controlPoints[index - 1];
       const cp2 = this.controlPoints[index];
 
       cp.position.copy(cp1.position.clone().add(cp2.position).multiplyScalar(0.5));
-      cp.target.copy(cp1.target.clone().add(cp2.target).multiplyScalar(0.5));
+
+      cp.quaternion.copy(cp1.quaternion).slerp(cp2.quaternion, 0.5);
     }
 
     // cp.position.copy(viewer.scene.view.position);
     // cp.target.copy(viewer.scene.view.getPivot());
 
-    cp.positionHandle = this.createHandle(cp.position);
-    cp.targetHandle = this.createHandle(cp.target);
+    // cp.positionHandle = this.createHandle(cp.position);
+    // cp.targetHandle = this.createHandle(cp.target);
 
     this.controlPoints.splice(index, 0, cp);
 
@@ -200,8 +198,8 @@ export class CameraAnimation extends EventDispatcher {
       controlpoint: cp,
     });
 
-    cp.positionHandle.svg.remove();
-    cp.targetHandle.svg.remove();
+    // cp.positionHandle.svg.remove();
+    // cp.targetHandle.svg.remove();
 
     // TODO destroy cp
   }
@@ -212,10 +210,10 @@ export class CameraAnimation extends EventDispatcher {
       const geometry = new LineGeometry();
 
       let material = new LineMaterial({
-        color: 0x00ff00,
+        color: 0xffffff,
         dashSize: 5,
         gapSize: 2,
-        linewidth: 2,
+        linewidth: 6,
         resolution: new THREE.Vector2(1000, 1000),
       });
 
@@ -225,23 +223,23 @@ export class CameraAnimation extends EventDispatcher {
       this.node.add(line);
     }
 
-    {
-      // target
-      const geometry = new LineGeometry();
+    // {
+    //   // target
+    //   const geometry = new LineGeometry();
 
-      let material = new LineMaterial({
-        color: 0x0000ff,
-        dashSize: 5,
-        gapSize: 2,
-        linewidth: 2,
-        resolution: new THREE.Vector2(1000, 1000),
-      });
+    //   let material = new LineMaterial({
+    //     color: 0x0000ff,
+    //     dashSize: 5,
+    //     gapSize: 2,
+    //     linewidth: 2,
+    //     resolution: new THREE.Vector2(1000, 1000),
+    //   });
 
-      const line = new Line2(geometry, material);
+    //   const line = new Line2(geometry, material);
 
-      this.targetLine = line;
-      this.node.add(line);
-    }
+    //   this.targetLine = line;
+    //   this.node.add(line);
+    // }
   }
 
   createFrustum() {
@@ -269,7 +267,6 @@ export class CameraAnimation extends EventDispatcher {
 
   updatePath() {
     {
-      // positions
       const positions = this.controlPoints.map((cp) => cp.position);
       const first = positions[0];
 
@@ -277,13 +274,10 @@ export class CameraAnimation extends EventDispatcher {
       curve.curveType = this.curveType;
 
       const n = 100;
-
       const curvePositions = [];
       for (let k = 0; k <= n; k++) {
         const t = k / n;
-
         const position = curve.getPoint(t).sub(first);
-
         curvePositions.push(position.x, position.y, position.z);
       }
 
@@ -296,51 +290,34 @@ export class CameraAnimation extends EventDispatcher {
       this.cameraCurve = curve;
     }
 
-    {
-      // targets
-      const positions = this.controlPoints.map((cp) => cp.target);
-      const first = positions[0];
-
-      const curve = new THREE.CatmullRomCurve3(positions);
-      curve.curveType = this.curveType;
-
-      const n = 100;
-
-      const curvePositions = [];
-      for (let k = 0; k <= n; k++) {
-        const t = k / n;
-
-        const position = curve.getPoint(t).sub(first);
-
-        curvePositions.push(position.x, position.y, position.z);
-      }
-
-      this.targetLine.geometry.setPositions(curvePositions);
-      this.targetLine.geometry.verticesNeedUpdate = true;
-      this.targetLine.geometry.computeBoundingSphere();
-      this.targetLine.position.copy(first);
-      this.targetLine.computeLineDistances();
-
-      this.targetCurve = curve;
-    }
+    this.quaternions = this.controlPoints.map((cp) => cp.quaternion);
   }
 
   at(t) {
-    if (t > 1) {
-      t = 1;
-    } else if (t < 0) {
-      t = 0;
-    }
+    if (t > 1) t = 1;
+    if (t < 0) t = 0;
 
-    const camPos = this.cameraCurve.getPointAt(t);
-    const target = this.targetCurve.getPointAt(t);
+    const position = this.cameraCurve.getPointAt(t);
 
-    const frame = {
-      position: camPos,
-      target: target,
+    // Create new quaternion for interpolation
+    const quaternion = new THREE.Quaternion();
+    const point = this.cameraCurve.getPoint(t);
+
+    // Find the two control points to interpolate between
+    const n = this.controlPoints.length;
+    const index = Math.floor(t * (n - 1));
+    const nextIndex = Math.min(index + 1, n - 1);
+
+    // Calculate interpolation factor
+    const alpha = t * (n - 1) - index;
+
+    // Use slerp directly instead of slerpQuaternions
+    quaternion.copy(this.quaternions[index]).slerp(this.quaternions[nextIndex], alpha);
+
+    return {
+      position: position,
+      quaternion: quaternion,
     };
-
-    return frame;
   }
 
   set(t) {
@@ -419,10 +396,10 @@ export class CameraAnimation extends EventDispatcher {
 
     const display = visible ? '' : 'none';
 
-    for (const cp of this.controlPoints) {
-      cp.positionHandle.svg.style.display = display;
-      cp.targetHandle.svg.style.display = display;
-    }
+    // for (const cp of this.controlPoints) {
+    //   cp.positionHandle.svg.style.display = display;
+    //   cp.targetHandle.svg.style.display = display;
+    // }
 
     this.visible = visible;
   }
@@ -438,7 +415,6 @@ export class CameraAnimation extends EventDispatcher {
   play() {
     const tStart = performance.now();
     const duration = this.duration;
-
     const originalyVisible = this.visible;
     this.setVisible(false);
 
@@ -451,12 +427,11 @@ export class CameraAnimation extends EventDispatcher {
 
       const frame = this.at(t);
 
-      viewer.scene.view.position.copy(frame.position);
-      viewer.scene.view.lookAt(frame.target);
+      this.camera.position.copy(frame.position);
+      this.camera.quaternion.copy(frame.quaternion);
 
       if (t > 1) {
         this.setVisible(originalyVisible);
-
         this.viewer.removeEventListener('update', onUpdate);
       }
     };

@@ -1,118 +1,162 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-	<meta charset="utf-8">
-	<meta name="description" content="">
-	<meta name="author" content="">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-	<title>Potree Viewer</title>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="description" content="" />
+    <meta name="author" content="" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Potree Viewer</title>
 
-	<link rel="stylesheet" type="text/css" href="../build/potree/potree.css">
-	<link rel="stylesheet" type="text/css" href="../libs/jquery-ui/jquery-ui.min.css">
-	<link rel="stylesheet" type="text/css" href="../libs/openlayers3/ol.css">
-	<link rel="stylesheet" type="text/css" href="../libs/spectrum/spectrum.css">
-	<link rel="stylesheet" type="text/css" href="../libs/jstree/themes/mixed/style.css">
-</head>
+    <link rel="stylesheet" type="text/css" href="../build/potree/potree.css" />
+    <link rel="stylesheet" type="text/css" href="../libs/jquery-ui/jquery-ui.min.css" />
+    <link rel="stylesheet" type="text/css" href="../libs/openlayers3/ol.css" />
+    <link rel="stylesheet" type="text/css" href="../libs/spectrum/spectrum.css" />
+    <link rel="stylesheet" type="text/css" href="../libs/jstree/themes/mixed/style.css" />
+  </head>
 
-<body>
-	<script src="../libs/jquery/jquery-3.1.1.min.js"></script>
-	<script src="../libs/spectrum/spectrum.js"></script>
-	<script src="../libs/jquery-ui/jquery-ui.min.js"></script>
-	<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-	
-	<script src="../libs/other/stats.min.js"></script>
-	<script src="../libs/other/BinaryHeap.js"></script>
-	<script src="../libs/tween/tween.min.js"></script>
-	<script src="../libs/d3/d3.js"></script>
-	<script src="../libs/proj4/proj4.js"></script>
-	<script src="../libs/openlayers3/ol.js"></script>
-	<script src="../libs/i18next/i18next.js"></script>
-	<script src="../libs/jstree/jstree.js"></script>
-	<script src="../build/potree/potree.js"></script>
-	<script src="../libs/plasio/js/laslaz.js"></script>
-	
-	<!-- INCLUDE ADDITIONAL DEPENDENCIES HERE -->
-	<!-- INCLUDE SETTINGS HERE -->
-	
-	<div class="potree_container" style="position: absolute; width: 100%; height: 100%; left: 0px; top: 0px; ">
-		<div id="potree_render_area" style="background-image: url('../build/potree/resources/images/background.jpg');"></div>
-		<div id="potree_sidebar_container"> </div>
-		<div style="z-index: 2" id="pc-progress" class="progress-wrapper">
-			<div id="pc-progress-bar" class="progress-bar"></div>
-			<p id="pc-progress-text" class="progress-text"></p>
-		</div>
-	</div>
-	
-	<script type="module">
-		window.viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
-		
-		viewer.setEDLEnabled(false);
-		viewer.setFOV(60);
-		viewer.setPointBudget(1_000_000);
-		viewer.loadSettingsFromURL();
-		viewer.setBackground("skybox");
-		
-		viewer.setDescription("Point cloud courtesy of <a target='_blank' href='https://www.sigeom.ch/'>sigeom sa</a>");
-		
-		viewer.loadGUI(() => {
-			viewer.setLanguage('en');
-			$("#menu_tools").next().show();
-			$("#menu_clipping").next().show();
-			viewer.toggleSidebar();
-		});
-		
-		// Load and add point cloud to scene
-		
+  <body>
+    <script src="../libs/jquery/jquery-3.1.1.min.js"></script>
+    <script src="../libs/spectrum/spectrum.js"></script>
+    <script src="../libs/jquery-ui/jquery-ui.min.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 
-		async function request(method, url, data, headers){
-			const res = await axios({
-				method,
-				url,
-				headers,
-				data
-			});
+    <script src="../libs/other/stats.min.js"></script>
+    <script src="../libs/other/BinaryHeap.js"></script>
+    <script src="../libs/tween/tween.min.js"></script>
+    <script src="../libs/d3/d3.js"></script>
+    <script src="../libs/proj4/proj4.js"></script>
+    <script src="../libs/openlayers3/ol.js"></script>
+    <script src="../libs/i18next/i18next.js"></script>
+    <script src="../libs/jstree/jstree.js"></script>
+    <script src="../build/potree/potree.js"></script>
+    <script src="../libs/plasio/js/laslaz.js"></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/0.5.14/hls.min.js"
+      integrity="sha512-js37JxjD6gtmJ3N2Qzl9vQm4wcmTilFffk0nTSKzgr3p6aitg73LR205203wTzCCC/NZYO2TAxSa0Lr2VMLQvQ=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+    <!-- INCLUDE ADDITIONAL DEPENDENCIES HERE -->
+    <!-- INCLUDE SETTINGS HERE -->
 
-			console.log(res)
+    <div class="potree_container" style="position: absolute; width: 100%; height: 100%; left: 0px; top: 0px">
+      <div id="potree_render_area" style="background-image: url('../build/potree/resources/images/background.jpg')"></div>
+      <div id="potree_sidebar_container"></div>
+      <div style="z-index: 2" id="pc-progress" class="progress-wrapper">
+        <div id="pc-progress-bar" class="progress-bar"></div>
+        <p id="pc-progress-text" class="progress-text"></p>
+      </div>
+      <video id="video" style="display: none" autoplay muted controls></video>
+      <div className="video-viewer-container" id="video-viewer-container"></div>
+    </div>
 
-			const inspectionDetails = res.data.Data;
-			inspectionDetails.PointCloudURLs.forEach((url, index) => {
-				Potree.loadPointCloud(url, `view-${index}`, e => {
-					let scene = viewer.scene;
-					let pointcloud = e.pointcloud;
-					
-					let material = pointcloud.material;
-					material.size = 1;
-					material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
-					material.shape = Potree.PointShape.SQUARE;
-					// pointcloud.material.activeAttributeName = "level of detail";
+    <script type="module">
+      import * as THREE from '../libs/three.js/build/three.module.js';
+      window.viewer = new Potree.Viewer(document.getElementById('potree_render_area'));
 
-					scene.addPointCloud(pointcloud);
-					
-					viewer.fitToScreen();
-					viewer.zoomToPosition(
-					{
-						x: 420158.1214743195,
-						y: 5579824.23497045,
-						z: 150.33702873501684,
-					},
-					null,
-					500
-				);
-					// scene.view.setView(
-					// 	[589974.341, 231698.397, 986.146],
-					// 	[589851.587, 231428.213, 715.634],
-					// );
-          pointcloud.updateMatrixWorld();
-				});
-			})
-			
-		}
-		
-		// 643, 511
-		request("get", "https://insite-api.hybirdtech.com/inspection/details?inspection_id=644",{},{ 'App-Token': "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJTZXNzaW9uSUQiOiItTXEtNDRKX241MDlaWmtqUWdnMSIsIlVzZXJJRCI6MjAwLCJleHAiOjE2Mzg3MDQxNTV9.aWTzKFvBoVr5pc5qJnVMsJk8cvsWmjiZdLs58kIknXE" })
+      viewer.setEDLEnabled(false);
+      viewer.setFOV(60);
+      viewer.setPointBudget(1_000_000);
+      viewer.loadSettingsFromURL();
+      viewer.setBackground('skybox');
 
-	</script>
-	
-	
+      viewer.setDescription("Point cloud courtesy of <a target='_blank' href='https://www.sigeom.ch/'>sigeom sa</a>");
+
+      viewer.loadGUI(() => {
+        viewer.setLanguage('en');
+        $('#menu_tools').next().show();
+        $('#menu_clipping').next().show();
+        viewer.toggleSidebar();
+      });
+
+      // Load and add point cloud to scene
+
+      async function request(method, url, data, headers) {
+        const res = await axios({
+          method,
+          url,
+          headers,
+          data,
+        });
+
+        console.log(res);
+
+        const inspectionDetails = res.data.Data;
+        inspectionDetails.PointCloudURLs.forEach((url, index) => {
+          Potree.loadPointCloud(url, `view-${index}`, (e) => {
+            let scene = viewer.scene;
+            let pointcloud = e.pointcloud;
+
+            let material = pointcloud.material;
+            material.size = 1;
+            material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
+            material.shape = Potree.PointShape.SQUARE;
+            // pointcloud.material.activeAttributeName = "level of detail";
+
+            scene.addPointCloud(pointcloud);
+
+            viewer.fitToScreen();
+            // viewer.zoomToPosition(
+            //   {
+            //     x: 420158.1214743195,
+            //     y: 5579824.23497045,
+            //     z: 150.33702873501684,
+            //   },
+            //   null,
+            //   500
+            // );
+            // scene.view.setView(
+            // 	[589974.341, 231698.397, 986.146],
+            // 	[589851.587, 231428.213, 715.634],
+            // );
+            pointcloud.updateMatrixWorld();
+
+            const videoViewer = new Potree.VideoViewer(document.getElementById('video-viewer-container'), viewer);
+
+            {
+              // Video setup
+              const video = document.getElementById('video');
+              if (Hls.isSupported()) {
+                const hls = new Hls();
+                hls.loadSource('https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8');
+                hls.attachMedia(video);
+              } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8';
+              }
+              const videoPlayer = new Potree.VideoPlayer(videoViewer);
+
+              // videoPlayer.url =
+              //   'https://hybird-dev.s3.eu-west-2.amazonaws.com/test/71e27edb-42c3-48d1-8917-303686d24439.jpg?response-content-disposition=inline&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEAoaCWV1LXdlc3QtMiJHMEUCIQDi4s3zCn0vVmKs%2F8Y1Z39zlY8HeMFsKnXyP0jx9yOqDQIgcx9wJ%2F82a5vOYNwhamnfeXO2jqyp1JwasIKNFA3bsBQqygQI0%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FARAEGgwyOTQ1MTQxMjk4NDMiDIrvKEmO50%2F6icFwbCqeBHJSXj2ghuhM0TA6cu3%2F1uYKhfcrjs5mFKqUqziOKlPhWVs%2F3FIMgRHM8FqiA3ucA%2BfAMGfLvAQO%2FaQSLwTSREnqAUzqOBDq0r%2Fcgfpi7bCtDGeIiqUm6glSvnMIC1kUmggmSIacsPeCi6il0Axm1%2Bhsg0Eeq1BFTfjE%2FR0MeWJxorNMRoAwCIFXy9Nq1vrNvJzesCUNCDl7qoykRNUr9TgRqtSXM6jVehMrEsVocJZyqjcSMFTV8yHRLfn%2Bq6BzN9qf7ghdXgezfbegftVgw3%2BeSjS8PzvCVzhvv8sna78q1QiXeDkmcdcGq9MIlWjNUyHBHznxS6LWDyU7chRWKe866mjzo9QE1THOy%2FdNdB0pXe%2BuoC84zNHb4i26WObiBQeUAxoYFK0JkRQjlIuS2BsF0Af7eQa4rUb1bSSqKbf5tKnGNyyVFkIPwkJV0IzWRzKhuCsGgqWwwCpLLqhRXDbXID%2B8t65PxgP8agu3TukyhmKlcKiEypcSVzegPwA5LqW%2F5Svwk%2Bb6VuPBdYbfk4Sf2m9pspkfOtkEQpA13yidLcbx0H3ds%2FGoSDTKEp%2FPjr%2BlArGUVuuG8CT411P%2FRmqQQaV4Xg5YNLHzxkQCEtAsoAD67dG9be6xdvm5youOF2tp57iLPeSp4ClbfI%2Bjqh%2BK3cfAlM9%2B4Azbx57pFlnWn%2Bn6OglrHc5kVQz4yV6EacZsrdzGQPw3vHCMdd9aMI2uorsGOsUCuRRSqBHDQi34PQEfFB064G2nsp9BcVrVGI9ARVL%2BwAYaxgKZSyyzWHEpZl0AJ04XOQj6zhXDo52Jz5Sfb5gNjutRsm0KnYZa5GQGOHVmQ3YCoEVxbUmTb4BBcfYLEmA1uW4U7IfycUMdrZav5vcEFxY%2FucoFvKJpa24bo6JNO%2BeS4a3CndwcSoFE5OgpCXqPKEEfZ%2BeawKQkXFYANFRD%2FBi7WHCowLNgXqiDn3P2Gn6rHb7dF055dQEsgtxJuLSHXJc6fTj8BHU5TmOvcFolf%2B7IEsK%2BUSvUM4slucjwl1ORJRSoD4pcWVYVPNhxydkEcbDQneOYBsXkOX%2Bv5Ak2De10P2gkYrcpevz9FVdNLU3Pmt%2BIGIXvzIPd5gr5AWSNuBKuYGFsCeIo2hCjnsw61S0DPCzGPvoLkf9lFEayQHHiFz75dA%3D%3D&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIAUJETI7OZUESGUY3Y%2F20241223%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20241223T093637Z&X-Amz-Expires=43200&X-Amz-SignedHeaders=host&X-Amz-Signature=5278b3d43efc4e7dd027eece722516189d4701b0256cc701861dd21298fa7ab3';
+              // 'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/177/511/inspection/undistorted_images/DJI_0807.JPG?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20241218%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20241218T142539Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=79d889f3b6a295cc0e2069c6a0751d0937b691a236b36b5c212e59e0a0b859a8';
+              const cameraPosition = [27.78428057, 3.63160111, -0.15285726];
+              const rotationMatrixValues = [
+                0.7444560071083576, -0.09340927642286373, -0.6611051055304581, 27.78428057460933, 0.6675444572034028, 0.08481557304501908, 0.7397234052171524, 3.6316011108072352,
+                -0.013025019665837467, -0.9920085814382869, 0.12549630757716523, -0.15285726467283386, 0.0, 0.0, 0.0, 1.0,
+              ];
+              const cameraParams = { width: 1280, height: 720, focalLength: 1104.0582024322134 };
+              videoPlayer.video = { video, cameraPosition, rotationMatrixValues, cameraParams };
+              videoViewer.scene.addVideoPlayer(videoPlayer);
+              video.load();
+              video.play().catch((err) => console.error('Error playing video:', err));
+            }
+          });
+        });
+      }
+
+      // 643, 511
+      // request(
+      //   'get',
+      //   'https://insite-api.hybirdtech.com/inspection/details?inspection_id=511',
+      //   {},
+      //   { 'App-Token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJTZXNzaW9uSUQiOiItT0VPdkljTTBWa1dNVml5N2Y3bCIsIlVzZXJJRCI6OCwiZXhwIjoxNzM0ODczNjIzfQ.X2q8d-rsyHQeqwDI7H9NbVnBFN77qNy2zWIXS3VqsHs' }
+      // );
+
+      request(
+        'get',
+        'https://raico-api.hybirdtech.com/inspection/details?inspection_id=7',
+        {},
+        { 'App-Token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJTZXNzaW9uSUQiOiItT0V0QndoYjBOaEpBWTVJMVhXQiIsIlVzZXJJRCI6MywiZXhwIjoxNzM1Mzk4MzQxfQ.3iTsN5YJ5XPOVr9FdNXD8itoOmsXG1bFLpmd7-cvMDM' }
+      );
+    </script>
   </body>
 </html>

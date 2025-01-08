@@ -7,8 +7,12 @@ import { SphereVolume } from '../utils/Volume.js';
 import { Utils } from '../utils.js';
 
 export class HQSplatRenderer {
-  constructor(viewer) {
+  constructor(viewer, params = {}) {
     this.viewer = viewer;
+    this.renderer = viewer.renderer;
+    this.pRenderer = viewer.pRenderer;
+    this.mainViewer = params.mainViewer || viewer;
+    this.gl = this.renderer.getContext();
 
     this.depthMaterials = new Map();
     this.attributeMaterials = new Map();
@@ -16,7 +20,6 @@ export class HQSplatRenderer {
 
     this.rtDepth = null;
     this.rtAttribute = null;
-    this.gl = viewer.renderer.getContext();
 
     this.initialized = false;
   }
@@ -61,56 +64,53 @@ export class HQSplatRenderer {
   }
 
   clearTargets() {
-    const viewer = this.viewer;
-    const { renderer } = viewer;
+    const oldTarget = this.renderer.getRenderTarget();
 
-    const oldTarget = renderer.getRenderTarget();
+    this.renderer.setClearColor(0x000000, 0);
 
-    renderer.setClearColor(0x000000, 0);
+    this.renderer.setRenderTarget(this.rtDepth);
+    this.renderer.clear(true, true, true);
 
-    renderer.setRenderTarget(this.rtDepth);
-    renderer.clear(true, true, true);
+    this.renderer.setRenderTarget(this.rtAttribute);
+    this.renderer.clear(true, true, true);
 
-    renderer.setRenderTarget(this.rtAttribute);
-    renderer.clear(true, true, true);
-
-    renderer.setRenderTarget(oldTarget);
+    this.renderer.setRenderTarget(oldTarget);
   }
 
   clear() {
     this.init();
 
-    const { renderer, background } = this.viewer;
+    const { background } = this.mainViewer;
 
     if (background === 'skybox') {
-      renderer.setClearColor(0x000000, 0);
+      this.renderer.setClearColor(0x000000, 0);
     } else if (background === 'gradient') {
-      renderer.setClearColor(0x000000, 0);
+      this.renderer.setClearColor(0x000000, 0);
     } else if (background === 'black') {
-      renderer.setClearColor(0x000000, 1);
+      this.renderer.setClearColor(0x000000, 1);
     } else if (background === 'white') {
-      renderer.setClearColor(0xffffff, 1);
+      this.renderer.setClearColor(0xffffff, 1);
     } else {
-      renderer.setClearColor(background, 1);
+      this.renderer.setClearColor(background, 1);
     }
 
-    renderer.clear();
+    this.renderer.clear();
 
     this.clearTargets();
   }
 
-  render(params) {
+  render() {
     this.init();
 
     const viewer = this.viewer;
-    const camera = params.camera ? params.camera : viewer.scene.getActiveCamera();
-    const { width, height } = this.viewer.renderer.getSize(new THREE.Vector2());
+    const camera = viewer.scene.getActiveCamera();
+    const { width, height } = this.renderer.getSize(new THREE.Vector2());
 
-    viewer.dispatchEvent({ type: 'render.pass.begin', viewer: viewer });
+    viewer.dispatchEvent({ type: 'render.pass.begin', viewer: viewer, renderer: this.renderer });
 
     this.resize(width, height);
 
-    const visiblePointClouds = viewer.scene.pointclouds.filter((pc) => pc.visible);
+    const visiblePointClouds = this.mainViewer.scene.pointclouds.filter((pc) => pc.visible);
     const originalMaterials = new Map();
 
     for (let pointcloud of visiblePointClouds) {
@@ -169,8 +169,8 @@ export class HQSplatRenderer {
         pointcloud.material = depthMaterial;
       }
 
-      viewer.pRenderer.render(viewer.scene.scenePointCloud, camera, this.rtDepth, {
-        clipSpheres: viewer.scene.volumes.filter((v) => v instanceof SphereVolume),
+      this.pRenderer.render(this.mainViewer.scene.scenePointCloud, camera, this.rtDepth, {
+        clipSpheres: this.mainViewer.scene.volumes.filter((v) => v instanceof SphereVolume),
       });
     }
 
@@ -239,9 +239,9 @@ export class HQSplatRenderer {
 
       let gl = this.gl;
 
-      viewer.renderer.setRenderTarget(null);
-      viewer.pRenderer.render(viewer.scene.scenePointCloud, camera, this.rtAttribute, {
-        clipSpheres: viewer.scene.volumes.filter((v) => v instanceof SphereVolume),
+      this.renderer.setRenderTarget(null);
+      this.pRenderer.render(this.mainViewer.scene.scenePointCloud, camera, this.rtAttribute, {
+        clipSpheres: this.mainViewer.scene.volumes.filter((v) => v instanceof SphereVolume),
         //material: this.attributeMaterial,
         blendFunc: [gl.SRC_ALPHA, gl.ONE],
         //depthTest: false,
@@ -253,32 +253,32 @@ export class HQSplatRenderer {
       pointcloud.material = material;
     }
 
-    viewer.renderer.setRenderTarget(null);
-    if (viewer.background === 'skybox') {
-      viewer.renderer.setClearColor(0x000000, 0);
-      viewer.renderer.clear();
-      viewer.skybox.camera.rotation.copy(viewer.scene.cameraP.rotation);
-      viewer.skybox.camera.fov = viewer.scene.cameraP.fov;
-      viewer.skybox.camera.aspect = viewer.scene.cameraP.aspect;
+    this.renderer.setRenderTarget(null);
+    if (this.mainViewer.background === 'skybox') {
+      this.renderer.setClearColor(0x000000, 0);
+      this.renderer.clear();
+      this.mainViewer.skybox.camera.rotation.copy(this.mainViewer.scene.cameraP.rotation);
+      this.mainViewer.skybox.camera.fov = this.mainViewer.scene.cameraP.fov;
+      this.mainViewer.skybox.camera.aspect = this.mainViewer.scene.cameraP.aspect;
 
-      viewer.skybox.parent.rotation.x = 0;
-      viewer.skybox.parent.updateMatrixWorld();
+      this.mainViewer.skybox.parent.rotation.x = 0;
+      this.mainViewer.skybox.parent.updateMatrixWorld();
 
-      viewer.skybox.camera.updateProjectionMatrix();
-      viewer.renderer.render(viewer.skybox.scene, viewer.skybox.camera);
-    } else if (viewer.background === 'gradient') {
-      viewer.renderer.setClearColor(0x000000, 0);
-      viewer.renderer.clear();
-      viewer.renderer.render(viewer.scene.sceneBG, viewer.scene.cameraBG);
-    } else if (viewer.background === 'black') {
-      viewer.renderer.setClearColor(0x000000, 1);
-      viewer.renderer.clear();
-    } else if (viewer.background === 'white') {
-      viewer.renderer.setClearColor(0xffffff, 1);
-      viewer.renderer.clear();
+      this.mainViewer.skybox.camera.updateProjectionMatrix();
+      this.renderer.render(this.mainViewer.skybox.scene, this.mainViewer.skybox.camera);
+    } else if (this.mainViewer.background === 'gradient') {
+      this.renderer.setClearColor(0x000000, 0);
+      this.renderer.clear();
+      this.renderer.render(this.mainViewer.scene.sceneBG, this.mainViewer.scene.cameraBG);
+    } else if (this.mainViewer.background === 'black') {
+      this.renderer.setClearColor(0x000000, 1);
+      this.renderer.clear();
+    } else if (this.mainViewer.background === 'white') {
+      this.renderer.setClearColor(0xffffff, 1);
+      this.renderer.clear();
     } else {
-      viewer.renderer.setClearColor(viewer.background, 1);
-      viewer.renderer.clear();
+      this.renderer.setClearColor(this.mainViewer.background, 1);
+      this.renderer.clear();
     }
 
     {
@@ -286,8 +286,8 @@ export class HQSplatRenderer {
       let normalizationMaterial = this.useEDL ? this.normalizationEDLMaterial : this.normalizationMaterial;
 
       if (this.useEDL) {
-        normalizationMaterial.uniforms.edlStrength.value = viewer.edlStrength;
-        normalizationMaterial.uniforms.radius.value = viewer.edlRadius;
+        normalizationMaterial.uniforms.edlStrength.value = this.mainViewer.edlStrength;
+        normalizationMaterial.uniforms.radius.value = this.mainViewer.edlRadius;
         normalizationMaterial.uniforms.screenWidth.value = width;
         normalizationMaterial.uniforms.screenHeight.value = height;
         normalizationMaterial.uniforms.uEDLMap.value = this.rtDepth.texture;
@@ -296,28 +296,30 @@ export class HQSplatRenderer {
       normalizationMaterial.uniforms.uWeightMap.value = this.rtAttribute.texture;
       normalizationMaterial.uniforms.uDepthMap.value = this.rtAttribute.depthTexture;
 
-      Utils.screenPass.render(viewer.renderer, normalizationMaterial);
+      Utils.screenPass.render(this.renderer, normalizationMaterial);
     }
 
-    viewer.renderer.render(viewer.scene.scene, camera);
+    this.renderer.render(viewer.scene.scene, camera);
 
-    viewer.dispatchEvent({ type: 'render.pass.before_scene', viewer: viewer });
-    viewer.dispatchEvent({ type: 'render.pass.scene', viewer: viewer });
+    viewer.dispatchEvent({ type: 'render.pass.before_scene', viewer: viewer, renderer: this.renderer });
+    viewer.dispatchEvent({ type: 'render.pass.scene', viewer: viewer, renderer: this.renderer });
 
-    viewer.renderer.clearDepth();
+    this.renderer.clearDepth();
 
-    viewer.transformationTool.update();
+    viewer.transformationTool && viewer.transformationTool.update();
 
-    viewer.dispatchEvent({ type: 'render.pass.perspective_overlay', viewer: viewer });
+    viewer.dispatchEvent({ type: 'render.pass.perspective_overlay', viewer: viewer, renderer: this.renderer });
 
-    viewer.renderer.render(viewer.controls.sceneControls, camera);
-    viewer.renderer.render(viewer.clippingTool.sceneVolume, camera);
-    viewer.renderer.render(viewer.transformationTool.scene, camera);
+    viewer.controls && this.renderer.render(viewer.controls.sceneControls, camera);
+    viewer.clippingTool && this.renderer.render(viewer.clippingTool.sceneVolume, camera);
+    viewer.transformationTool && this.renderer.render(viewer.transformationTool.scene, camera);
 
-    viewer.renderer.setViewport(width - viewer.navigationCube.width, height - viewer.navigationCube.width, viewer.navigationCube.width, viewer.navigationCube.width);
-    viewer.renderer.render(viewer.navigationCube, viewer.navigationCube.camera);
-    viewer.renderer.setViewport(0, 0, width, height);
+    if (viewer.navigationCube) {
+      this.renderer.setViewport(width - viewer.navigationCube.width, height - viewer.navigationCube.width, viewer.navigationCube.width, viewer.navigationCube.width);
+      this.renderer.render(viewer.navigationCube, viewer.navigationCube.camera);
+      this.renderer.setViewport(0, 0, width, height);
+    }
 
-    viewer.dispatchEvent({ type: 'render.pass.end', viewer: viewer });
+    viewer.dispatchEvent({ type: 'render.pass.end', viewer: viewer, renderer: this.renderer });
   }
 }

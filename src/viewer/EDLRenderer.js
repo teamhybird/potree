@@ -5,17 +5,18 @@ import { SphereVolume } from '../utils/Volume.js';
 import { Utils } from '../utils.js';
 
 export class EDLRenderer {
-  constructor(viewer) {
+  constructor(viewer, params = {}) {
     this.viewer = viewer;
+    this.renderer = viewer.renderer;
+    this.pRenderer = viewer.pRenderer;
+    this.mainViewer = params.mainViewer || viewer;
+    this.gl = this.renderer.getContext();
 
     this.edlMaterial = null;
-
     this.rtRegular;
     this.rtEDL;
 
-    this.gl = viewer.renderer.getContext();
-
-    this.shadowMap = new PointCloudSM(this.viewer.pRenderer);
+    this.shadowMap = new PointCloudSM(this.pRenderer);
   }
 
   initEDL() {
@@ -60,12 +61,12 @@ export class EDLRenderer {
     }
 
     if (size === undefined || size === null) {
-      size = this.viewer.renderer.getSize(new THREE.Vector2());
+      size = this.renderer.getSize(new THREE.Vector2());
     }
 
     let { width, height } = size;
 
-    //let maxTextureSize = viewer.renderer.capabilities.maxTextureSize;
+    //let maxTextureSize = this.renderer.capabilities.maxTextureSize;
     //if(width * 4 <
     width = 2 * width;
     height = 2 * height;
@@ -79,14 +80,14 @@ export class EDLRenderer {
     };
 
     // HACK? removed because of error, was this important?
-    //this.viewer.renderer.clearTarget(target, true, true, true);
+    //this.renderer.clearTarget(target, true, true, true);
 
     this.render();
 
     let pixelCount = width * height;
     let buffer = new Uint8Array(4 * pixelCount);
 
-    this.viewer.renderer.readRenderTargetPixels(target, 0, 0, width, height, buffer);
+    this.renderer.readRenderTargetPixels(target, 0, 0, width, height, buffer);
 
     // flip vertically
     let bytesPerLine = width * 4;
@@ -110,45 +111,41 @@ export class EDLRenderer {
   }
 
   clearTargets() {
-    const viewer = this.viewer;
-    const { renderer } = viewer;
+    const oldTarget = this.renderer.getRenderTarget();
 
-    const oldTarget = renderer.getRenderTarget();
+    this.renderer.setRenderTarget(this.rtEDL);
+    this.renderer.clear(true, true, true);
 
-    renderer.setRenderTarget(this.rtEDL);
-    renderer.clear(true, true, true);
+    this.renderer.setRenderTarget(this.rtRegular);
+    this.renderer.clear(true, true, false);
 
-    renderer.setRenderTarget(this.rtRegular);
-    renderer.clear(true, true, false);
-
-    renderer.setRenderTarget(oldTarget);
+    this.renderer.setRenderTarget(oldTarget);
   }
 
   clear() {
     this.initEDL();
-    const viewer = this.viewer;
 
-    const { renderer, background } = viewer;
+    const { background } = this.mainViewer;
 
     if (background === 'skybox') {
-      renderer.setClearColor(0x000000, 0);
+      this.renderer.setClearColor(0x000000, 0);
     } else if (background === 'gradient') {
-      renderer.setClearColor(0x000000, 0);
+      this.renderer.setClearColor(0x000000, 0);
     } else if (background === 'black') {
-      renderer.setClearColor(0x000000, 1);
+      this.renderer.setClearColor(0x000000, 1);
     } else if (background === 'white') {
-      renderer.setClearColor(0xffffff, 1);
+      this.renderer.setClearColor(0xffffff, 1);
     } else {
-      renderer.setClearColor(background, 1);
+      this.renderer.setClearColor(background, 1);
     }
 
-    renderer.clear();
+    this.renderer.clear();
 
     this.clearTargets();
   }
 
   renderShadowMap(visiblePointClouds, camera, lights) {
-    const { viewer } = this;
+    const { viewer, mainViewer } = this;
 
     const doShadows = lights.length > 0 && !lights[0].disableShadowUpdates;
     if (doShadows) {
@@ -157,7 +154,7 @@ export class EDLRenderer {
       this.shadowMap.setLight(light);
 
       let originalAttributes = new Map();
-      for (let pointcloud of viewer.scene.pointclouds) {
+      for (let pointcloud of mainViewer.scene.pointclouds) {
         // TODO IMPORTANT !!! check
         originalAttributes.set(pointcloud, pointcloud.material.activeAttributeName);
         pointcloud.material.disableEvents();
@@ -165,7 +162,7 @@ export class EDLRenderer {
         //pointcloud.material.pointColorType = PointColorType.DEPTH;
       }
 
-      this.shadowMap.render(viewer.scene.scenePointCloud, camera);
+      this.shadowMap.render(mainViewer.scene.scenePointCloud, camera);
 
       for (let pointcloud of visiblePointClouds) {
         let originalAttribute = originalAttributes.get(pointcloud);
@@ -180,45 +177,44 @@ export class EDLRenderer {
     }
   }
 
-  render(params) {
+  render(params = {}) {
     this.initEDL();
 
-    const viewer = this.viewer;
-    let camera = params.camera ? params.camera : viewer.scene.getActiveCamera();
-    const { width, height } = this.viewer.renderer.getSize(new THREE.Vector2());
+    const camera = this.viewer.scene.getActiveCamera();
+    const { width, height } = this.renderer.getSize(new THREE.Vector2());
 
-    viewer.dispatchEvent({ type: 'render.pass.begin', viewer: viewer });
+    this.viewer.dispatchEvent({ type: 'render.pass.begin', viewer: this.viewer, renderer: this.renderer });
 
     this.resize(width, height);
 
-    const visiblePointClouds = viewer.scene.pointclouds.filter((pc) => pc.visible);
+    const visiblePointClouds = this.mainViewer.scene.pointclouds.filter((pc) => pc.visible);
 
     if (this.screenshot) {
       let oldBudget = Potree.pointBudget;
       Potree.pointBudget = Math.max(10 * 1000 * 1000, 2 * oldBudget);
-      let result = Potree.updatePointClouds(viewer.scene.pointclouds, camera, viewer.renderer);
+      let result = Potree.updatePointClouds(this.mainViewer.scene.pointclouds, camera, this.renderer);
       Potree.pointBudget = oldBudget;
     }
 
     let lights = [];
-    viewer.scene.scene.traverse((node) => {
+    this.viewer.scene.scene.traverse((node) => {
       if (node.type === 'SpotLight') {
         lights.push(node);
       }
     });
 
-    if (viewer.background === 'skybox') {
-      viewer.skybox.camera.rotation.copy(viewer.scene.cameraP.rotation);
-      viewer.skybox.camera.fov = viewer.scene.cameraP.fov;
-      viewer.skybox.camera.aspect = viewer.scene.cameraP.aspect;
+    if (this.mainViewer.background === 'skybox') {
+      this.mainViewer.skybox.camera.rotation.copy(this.mainViewer.scene.cameraP.rotation);
+      this.mainViewer.skybox.camera.fov = this.mainViewer.scene.cameraP.fov;
+      this.mainViewer.skybox.camera.aspect = this.mainViewer.scene.cameraP.aspect;
 
-      viewer.skybox.parent.rotation.x = 0;
-      viewer.skybox.parent.updateMatrixWorld();
+      this.mainViewer.skybox.parent.rotation.x = 0;
+      this.mainViewer.skybox.parent.updateMatrixWorld();
 
-      viewer.skybox.camera.updateProjectionMatrix();
-      viewer.renderer.render(viewer.skybox.scene, viewer.skybox.camera);
-    } else if (viewer.background === 'gradient') {
-      viewer.renderer.render(viewer.scene.sceneBG, viewer.scene.cameraBG);
+      this.mainViewer.skybox.camera.updateProjectionMatrix();
+      this.renderer.render(this.mainViewer.skybox.scene, this.mainViewer.skybox.camera);
+    } else if (this.mainViewer.background === 'gradient') {
+      this.renderer.render(this.mainViewer.scene.sceneBG, this.mainViewer.scene.cameraBG);
     }
 
     //TODO adapt to multiple lights
@@ -242,11 +238,14 @@ export class EDLRenderer {
       }
 
       // TODO adapt to multiple lights
-      viewer.renderer.setRenderTarget(this.rtEDL);
+      this.renderer.setRenderTarget(this.rtEDL);
 
       if (lights.length > 0) {
-        viewer.pRenderer.render(viewer.scene.scenePointCloud, camera, this.rtEDL, {
-          clipSpheres: viewer.scene.volumes.filter((v) => v instanceof SphereVolume),
+        if (params.camera) {
+          console.log('rtEDL 2', this.rtEDL);
+        }
+        this.pRenderer.render(this.mainViewer.scene.scenePointCloud, camera, this.rtEDL, {
+          clipSpheres: this.mainViewer.scene.volumes.filter((v) => v instanceof SphereVolume),
           shadowMaps: [this.shadowMap],
           transparent: false,
         });
@@ -272,17 +271,21 @@ export class EDLRenderer {
         //test.matrixWorldInverse.invert(test.matrixWorld);
         //test.matrixWorldInverse.multiplyMatrices(test.matrixWorldInverse, mat);
 
-        viewer.pRenderer.render(viewer.scene.scenePointCloud, camera, this.rtEDL, {
-          clipSpheres: viewer.scene.volumes.filter((v) => v instanceof SphereVolume),
+        if (params.camera) {
+          console.log('rtEDL 3', this.rtEDL);
+        }
+
+        this.pRenderer.render(this.mainViewer.scene.scenePointCloud, camera, this.rtEDL, {
+          clipSpheres: this.mainViewer.scene.volumes.filter((v) => v instanceof SphereVolume),
           transparent: false,
         });
       }
     }
 
-    viewer.dispatchEvent({ type: 'render.pass.before_scene', viewer: viewer });
-    viewer.dispatchEvent({ type: 'render.pass.scene', viewer: viewer, renderTarget: this.rtRegular });
-    viewer.renderer.setRenderTarget(null);
-    viewer.renderer.render(viewer.scene.scene, camera);
+    this.viewer.dispatchEvent({ type: 'render.pass.before_scene', viewer: this.viewer, renderer: this.renderer });
+    this.viewer.dispatchEvent({ type: 'render.pass.scene', viewer: this.viewer, renderer: this.renderer, renderTarget: this.rtRegular });
+    this.renderer.setRenderTarget(null);
+    this.renderer.render(this.viewer.scene.scene, camera);
 
     {
       // EDL PASS
@@ -302,30 +305,30 @@ export class EDLRenderer {
       uniforms.uEDLDepth.value = this.rtEDL.depthTexture;
       uniforms.uProj.value = projArray;
 
-      uniforms.edlStrength.value = viewer.edlStrength;
-      uniforms.radius.value = viewer.edlRadius;
-      uniforms.opacity.value = viewer.edlOpacity; // HACK
+      uniforms.edlStrength.value = this.mainViewer.edlStrength;
+      uniforms.radius.value = this.mainViewer.edlRadius;
+      uniforms.opacity.value = this.mainViewer.edlOpacity; // HACK
 
-      Utils.screenPass.render(viewer.renderer, this.edlMaterial);
+      Utils.screenPass.render(this.renderer, this.edlMaterial);
 
       if (this.screenshot) {
-        Utils.screenPass.render(viewer.renderer, this.edlMaterial, this.screenshot.target);
+        Utils.screenPass.render(this.renderer, this.edlMaterial, this.screenshot.target);
       }
     }
 
-    viewer.dispatchEvent({ type: 'render.pass.before_scene', viewer: viewer });
-    viewer.dispatchEvent({ type: 'render.pass.scene', viewer: viewer });
+    this.viewer.dispatchEvent({ type: 'render.pass.before_scene', viewer: this.viewer, renderer: this.renderer });
+    this.viewer.dispatchEvent({ type: 'render.pass.scene', viewer: this.viewer, renderer: this.renderer });
 
-    viewer.renderer.clearDepth();
+    this.renderer.clearDepth();
 
-    viewer.transformationTool.update();
+    this.viewer.transformationTool && this.viewer.transformationTool.update();
 
-    viewer.dispatchEvent({ type: 'render.pass.perspective_overlay', viewer: viewer });
+    this.viewer.dispatchEvent({ type: 'render.pass.perspective_overlay', viewer: this.viewer, renderer: this.renderer });
 
-    viewer.renderer.render(viewer.controls.sceneControls, camera);
-    viewer.renderer.render(viewer.clippingTool.sceneVolume, camera);
-    viewer.renderer.render(viewer.transformationTool.scene, camera);
+    this.viewer.controls && this.renderer.render(this.viewer.controls.sceneControls, camera);
+    this.viewer.clippingTool && this.renderer.render(this.viewer.clippingTool.sceneVolume, camera);
+    this.viewer.transformationTool && this.renderer.render(this.viewer.transformationTool.scene, camera);
 
-    viewer.dispatchEvent({ type: 'render.pass.end', viewer: viewer });
+    this.viewer.dispatchEvent({ type: 'render.pass.end', viewer: this.viewer, renderer: this.renderer });
   }
 }

@@ -335,6 +335,10 @@ export class EarthControls extends EventDispatcher {
   }
 
   update(delta) {
+    if (!this.viewer.controls) {
+      console.log(this.viewer);
+      return;
+    }
     let view = this.scene.view;
     let fade = Math.pow(0.5, this.fadeFactor * delta);
     let progression = 1 - fade;

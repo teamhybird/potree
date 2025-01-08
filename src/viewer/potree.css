@@ -48,7 +48,15 @@
 	--measurement-detail-node-bg-dark:		var(--color-2);
 	--measurement-detail-area-bg-color:		#eee;
 
-	
+}
+
+#video-viewer-container{
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	width: 500px;
+	height: 500px;
+	z-index: 1001;
 }
 
 #potree_sidebar_container{

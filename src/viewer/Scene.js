@@ -48,6 +48,7 @@ export class Scene extends EventDispatcher {
     this.measurementsDeletedQueue = [];
     this.measurementsAddedQueueLoading = false;
     this.measurementsDeletedQueueLoading = false;
+    this.videoPlayers = [];
 
     this.selectedMeasurement = null;
 
@@ -460,6 +461,27 @@ export class Scene extends EventDispatcher {
         type: 'profile_removed',
         scene: this,
         profile: profile,
+      });
+    }
+  }
+
+  addVideoPlayer(videoPlayer) {
+    this.videoPlayers.push(videoPlayer);
+    this.dispatchEvent({
+      type: 'video_player_added',
+      scene: this,
+      videoPlayer,
+    });
+  }
+
+  removeVideoPlayer(videoPlayer) {
+    let index = this.videoPlayers.indexOf(videoPlayer);
+    if (index > -1) {
+      this.videoPlayers.splice(index, 1);
+      this.dispatchEvent({
+        type: 'video_player_removed',
+        scene: this,
+        videoPlayer,
       });
     }
   }

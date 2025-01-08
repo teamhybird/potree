@@ -63,6 +63,7 @@ export * from './utils/CameraHelperTool.js';
 export * from './utils/Compass.js';
 
 export * from './viewer/viewer.js';
+export * from './viewer/video-viewer.js';
 export * from './viewer/Scene.js';
 export * from './viewer/HierarchicalSlider.js';
 
@@ -70,6 +71,7 @@ export * from './modules/OrientedImages/OrientedImages.js';
 export * from './modules/Images360/Images360.js';
 export * from './modules/Images360/NavvisImages360.js';
 export * from './modules/CameraAnimation/CameraAnimation.js';
+export * from './modules/VideoPlayer/VideoPlayer.js';
 
 export * from './modules/loader/2.0/OctreeLoader.js';
 

@@ -540,8 +540,8 @@ export class MeasuringTool extends EventDispatcher {
     }
   }
 
-  render(params) {
-    const renderer = this.viewer.renderer;
+  render(params = {}) {
+    const renderer = params.renderer || this.viewer.renderer;
 
     const oldTarget = renderer.getRenderTarget();
 

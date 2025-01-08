@@ -1,9 +1,11 @@
 import * as THREE from '../../libs/three.js/build/three.module.js';
 
 export class PotreeRenderer {
-  constructor(viewer) {
+  constructor(viewer, params = {}) {
     this.viewer = viewer;
     this.renderer = viewer.renderer;
+    this.pRenderer = viewer.pRenderer;
+    this.mainViewer = params.mainViewer || viewer;
 
     {
       let dummyScene = new THREE.Scene();
@@ -20,77 +22,79 @@ export class PotreeRenderer {
   clearTargets() {}
 
   clear() {
-    let { viewer, renderer } = this;
+    let { mainViewer, renderer } = this;
 
     // render skybox
-    if (viewer.background === 'skybox') {
+    if (mainViewer.background === 'skybox') {
       renderer.setClearColor(0xff0000, 1);
-    } else if (viewer.background === 'gradient') {
+    } else if (mainViewer.background === 'gradient') {
       renderer.setClearColor(0x00ff00, 1);
-    } else if (viewer.background === 'black') {
+    } else if (mainViewer.background === 'black') {
       renderer.setClearColor(0x000000, 1);
-    } else if (viewer.background === 'white') {
+    } else if (mainViewer.background === 'white') {
       renderer.setClearColor(0xffffff, 1);
     } else {
-      renderer.setClearColor(viewer.background, 1);
+      renderer.setClearColor(mainViewer.background, 1);
     }
 
     renderer.clear();
   }
 
   render(params) {
-    let { viewer, renderer } = this;
+    let { viewer, mainViewer, renderer } = this;
 
-    const camera = params.camera ? params.camera : viewer.scene.getActiveCamera();
+    const camera = viewer.scene.getActiveCamera();
 
-    viewer.dispatchEvent({ type: 'render.pass.begin', viewer: viewer });
+    viewer.dispatchEvent({ type: 'render.pass.begin', viewer: viewer, renderer: renderer });
 
     const renderAreaSize = renderer.getSize(new THREE.Vector2());
     const width = params.viewport ? params.viewport[2] : renderAreaSize.x;
     const height = params.viewport ? params.viewport[3] : renderAreaSize.y;
 
     // render skybox
-    if (viewer.background === 'skybox') {
-      viewer.skybox.camera.rotation.copy(viewer.scene.cameraP.rotation);
-      viewer.skybox.camera.fov = viewer.scene.cameraP.fov;
-      viewer.skybox.camera.aspect = viewer.scene.cameraP.aspect;
+    if (mainViewer.background === 'skybox') {
+      mainViewer.skybox.camera.rotation.copy(mainViewer.scene.cameraP.rotation);
+      mainViewer.skybox.camera.fov = mainViewer.scene.cameraP.fov;
+      mainViewer.skybox.camera.aspect = mainViewer.scene.cameraP.aspect;
 
-      viewer.skybox.parent.rotation.x = 0;
-      viewer.skybox.parent.updateMatrixWorld();
+      mainViewer.skybox.parent.rotation.x = 0;
+      mainViewer.skybox.parent.updateMatrixWorld();
 
-      viewer.skybox.camera.updateProjectionMatrix();
-      renderer.render(viewer.skybox.scene, viewer.skybox.camera);
-    } else if (viewer.background === 'gradient') {
-      renderer.render(viewer.scene.sceneBG, viewer.scene.cameraBG);
+      mainViewer.skybox.camera.updateProjectionMatrix();
+      renderer.render(mainViewer.skybox.scene, mainViewer.skybox.camera);
+    } else if (mainViewer.background === 'gradient') {
+      renderer.render(mainViewer.scene.sceneBG, mainViewer.scene.cameraBG);
     }
 
-    for (let pointcloud of this.viewer.scene.pointclouds) {
+    for (let pointcloud of mainViewer.scene.pointclouds) {
       const { material } = pointcloud;
       material.useEDL = false;
     }
 
-    viewer.pRenderer.render(viewer.scene.scenePointCloud, camera, null, {
-      clipSpheres: viewer.scene.volumes.filter((v) => v instanceof Potree.SphereVolume),
+    this.pRenderer.render(mainViewer.scene.scenePointCloud, camera, null, {
+      clipSpheres: mainViewer.scene.volumes.filter((v) => v instanceof Potree.SphereVolume),
     });
 
     // render scene
     renderer.render(viewer.scene.scene, camera);
 
-    viewer.dispatchEvent({ type: 'render.pass.before_scene', viewer: viewer });
+    viewer.dispatchEvent({ type: 'render.pass.before_scene', viewer: viewer, renderer: renderer });
 
-    viewer.dispatchEvent({ type: 'render.pass.scene', viewer: viewer });
+    viewer.dispatchEvent({ type: 'render.pass.scene', viewer: viewer, renderer: renderer });
 
-    viewer.clippingTool.update();
-    renderer.render(viewer.clippingTool.sceneMarker, viewer.scene.cameraScreenSpace); //viewer.scene.cameraScreenSpace);
-    renderer.render(viewer.clippingTool.sceneVolume, camera);
+    if (viewer.clippingTool) {
+      viewer.clippingTool.update();
+      renderer.render(viewer.clippingTool.sceneMarker, viewer.scene.cameraScreenSpace); //viewer.scene.cameraScreenSpace);
+      renderer.render(viewer.clippingTool.sceneVolume, camera);
+    }
 
-    renderer.render(viewer.controls.sceneControls, camera);
+    viewer.controls && renderer.render(viewer.controls.sceneControls, camera);
 
     renderer.clearDepth();
 
-    viewer.transformationTool.update();
+    viewer.transformationTool && viewer.transformationTool.update();
 
-    viewer.dispatchEvent({ type: 'render.pass.perspective_overlay', viewer: viewer });
+    viewer.dispatchEvent({ type: 'render.pass.perspective_overlay', viewer: viewer, renderer: renderer });
 
     // renderer.render(viewer.controls.sceneControls, camera);
     // renderer.render(viewer.clippingTool.sceneVolume, camera);
@@ -102,6 +106,6 @@ export class PotreeRenderer {
     // renderer.render(viewer.navigationCube, viewer.navigationCube.camera);
     // renderer.setViewport(0, 0, width, height);
 
-    viewer.dispatchEvent({ type: 'render.pass.end', viewer: viewer });
+    viewer.dispatchEvent({ type: 'render.pass.end', viewer: viewer, renderer: renderer });
   }
 }
