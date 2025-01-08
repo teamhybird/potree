@@ -357,6 +357,15 @@ export class Scene extends EventDispatcher {
     }
   }
 
+  emptyAddedMeasurementsQueue() {
+    this.measurementsAddedQueueLoading = false;
+    this.measurementsAddedQueue = [];
+    if (this.measurementsDeletedQueue.length > 0) {
+      // if measurements still in the queue after adding continue with removing them because add has higher priority over remove
+      this.deleteMeasurementsFromQueue();
+    }
+  }
+
   loadMeasurementsFromQueue() {
     if (this.measurementsAddedQueue.length === 0) {
       this.measurementsAddedQueueLoading = false;
