@@ -113,6 +113,20 @@
 
             const videoViewer = new Potree.VideoViewer(document.getElementById('video-viewer-container'), viewer);
 
+            // // FOLLOW CAMERA
+            // // Use the main viewer's controls but set them to follow mode
+            // viewer.setControls(viewer.followCamControls);
+
+            // // Set the video viewer's camera as the reference to follow
+            // viewer.followCamControls.setReferenceCamera(videoViewer.scene.getActiveCamera());
+            // // viewer.followCamControls.lockRotation = true;
+
+            // TOP DOWN
+            viewer.setControls(viewer.topDownControls);
+
+            // Set the video viewer's camera as the reference to follow
+            viewer.topDownControls.setReferenceCamera(videoViewer.scene.getActiveCamera());
+
             {
               // Video setup
               const video = document.getElementById('video');
@@ -133,8 +147,73 @@
                 0.7444560071083576, -0.09340927642286373, -0.6611051055304581, 27.78428057460933, 0.6675444572034028, 0.08481557304501908, 0.7397234052171524, 3.6316011108072352,
                 -0.013025019665837467, -0.9920085814382869, 0.12549630757716523, -0.15285726467283386, 0.0, 0.0, 0.0, 1.0,
               ];
+
               const cameraParams = { width: 1280, height: 720, focalLength: 1104.0582024322134 };
               videoPlayer.video = { video, cameraPosition, rotationMatrixValues, cameraParams };
+
+              const positions = [
+                [27.78428057, 3.63160111, -0.15285726],
+                [27.78428057, 4.63160111, -0.15285726],
+                [27.78428057, 5.63160111, -0.15285726],
+                [27.78428057, 6.63160111, -0.15285726],
+                [27.78428057, 7.63160111, -0.15285726],
+                [26.78428057, 7.63160111, -0.15285726],
+                [25.58428057, 7.63160111, -0.15285726],
+                [25.78428057, 9.63160111, -0.15285726],
+              ];
+
+              const rotMatrices = [
+                [
+                  0.7444560071083576, -0.09340927642286373, -0.6611051055304581, 27.78428057460933, 0.6675444572034028, 0.08481557304501908, 0.7397234052171524, 3.6316011108072352,
+                  -0.013025019665837467, -0.9920085814382869, 0.12549630757716523, -0.15285726467283386, 0.0, 0.0, 0.0, 1.0,
+                ],
+                [
+                  0.7444560071083576, -0.09340927642286373, -0.6611051055304581, 27.78428057460933, 0.6675444572034028, 0.08481557304501908, 0.7397234052171524, 3.6316011108072352,
+                  -0.013025019665837467, -0.9920085814382869, 0.12549630757716523, -0.15285726467283386, 0.0, 0.0, 0.0, 1.0,
+                ],
+                [
+                  0.7444560071083576, -0.09340927642286373, -0.6611051055304581, 27.78428057460933, 0.6675444572034028, 0.08481557304501908, 0.7397234052171524, 3.6316011108072352,
+                  -0.013025019665837467, -0.9920085814382869, 0.12549630757716523, -0.15285726467283386, 0.0, 0.0, 0.0, 1.0,
+                ],
+                [
+                  0.7444560071083576, -0.09340927642286373, -0.6611051055304581, 27.78428057460933, 0.6675444572034028, 0.08481557304501908, 0.7397234052171524, 3.6316011108072352,
+                  -0.013025019665837467, -0.9920085814382869, 0.12549630757716523, -0.15285726467283386, 0.0, 0.0, 0.0, 1.0,
+                ],
+                [
+                  0.7444560071083576, -0.09340927642286373, -0.6611051055304581, 27.78428057460933, 0.6675444572034028, 0.08481557304501908, 0.7397234052171524, 3.6316011108072352,
+                  -0.013025019665837467, -0.9920085814382869, 0.12549630757716523, -0.15285726467283386, 0.0, 0.0, 0.0, 1.0,
+                ],
+                [
+                  0.7444560071083576, -0.09340927642286373, -0.6611051055304581, 27.78428057460933, 0.6675444572034028, 0.08481557304501908, 0.7397234052171524, 3.6316011108072352,
+                  -0.013025019665837467, -0.9920085814382869, 0.12549630757716523, -0.15285726467283386, 0.0, 0.0, 0.0, 1.0,
+                ],
+                [
+                  0.7444560071083576, -0.09340927642286373, -0.6611051055304581, 27.78428057460933, 0.6675444572034028, 0.08481557304501908, 0.7397234052171524, 3.6316011108072352,
+                  -0.013025019665837467, -0.9920085814382869, 0.12549630757716523, -0.15285726467283386, 0.0, 0.0, 0.0, 1.0,
+                ],
+                [
+                  0.7444560071083576, -0.09340927642286373, -0.6611051055304581, 27.78428057460933, 0.6675444572034028, 0.08481557304501908, 0.7397234052171524, 3.6316011108072352,
+                  -0.013025019665837467, -0.9920085814382869, 0.12549630757716523, -0.15285726467283386, 0.0, 0.0, 0.0, 1.0,
+                ],
+              ];
+
+              for (let i = 0; i < positions.length; i++) {
+                const cp = videoPlayer.cameraAnimation.createControlPoint();
+                // Set position
+                cp.position.set(...positions[i]);
+
+                const rotMatrix = new THREE.Matrix4();
+                rotMatrix.set(...rotMatrices[i]);
+                // Convert rotation matrix to quaternion
+                const quaternion = new THREE.Quaternion();
+                quaternion.setFromRotationMatrix(rotMatrix);
+
+                // Set the control point's quaternion
+                cp.quaternion.copy(quaternion);
+              }
+
+              viewer.scene.addCameraAnimation(videoPlayer.cameraAnimation);
+
               videoViewer.scene.addVideoPlayer(videoPlayer);
               video.load();
               video.play().catch((err) => console.error('Error playing video:', err));
@@ -155,7 +234,7 @@
         'get',
         'https://raico-api.hybirdtech.com/inspection/details?inspection_id=7',
         {},
-        { 'App-Token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJTZXNzaW9uSUQiOiItT0V0QndoYjBOaEpBWTVJMVhXQiIsIlVzZXJJRCI6MywiZXhwIjoxNzM1Mzk4MzQxfQ.3iTsN5YJ5XPOVr9FdNXD8itoOmsXG1bFLpmd7-cvMDM' }
+        { 'App-Token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJTZXNzaW9uSUQiOiItT0c5MTBOS3hPYkNWa3F0UmI2dyIsIlVzZXJJRCI6MywiZXhwIjoxNzM2NzU0NDMxfQ.LqTZZRN7f19QNqXqd7mySHaNbQ5pXKejhG5RDGNPkmk' }
       );
     </script>
   </body>

@@ -72,8 +72,13 @@
         viewer.fitToScreen();
         const videoViewer = new Potree.VideoViewer(document.getElementById('video-viewer-container'), viewer);
 
+        // // Use the main viewer's controls but set them to follow mode
+        // const followCamControls = viewer.setControls(viewer.followCamControls);
+
+        // // Set the video viewer's camera as the reference to follow
+        // followCamControls.setReferenceCamera(videoViewer.scene.getActiveCamera());
+
         {
-          console.log(videoViewer);
           const videoPlayer = new Potree.VideoPlayer(videoViewer);
           videoPlayer.url =
             'https://hybird-dev.s3.eu-west-2.amazonaws.com/1/177/511/inspection/undistorted_images/DJI_0646.JPG?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUJETI7OZYM75W7TV%2F20241218%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20241218T132042Z&X-Amz-Expires=432000&X-Amz-SignedHeaders=host&X-Amz-Signature=9b3b6b0e8342f74f2130ba36fcaebe2d0485b572430c59f45dffff592873eec5';

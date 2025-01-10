@@ -1,4 +1,5 @@
 import * as THREE from '../../../libs/three.js/build/three.module.js';
+import { CameraAnimation } from '../CameraAnimation/CameraAnimation.js';
 import { CameraObject } from './CameraObject.js';
 
 const planeDistance = 1;
@@ -24,6 +25,7 @@ export class VideoPlayer extends THREE.Object3D {
 
     this.videoPlane = null;
     this.cameraObject = new CameraObject(this.viewer.mainViewer, this.viewer.scene.getActiveCamera());
+    this.cameraAnimation = new CameraAnimation(this.viewer.mainViewer, this.viewer.scene.getActiveCamera()); // this should correspond to each segment of the video, each segment should have its own path
     this.transparency = 1;
 
     this.viewer.addEventListener('update', this.update.bind(this));
@@ -45,6 +47,7 @@ export class VideoPlayer extends THREE.Object3D {
 
     // Add camera object to the main scene
     this.mainViewerScene.add(this.cameraObject);
+    this.mainViewerScene.add(this.cameraAnimation.node);
   }
 
   async init(cameraPosition, rotationMatrixValues, cameraParams) {
@@ -163,7 +166,9 @@ export class VideoPlayer extends THREE.Object3D {
   mainViewerRender(params) {
     const renderer = this.viewer.mainViewer.renderer;
 
-    renderer.render(this.mainViewerScene, this.viewer.mainViewer.scene.getActiveCamera());
+    if (this.viewer.mainViewer.controls !== this.viewer.mainViewer.followCamControls) {
+      renderer.render(this.mainViewerScene, this.viewer.mainViewer.scene.getActiveCamera());
+    }
   }
 
   get video() {

@@ -27,7 +27,7 @@ export class CameraAnimation extends EventDispatcher {
 
     this.node = new THREE.Object3D();
     this.node.name = 'camera animation';
-    this.viewer.scene.scene.add(this.node);
+    // this.viewer.scene.scene.add(this.node);
 
     this.frustum = this.createFrustum();
     // this.node.add(this.frustum);
@@ -125,6 +125,17 @@ export class CameraAnimation extends EventDispatcher {
       }
 
       this.line.material.resolution.set(width, height);
+
+      let clientWidth = width;
+      let clientHeight = height;
+
+      let distance = camera.position.distanceTo(this.line.getWorldPosition(new THREE.Vector3()));
+      let pr = Utils.projectedRadius(1, camera, distance, clientWidth, clientHeight);
+      let lineWidth = Math.max(Math.min(20 / pr, 8), 6); // Clamp line width
+
+      // Update line width dynamically
+      this.line.material.linewidth = lineWidth;
+      this.line.material.needsUpdate = true; // Ensure material updates
 
       this.updatePath();
 
@@ -415,8 +426,8 @@ export class CameraAnimation extends EventDispatcher {
   play() {
     const tStart = performance.now();
     const duration = this.duration;
-    const originalyVisible = this.visible;
-    this.setVisible(false);
+    // const originalyVisible = this.visible;
+    // this.setVisible(false);
 
     const onUpdate = (delta) => {
       let tNow = performance.now();
@@ -429,9 +440,11 @@ export class CameraAnimation extends EventDispatcher {
 
       this.camera.position.copy(frame.position);
       this.camera.quaternion.copy(frame.quaternion);
+      // apply correction for camera orientation
+      this.camera.rotateX(THREE.Math.degToRad(180));
 
       if (t > 1) {
-        this.setVisible(originalyVisible);
+        // this.setVisible(originalyVisible);
         this.viewer.removeEventListener('update', onUpdate);
       }
     };

@@ -38,6 +38,8 @@ import { PointCloudArena4D } from '../arena4d/PointCloudArena4D.js';
 import { ProgressBar } from './ProgressBar.js';
 
 import JSON5 from '../../libs/json5-2.1.3/json5.mjs';
+import { FollowCamControls } from '../navigation/FollowCamControls.js';
+import { TopDownControls } from '../navigation/TopDownControls.js';
 
 export class Viewer extends EventDispatcher {
   constructor(domElement, args = {}) {
@@ -340,6 +342,8 @@ export class Viewer extends EventDispatcher {
       this.volumeTool = new VolumeTool(this);
       this.shapeTool = new ShapeTool(this);
       this.cameraHelperTool = new CameraHelperTool(this);
+      this.followCamControls = new FollowCamControls(this);
+      this.topDownControls = new TopDownControls(this);
     } catch (e) {
       this.onCrash(e);
     }
@@ -1320,6 +1324,22 @@ export class Viewer extends EventDispatcher {
       this.orbitControls.enabled = false;
       this.orbitControls.addEventListener('start', this.disableAnnotations.bind(this));
       this.orbitControls.addEventListener('end', this.enableAnnotations.bind(this));
+    }
+
+    {
+      // create FOLLOW CAM CONTROLS
+      this.followCamControls = new FollowCamControls(this);
+      this.followCamControls.enabled = false;
+      this.followCamControls.addEventListener('start', this.disableAnnotations.bind(this));
+      this.followCamControls.addEventListener('end', this.enableAnnotations.bind(this));
+    }
+
+    {
+      // create TOP DOWN CONTROLS
+      this.topDownControls = new TopDownControls(this);
+      this.topDownControls.enabled = false;
+      this.topDownControls.addEventListener('start', this.disableAnnotations.bind(this));
+      this.topDownControls.addEventListener('end', this.enableAnnotations.bind(this));
     }
 
     {

@@ -43,6 +43,8 @@ export class Scene extends EventDispatcher {
     this.geoControls = null;
     this.deviceControls = null;
     this.panoControls = null;
+    this.followCamControls = null;
+
     this.inputHandler = null;
     this.measurementsAddedQueue = [];
     this.measurementsDeletedQueue = [];

@@ -79,7 +79,7 @@ export class CameraObject extends THREE.Object3D {
 
     let distance = camera.position.distanceTo(this.getWorldPosition(new THREE.Vector3()));
     let pr = Utils.projectedRadius(1, camera, distance, clientWidth, clientHeight);
-    let scale = Math.max(Math.min(30 / pr, 4), 0.2); // Clamp scale
+    let scale = Math.max(Math.min(15 / pr, 4), 0.2); // Clamp scale
 
     this.scale.set(scale, scale, scale);
   }
