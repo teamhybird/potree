@@ -263,7 +263,7 @@ export class VideoViewer extends EventDispatcher {
       }
 
       // Override near plane to avoid clipping
-      camera.near = 0.01;
+      camera.near = 0.1;
     }
 
     camera.updateMatrix();

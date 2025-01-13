@@ -2,7 +2,6 @@ import * as THREE from '../../../libs/three.js/build/three.module.js';
 import { CameraAnimation } from '../CameraAnimation/CameraAnimation.js';
 import { CameraObject } from './CameraObject.js';
 
-const planeDistance = 1;
 export class VideoPlayer extends THREE.Object3D {
   constructor(viewer) {
     super();
@@ -93,15 +92,54 @@ export class VideoPlayer extends THREE.Object3D {
   }
 
   createVideoPlane() {
+    const camera = this.viewer.scene.getActiveCamera();
     const texture = new THREE.VideoTexture(this.video);
     texture.minFilter = THREE.LinearFilter;
     texture.magFilter = THREE.LinearFilter;
     texture.format = THREE.RGBFormat;
 
-    const geometry = new THREE.PlaneGeometry(1, 1);
-    const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
-    const plane = new THREE.Mesh(geometry, material);
+    const vertexShader = `
+			varying vec2 vUv;
+			uniform float uDistance;
+			uniform float uNear; // Near plane value (to use for depth correction)
 
+			void main() {
+				vUv = uv;
+
+				// Transform the vertex position into camera space (view space)
+				vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
+
+				// Offset the position along the view direction (camera space)
+				viewPosition.z = -uDistance; // Move the object 0.1 units in front of the camera
+
+				// Apply the projection matrix
+				gl_Position = projectionMatrix * viewPosition;
+			}
+    `;
+
+    const fragmentShader = `
+      uniform sampler2D videoTexture;
+      varying vec2 vUv;
+
+      void main() {
+        vec4 texColor = texture2D(videoTexture, vUv);
+        gl_FragColor = texColor;
+      }
+    `;
+
+    const geometry = new THREE.PlaneGeometry(1, 1);
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        videoTexture: { value: texture },
+        uDistance: { value: 0.1 }, // Fixed distance in front of the camera
+        uNear: { value: camera.near }, // Pass the near plane value to the shader
+      },
+      vertexShader: vertexShader,
+      fragmentShader: fragmentShader,
+      side: THREE.DoubleSide,
+    });
+
+    const plane = new THREE.Mesh(geometry, material);
     return plane;
   }
 
@@ -117,6 +155,7 @@ export class VideoPlayer extends THREE.Object3D {
 
   update() {
     let camera = this.viewer.scene.getActiveCamera();
+    const planeDistance = camera.near + 0.01;
 
     this.light.position.copy(camera.position);
 
@@ -141,6 +180,7 @@ export class VideoPlayer extends THREE.Object3D {
 
         this.videoPlane.scale.set(planeWidth, planeHeight, 1);
         this.videoPlane.material.opacity = this.transparency;
+        this.videoPlane.material.uniforms.uNear.value = camera.near;
       }
     }
 

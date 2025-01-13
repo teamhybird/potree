@@ -277,6 +277,10 @@ export class CameraAnimation extends EventDispatcher {
   }
 
   updatePath() {
+    if (!this.controlPoints || this.controlPoints.length < 2) {
+      return;
+    }
+
     {
       const positions = this.controlPoints.map((cp) => cp.position);
       const first = positions[0];
@@ -305,6 +309,13 @@ export class CameraAnimation extends EventDispatcher {
   }
 
   at(t) {
+    if (!this.cameraCurve || !this.quaternions || this.quaternions.length < 2) {
+      return {
+        position: new THREE.Vector3(),
+        quaternion: new THREE.Quaternion(),
+      };
+    }
+
     if (t > 1) t = 1;
     if (t < 0) t = 0;
 
