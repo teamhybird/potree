@@ -7,7 +7,6 @@ import { HQSplatRenderer } from './HQSplatRenderer.js';
 import { PotreeRenderer } from './PotreeRenderer.js';
 import { Scene } from './Scene.js';
 import { InputHandler } from '../navigation/InputHandler.js';
-import { CameraMode } from '../defines.js';
 import { MeasuringTool } from '../Potree.js';
 
 export class VideoViewer extends EventDispatcher {
@@ -197,6 +196,16 @@ export class VideoViewer extends EventDispatcher {
     view.pitch = endPitch;
     view.yaw = endYaw;
     view.roll = endRoll;
+  }
+
+  getProjection() {
+    const pointcloud = this.mainViewer.scene.pointclouds[0];
+
+    if (pointcloud) {
+      return pointcloud.projection;
+    } else {
+      return null;
+    }
   }
 
   render() {

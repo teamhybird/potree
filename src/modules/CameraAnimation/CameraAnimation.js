@@ -39,6 +39,12 @@ export class CameraAnimation extends EventDispatcher {
     this.curveType = 'centripetal';
     this.visible = true;
 
+    this.isPlaying = false;
+    this.startTime = null;
+    this.pausedTime = null;
+    this.pausedProgress = null;
+    this.updateCallback = null;
+
     this.createUpdateHook();
     this.createPath();
   }
@@ -435,15 +441,19 @@ export class CameraAnimation extends EventDispatcher {
   }
 
   play() {
-    const tStart = performance.now();
-    const duration = this.duration;
-    // const originalyVisible = this.visible;
-    // this.setVisible(false);
+    if (this.isPlaying) return;
+
+    this.isPlaying = true;
+    this.startTime = performance.now();
+    this.pausedTime = null;
+    this.pausedProgress = null;
 
     const onUpdate = (delta) => {
+      if (!this.isPlaying) return;
+
       let tNow = performance.now();
-      let elapsed = (tNow - tStart) / 1000;
-      let t = elapsed / duration;
+      let elapsed = (tNow - this.startTime) / 1000;
+      let t = elapsed / this.duration;
 
       this.set(t);
 
@@ -451,15 +461,59 @@ export class CameraAnimation extends EventDispatcher {
 
       this.camera.position.copy(frame.position);
       this.camera.quaternion.copy(frame.quaternion);
-      // apply correction for camera orientation
       this.camera.rotateX(THREE.Math.degToRad(180));
 
       if (t > 1) {
-        // this.setVisible(originalyVisible);
+        this.stop();
         this.viewer.removeEventListener('update', onUpdate);
       }
     };
 
+    this.updateCallback = onUpdate;
+    this.viewer.addEventListener('update', onUpdate);
+  }
+
+  stop() {
+    if (!this.isPlaying) return;
+
+    this.isPlaying = false;
+    this.pausedTime = performance.now();
+    this.pausedProgress = this.t;
+
+    if (this.updateCallback) {
+      this.viewer.removeEventListener('update', this.updateCallback);
+      this.updateCallback = null;
+    }
+  }
+
+  resume() {
+    if (this.isPlaying || !this.pausedProgress) return;
+
+    this.isPlaying = true;
+    this.startTime = performance.now() - this.pausedProgress * this.duration * 1000;
+
+    const onUpdate = (delta) => {
+      if (!this.isPlaying) return;
+
+      let tNow = performance.now();
+      let elapsed = (tNow - this.startTime) / 1000;
+      let t = elapsed / this.duration;
+
+      this.set(t);
+
+      const frame = this.at(t);
+
+      this.camera.position.copy(frame.position);
+      this.camera.quaternion.copy(frame.quaternion);
+      this.camera.rotateX(THREE.Math.degToRad(180));
+
+      if (t > 1) {
+        this.stop();
+        this.viewer.removeEventListener('update', onUpdate);
+      }
+    };
+
+    this.updateCallback = onUpdate;
     this.viewer.addEventListener('update', onUpdate);
   }
 }

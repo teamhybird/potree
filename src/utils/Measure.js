@@ -324,6 +324,7 @@ export class Measure extends THREE.Object3D {
     this.angleLabels = [];
     this.coordinateLabels = [];
     this.measureLabels = [];
+    this.refMeasures = [];
 
     this.heightEdge = createHeightLine(this.transparency);
     this.heightLabel = createHeightLabel(this.selected, this.transparency);
@@ -582,7 +583,9 @@ export class Measure extends THREE.Object3D {
     {
       // Event Listeners
       let drag = (e) => {
-        let I = Utils.getMousePointCloudIntersection(e.drag.end, e.viewer.scene.getActiveCamera(), e.viewer, e.viewer.scene.pointclouds, { pickClipped: true });
+        let I = Utils.getMousePointCloudIntersection(e.drag.end, e.viewer.scene.getActiveCamera(), e.viewer, e.viewer.mainViewer ? e.viewer.mainViewer.scene.pointclouds : e.viewer.scene.pointclouds, {
+          pickClipped: true,
+        });
 
         if (I && this.enableMove) {
           let i = this.spheres.indexOf(e.drag.object);
@@ -601,6 +604,27 @@ export class Measure extends THREE.Object3D {
             }
 
             this.setPosition(i, I.location);
+
+            // Update reference measures if this is a clone
+            if (this.refMeasures) {
+              this.refMeasures.forEach((measure) => {
+                if (measure) {
+                  measure.setPosition(i, I.location);
+                }
+              });
+            }
+            // Update original measure if this is a clone
+            if (this.originalMeasure) {
+              this.originalMeasure.setPosition(i, I.location);
+              // Also update other clones of the original
+              if (this.originalMeasure.refMeasures) {
+                this.originalMeasure.refMeasures.forEach((measure) => {
+                  if (measure && measure !== this) {
+                    measure.setPosition(i, I.location);
+                  }
+                });
+              }
+            }
           }
         }
       };
@@ -1253,5 +1277,74 @@ export class Measure extends THREE.Object3D {
 
   set enableMove(value) {
     this._enableMove = value;
+  }
+
+  copy(sourceMeasure) {
+    super.copy(sourceMeasure);
+
+    // Copy basic properties
+    this._showDistances = sourceMeasure._showDistances;
+    this._showCoordinates = sourceMeasure._showCoordinates;
+    this._showMeasureText = sourceMeasure._showMeasureText;
+    this._measureText = sourceMeasure._measureText;
+    this._coordinatesText = sourceMeasure._coordinatesText;
+    this._showArea = sourceMeasure._showArea;
+    this._selected = sourceMeasure._selected;
+    this._hovered = sourceMeasure._hovered;
+    this._transparency = sourceMeasure._transparency;
+    this._closed = sourceMeasure._closed;
+    this._showAngles = sourceMeasure._showAngles;
+    this._showCircle = sourceMeasure._showCircle;
+    this._showHeight = sourceMeasure._showHeight;
+    this._showEdges = sourceMeasure._showEdges;
+    this._showAzimuth = sourceMeasure._showAzimuth;
+    this.maxMarkers = sourceMeasure.maxMarkers;
+    this.colorName = sourceMeasure.colorName;
+    this.systemType = sourceMeasure.systemType;
+    this.subSystemType = sourceMeasure.subSystemType;
+    this.color = sourceMeasure.color.clone();
+    this.isInserting = sourceMeasure.isInserting;
+    this.enableMove = sourceMeasure.enableMove;
+
+    // Reset arrays
+    this.spheres = [];
+    this.edges = [];
+    this.sphereLabels = [];
+    this.edgeLabels = [];
+    this.angleLabels = [];
+    this.coordinateLabels = [];
+    this.measureLabels = [];
+    this.refMeasures = [];
+
+    // Recreate visual elements
+    this.heightEdge = createHeightLine(this.transparency);
+    this.heightLabel = createHeightLabel(this.selected, this.transparency);
+    this.areaLabel = createAreaLabel(this.selected, this.transparency);
+    this.circleMesh = createCircleMesh(this.color);
+    this.azimuth = createAzimuth(this.color, this.transparency);
+
+    // Add elements to the object
+    this.add(this.heightEdge);
+    this.add(this.heightLabel);
+    this.add(this.areaLabel);
+    this.add(this.circleMesh);
+    this.add(this.azimuth.node);
+
+    // Copy points and create associated visual elements
+    this.points = [];
+    sourceMeasure.points.forEach((point) => {
+      this.addMarker({
+        position: point.position.clone(),
+      });
+    });
+
+    // Store reference to original measure
+    this.originalMeasure = sourceMeasure;
+
+    return this;
+  }
+
+  clone() {
+    return new Measure().copy(this);
   }
 }

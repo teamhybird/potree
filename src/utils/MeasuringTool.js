@@ -169,8 +169,9 @@ export class MeasuringTool extends EventDispatcher {
     e.scene.addEventListener('measurement_removed', this.onRemove);
   }
 
-  startInsertion(args = {}) {
+  startInsertion(args = {}, otherViewers = []) {
     let domElement = this.viewer.renderer.domElement;
+    let otherDomElements = otherViewers.map((otherViewer) => otherViewer.renderer.domElement);
 
     let measure = new Measure();
     measure.isInserting = true;
@@ -211,6 +212,11 @@ export class MeasuringTool extends EventDispatcher {
     configureMeasure(args);
 
     this.scene.add(measure);
+    otherViewers.forEach((otherViewer) => {
+      if (otherViewer.measuringTool) {
+        otherViewer.measuringTool.scene.add(measure);
+      }
+    });
 
     let cancel = {
       removeLastMarker: measure.maxMarkers > 3,
@@ -229,6 +235,9 @@ export class MeasuringTool extends EventDispatcher {
 
           if (measure.maxMarkers !== 1) {
             this.viewer.inputHandler.startDragging(measure.spheres[measure.spheres.length - 1]);
+            otherViewers.forEach((otherViewer) => {
+              otherViewer.inputHandler.startDragging(measure.spheres[measure.spheres.length - 1]);
+            });
           }
         } else if (e.button === THREE.MOUSE.RIGHT || e.key === 'Escape') {
           if (measure.points.length <= 2) {
@@ -247,8 +256,15 @@ export class MeasuringTool extends EventDispatcher {
         }
       } else {
         this.viewer.inputHandler.startDragging(measure.spheres[measure.spheres.length - 1]);
+        otherViewers.forEach((otherViewer) => {
+          otherViewer.inputHandler.startDragging(measure.spheres[measure.spheres.length - 1]);
+        });
       }
       domElement.removeEventListener('mousemove', mouseMove);
+      otherDomElements.forEach((otherDomElement) => {
+        otherDomElement.removeEventListener('mousemove', mouseMove);
+      });
+
       mouseMoved = false;
       measure.enableMove = true;
     };
@@ -263,10 +279,16 @@ export class MeasuringTool extends EventDispatcher {
       measure.enableMove = false;
 
       domElement.removeEventListener('mousemove', mouseMove);
+      otherDomElements.forEach((otherDomElement) => {
+        otherDomElement.removeEventListener('mousemove', mouseMove);
+      });
     };
 
     let mouseDown = (e) => {
       domElement.addEventListener('mousemove', mouseMove);
+      otherDomElements.forEach((otherDomElement) => {
+        otherDomElement.addEventListener('mousemove', mouseMove);
+      });
     };
 
     cancel.callback = (e, isCanceled = false) => {
@@ -278,32 +300,72 @@ export class MeasuringTool extends EventDispatcher {
         measure: measure,
       });
       measure.isInserting = false;
-      domElement.removeEventListener('mouseup', insertionCallback, false);
       document.removeEventListener('keyup', insertionCallback, true);
+      domElement.removeEventListener('mouseup', insertionCallback, false);
       domElement.removeEventListener('mousedown', mouseDown, true);
       domElement.removeEventListener('dblclick', doubleClick, true);
+      otherDomElements.forEach((otherDomElement) => {
+        otherDomElement.removeEventListener('mouseup', insertionCallback, false);
+        otherDomElement.removeEventListener('mousedown', mouseDown, true);
+        otherDomElement.removeEventListener('dblclick', doubleClick, true);
+      });
+
       this.viewer.removeEventListener('cancel_insertions', cancel.callback);
       this.viewer.removeEventListener('cancel_all_insertions', (e) => cancel.callback(e, true));
+      otherViewers.forEach((otherViewer) => {
+        otherViewer.removeEventListener('cancel_insertions', cancel.callback);
+        otherViewer.removeEventListener('cancel_all_insertions', (e) => cancel.callback(e, true));
+      });
+      this.viewer.inputHandler.startDragging(null);
+      otherViewers.forEach((otherViewer) => {
+        otherViewer.inputHandler.startDragging(null);
+      });
     };
 
     if (measure.maxMarkers > 1) {
       this.viewer.addEventListener('cancel_insertions', cancel.callback);
       this.viewer.addEventListener('cancel_all_insertions', (e) => cancel.callback(e, true));
-      domElement.addEventListener('mouseup', insertionCallback, false);
+      otherViewers.forEach((otherViewer) => {
+        otherViewer.addEventListener('cancel_insertions', cancel.callback);
+        otherViewer.addEventListener('cancel_all_insertions', (e) => cancel.callback(e, true));
+      });
       document.addEventListener('keyup', insertionCallback, true);
+      domElement.addEventListener('mouseup', insertionCallback, false);
       domElement.addEventListener('mousedown', mouseDown, true);
       domElement.addEventListener('dblclick', doubleClick, true);
+      otherDomElements.forEach((otherDomElement) => {
+        otherDomElement.addEventListener('mouseup', insertionCallback, false);
+        otherDomElement.addEventListener('mousedown', mouseDown, true);
+        otherDomElement.addEventListener('dblclick', doubleClick, true);
+      });
     } else if (measure.maxMarkers === 1) {
-      domElement.addEventListener('mouseup', insertionCallback, false);
       document.addEventListener('keyup', insertionCallback, true);
+      domElement.addEventListener('mouseup', insertionCallback, false);
       domElement.addEventListener('mousedown', mouseDown, true);
+      otherDomElements.forEach((otherDomElement) => {
+        otherDomElement.addEventListener('mouseup', insertionCallback, false);
+        otherDomElement.addEventListener('mousedown', mouseDown, true);
+      });
+
       this.viewer.addEventListener('cancel_all_insertions', (e) => cancel.callback(e, true));
+      otherViewers.forEach((otherViewer) => {
+        otherViewer.addEventListener('cancel_all_insertions', (e) => cancel.callback(e, true));
+      });
     }
 
     measure.addMarker(new THREE.Vector3(0, 0, 0));
-    this.viewer.inputHandler.startDragging(measure.spheres[measure.spheres.length - 1]);
 
-    this.viewer.scene.addMeasurement(measure);
+    const mainMeasure = measure.clone();
+    const otherMeasures = otherViewers.map(() => measure.clone());
+    if (otherViewers.length > 0) {
+      measure.refMeasures = [mainMeasure, ...otherMeasures];
+    }
+    this.viewer.inputHandler.startDragging(measure.spheres[measure.spheres.length - 1]);
+    this.viewer.scene.addMeasurement(mainMeasure);
+    otherViewers.forEach((otherViewer, index) => {
+      otherViewer.inputHandler.startDragging(measure.spheres[measure.spheres.length - 1]);
+      otherViewer.scene.addMeasurement(otherMeasures[index]);
+    });
 
     return measure;
   }
