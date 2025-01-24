@@ -361,7 +361,11 @@ export class MeasuringTool extends EventDispatcher {
       measure.refMeasures = [mainMeasure, ...otherMeasures];
     }
     this.viewer.inputHandler.startDragging(measure.spheres[measure.spheres.length - 1]);
-    this.viewer.scene.addMeasurement(mainMeasure);
+    if (otherViewers.length > 0) {
+      this.viewer.scene.addMeasurement(mainMeasure);
+    } else {
+      this.viewer.scene.addMeasurement(measure);
+    }
     otherViewers.forEach((otherViewer, index) => {
       otherViewer.inputHandler.startDragging(measure.spheres[measure.spheres.length - 1]);
       otherViewer.scene.addMeasurement(otherMeasures[index]);
