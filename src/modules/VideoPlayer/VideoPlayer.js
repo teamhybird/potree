@@ -24,8 +24,9 @@ export class VideoPlayer extends THREE.Object3D {
 
     this.videoPlane = null;
     this.cameraObject = new CameraObject(this.viewer.mainViewer, this.viewer.scene.getActiveCamera());
-    this.cameraAnimation = new CameraAnimation(this.viewer.mainViewer, this.viewer.scene.getActiveCamera()); // this should correspond to each segment of the video, each segment should have its own path
+    this.cameraAnimations = new Map(); // Use Map instead of array
     this.transparency = 1;
+    this._pathVisible = true; // Add default value for path visibility
 
     this.viewer.addEventListener('update', this.update.bind(this));
     this.viewer.addEventListener('render.pass.before_scene', this.render.bind(this));
@@ -43,18 +44,63 @@ export class VideoPlayer extends THREE.Object3D {
 
   onAdd(e) {
     this.scene.add(e.videoPlayer);
-
-    // Add camera object to the main scene
     this.mainViewerScene.add(this.cameraObject);
-    this.mainViewerScene.add(this.cameraAnimation.node);
+
+    // Add all camera animation nodes
+    this.cameraAnimations.forEach((animation) => {
+      this.mainViewerScene.add(animation.node);
+    });
   }
 
-  async init(cameraPosition, rotationMatrixValues, cameraParams) {
+  addCameraAnimation(id) {
+    const animation = new CameraAnimation(this.viewer.mainViewer, this.viewer.scene.getActiveCamera());
+    animation.id = id; // Store ID in animation object
+    this.cameraAnimations.set(id, animation);
+
+    if (this.mainViewerScene) {
+      this.mainViewerScene.add(animation.node);
+      animation.setVisible(this._pathVisible);
+    }
+    return animation;
+  }
+
+  removeCameraAnimation(id) {
+    const animation = this.cameraAnimations.get(id);
+    if (animation) {
+      if (this.mainViewerScene) {
+        this.mainViewerScene.remove(animation.node);
+      }
+      this.cameraAnimations.delete(id);
+    }
+  }
+
+  setCameraAnimationsVisible(visible) {
+    this.cameraAnimations.forEach((animation) => {
+      animation.setVisible(visible);
+    });
+  }
+
+  getCameraAnimation(id) {
+    return this.cameraAnimations.get(id);
+  }
+
+  getCameraAnimations() {
+    return Array.from(this.cameraAnimations.values());
+  }
+
+  clearCameraAnimations() {
+    this.cameraAnimations.forEach((animation) => {
+      if (this.mainViewerScene) {
+        this.mainViewerScene.remove(animation.node);
+      }
+    });
+    this.cameraAnimations.clear();
+  }
+
+  async init(cameraPosition = [0, 0, 0], rotationMatrixValues = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], cameraParams) {
     try {
       this.videoPlane = this.createVideoPlane();
-
       this.setupCameraForImage(cameraPosition, rotationMatrixValues, cameraParams);
-
       this.add(this.videoPlane);
     } catch (e) {
       console.error('Cannot load texture: ', e);
@@ -218,5 +264,17 @@ export class VideoPlayer extends THREE.Object3D {
   set video({ video, cameraPosition, rotationMatrixValues, cameraParams }) {
     this._video = video;
     this.init(cameraPosition, rotationMatrixValues, cameraParams);
+  }
+
+  // Add getter/setter for pathVisible
+  get pathVisible() {
+    return this._pathVisible;
+  }
+
+  set pathVisible(visible) {
+    this._pathVisible = visible;
+    this.cameraAnimations.forEach((animation) => {
+      animation.setVisible(visible);
+    });
   }
 }
